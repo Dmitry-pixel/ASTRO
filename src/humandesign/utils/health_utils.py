@@ -11,6 +11,13 @@ def check_swisseph_health() -> str:
     or "error" if something is broken.
     """
     try:
+        # The ephemeris path is thread-local; this probe runs in whichever worker
+        # thread served the request, so apply it here too. Without this the health
+        # endpoint reports Moshier while the main thread is on DE431.
+        from ..features.core import ensure_ephe_path
+
+        ensure_ephe_path()
+
         # Perform a test calculation for the Sun at J2000.0
         result = swe.calc_ut(2451545.0, swe.SUN)
         # In pysweph, result is (xx, retflags, serr)

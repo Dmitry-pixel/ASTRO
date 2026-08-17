@@ -30,7 +30,7 @@ from ..auth import (
 from .. import auth as _auth_module
 from ..utils.version import get_version
 
-router = APIRouter()
+router = APIRouter(tags=["panel"])
 
 # Templates
 _templates_dir = os.path.join(os.path.dirname(__file__), "..", "templates")

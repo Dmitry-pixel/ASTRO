@@ -96,11 +96,10 @@ rotation.
 | `geolocation.py` | Live | Geocoding, reverse geocoding, batch geocoding, distance |
 | `dream_rave.py` | Live | `DreamRaveEngine` — design-side mechanics |
 | `global_cycles.py` | Live | `GlobalCycleEngine` — cycle mechanics |
-| `composite.py` | **No HTTP surface** | ~630 lines of relational logic: Maia connection classification, center dynamics, bridging, aura dynamics, profile resonance, variable synergy, nodal resonance, Penta dynamics |
 
-`composite.py` is reachable only from tests and from `features/__init__.py` re-exports. No router
-imports it. The relational endpoints that once exposed it were removed deliberately; the module was
-retained.
+The relational service that once backed `/analyze/*` was removed together with those endpoints.
+Penta and composite-combination logic still lives in `features/core.py` (`get_penta`,
+`hd_composite`, `get_composite_combinations`) and is covered by `tests/test_penta.py`.
 
 ### 3.4 Calculation core — `features/`
 
@@ -110,9 +109,17 @@ retained.
 | `mechanics.py` | System rules — authority, energy type, definition, channels and active centers |
 | `attributes.py` | Derived attributes — incarnation cross, quarter, profile, variables, line counts, yin/yang balance, sun roles, lunar phase |
 
-**Ephemeris resolution** (`core.py`, at import): `SE_EPHE_PATH` env var → bundled `ephe/` directory
-→ silent fallback to the Moshier analytical model. The fallback is not logged; a deployment missing
-`ephe/` produces lower-precision results with no error.
+**Ephemeris resolution** (`core.py`, at import): `SE_EPHE_PATH` env var → bundled `ephe/` directory.
+A directory named by `SE_EPHE_PATH` that does not exist is logged and ignored. If neither source
+yields a directory, the module raises `RuntimeError` under `ENVIRONMENT=production` and otherwise
+logs a warning before continuing in Moshier mode.
+
+**Thread affinity.** `swe_set_ephe_path` is thread-local in this build of pysweph, and FastAPI runs
+non-async path operations in an anyio worker thread. A path applied only at import time is therefore
+invisible to request handlers. `ensure_ephe_path()` re-applies it and is called from
+`hd_features.__init__` and from the health probe. Removing those calls reintroduces a measured
+divergence in the Variables arrows on roughly 5% of charts, guarded by
+`tests/test_ephemeris_threading.py`.
 
 ### 3.5 Utilities — `utils/`
 
@@ -123,9 +130,7 @@ channels JSON shaping) · `version.py` (reads version from `pyproject.toml`).
 
 ### 3.6 Contracts — `schemas/`
 
-`input_models.py` — `PersonInput`, `PentaRequest`, `HybridAnalysisRequest`. The latter two have no
-corresponding endpoint and exist for the retained composite logic.
-`response_models.py`, `general.py` — v1 shapes.
+`general.py` — `HealthResponse`, the v1 health shape.
 `v2/calculate.py` — 19 models forming the v2 response tree: `GeneralSectionV2`, `GatesV2`,
 `CentersV2`, `AnalyticsSectionV2`, `AdvancedSectionV2` and leaves. Fields are `Optional` so that
 `response_model_exclude_none=True` yields sparse output.
@@ -162,8 +167,11 @@ healthcheck calls it.
 **Configuration.** Environment-driven: `HD_ADMIN_TOKEN`, `ENVIRONMENT`, `SE_EPHE_PATH`,
 `AG_DATA_DIR`, `AG_ENV_PATH`, `CORS_ORIGINS`. `.env` is git-ignored; `.env_example` is the template.
 
-**Observability.** `GET /health` reports Swiss Ephemeris status via `health_utils`. Per-request
-logging lands in `api_auth.db` and is surfaced at `/panel/logs` and `/panel/api/logs`.
+**Observability.** `GET /health` reports three dependencies: the Swiss Ephemeris mode via
+`health_utils`, the writable auth database, and the read-only reference database. It answers
+`degraded` if either database is unreachable — `hd_data.sqlite` is checked explicitly because
+`/v2/calculate` fails without it while `api_auth.db` stays healthy. Per-request logging lands in
+`api_auth.db` and is surfaced at `/panel/logs` and `/panel/api/logs`.
 
 **Data separation.** `hd_data.sqlite` is reference data, mounted read-only. `api_auth.db` is mutable
 runtime state, created under `AG_DATA_DIR` on a writable volume.
@@ -195,8 +203,8 @@ after a 15 s grace period. Volumes: `./data` writable, `hd_data.sqlite` read-onl
 4. **Transport.** Register the route on an existing router, or add a router and include it in `api.py`.
 5. **Regenerate the contract.** `openapi.yaml` is a dump of `app.openapi()`. Regenerate it rather
    than editing by hand, otherwise the spec and the code drift apart.
-6. **Test.** `tests/` holds 19 test modules covering calculation parity, schema shape, v2 behaviour,
-   variables, Penta and health.
+6. **Test.** `tests/` holds 17 modules covering calculation parity, schema shape, v2 behaviour,
+   variables, Penta, health and ephemeris thread affinity.
 
 ---
 
@@ -204,8 +212,7 @@ after a 15 s grace period. Volumes: `./data` writable, `hd_data.sqlite` read-onl
 
 | Item | Detail |
 |---|---|
-| Silent ephemeris fallback | Missing `ephe/` degrades precision without any log line |
-| Relative database path | `SQLiteRepository._db_path = "hd_data.sqlite"` resolves against the process working directory. Correct under Docker (`WORKDIR /app`); fragile when launched from elsewhere |
 | Demo defaults on inputs | All birth parameters default to a fixed date and place, so a parameter-less request returns a plausible chart rather than a validation error |
-| Dormant relational logic | `services/composite.py` and the `PentaRequest` / `HybridAnalysisRequest` schemas have no HTTP surface |
 | Single worker | `--workers 1`; horizontal scaling requires multiple containers behind the proxy |
+| Moshier permitted outside production | Development and test runs continue without `ephe/`, so a local result can differ from a production one |
+| Reference database path | Resolved from the project root, overridable with `HD_DATA_PATH`. Moving `hd_data.sqlite` without setting that variable breaks `/v2/calculate` |

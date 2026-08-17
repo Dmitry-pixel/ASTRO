@@ -5,6 +5,8 @@ info:
 paths:
   /health:
     get:
+      tags:
+      - general
       summary: Health Check
       description: Operational status and system info.
       operationId: health_check_health_get
@@ -17,6 +19,8 @@ paths:
                 $ref: '#/components/schemas/HealthResponse'
   /calculate:
     get:
+      tags:
+      - general
       summary: Calculate Hd
       operationId: calculate_hd_calculate_get
       security:
@@ -307,6 +311,8 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
   /panel/login:
     get:
+      tags:
+      - panel
       summary: Login Page
       operationId: login_page_panel_login_get
       responses:
@@ -317,6 +323,8 @@ paths:
               schema:
                 type: string
     post:
+      tags:
+      - panel
       summary: Login Submit
       operationId: login_submit_panel_login_post
       requestBody:
@@ -340,6 +348,8 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
   /panel/logout:
     get:
+      tags:
+      - panel
       summary: Logout
       operationId: logout_panel_logout_get
       responses:
@@ -350,6 +360,8 @@ paths:
               schema: {}
   /panel/dashboard:
     get:
+      tags:
+      - panel
       summary: Dashboard
       operationId: dashboard_panel_dashboard_get
       parameters:
@@ -377,6 +389,8 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
   /panel/sites:
     get:
+      tags:
+      - panel
       summary: Sites Page
       operationId: sites_page_panel_sites_get
       responses:
@@ -388,6 +402,8 @@ paths:
                 type: string
   /panel/calculator:
     get:
+      tags:
+      - panel
       summary: Calculator Page
       operationId: calculator_page_panel_calculator_get
       responses:
@@ -399,6 +415,8 @@ paths:
                 type: string
   /panel/logs:
     get:
+      tags:
+      - panel
       summary: Logs Page
       operationId: logs_page_panel_logs_get
       responses:
@@ -410,6 +428,8 @@ paths:
                 type: string
   /panel/api/sites:
     post:
+      tags:
+      - panel
       summary: Api Create Site
       operationId: api_create_site_panel_api_sites_post
       responses:
@@ -420,6 +440,8 @@ paths:
               schema: {}
   /panel/api/sites/{site_id}:
     put:
+      tags:
+      - panel
       summary: Api Update Site
       operationId: api_update_site_panel_api_sites__site_id__put
       parameters:
@@ -442,6 +464,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
     delete:
+      tags:
+      - panel
       summary: Api Delete Site
       operationId: api_delete_site_panel_api_sites__site_id__delete
       parameters:
@@ -465,6 +489,8 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
   /panel/api/logs:
     get:
+      tags:
+      - panel
       summary: Api Get Logs
       operationId: api_get_logs_panel_api_logs_get
       parameters:
@@ -515,6 +541,8 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
   /panel/settings:
     get:
+      tags:
+      - panel
       summary: Settings Page
       operationId: settings_page_panel_settings_get
       responses:
@@ -526,6 +554,8 @@ paths:
                 type: string
   /panel/api/settings/token:
     put:
+      tags:
+      - panel
       summary: Api Change Token
       operationId: api_change_token_panel_api_settings_token_put
       responses:
@@ -536,6 +566,8 @@ paths:
               schema: {}
   /panel:
     get:
+      tags:
+      - panel
       summary: Panel Root
       operationId: panel_root_panel_get
       responses:

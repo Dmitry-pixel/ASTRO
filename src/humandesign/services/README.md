@@ -14,8 +14,8 @@ This directory (`src/humandesign/services`) contains the service layer. It bridg
 - **[`sqlite_repository.py`](sqlite_repository.py)** — `SQLiteRepository`.
     - Singleton read-only accessor over `hd_data.sqlite`, tables `public_gates` and
       `public_gate_lines`.
-    - `_db_path` is relative and resolves against the process working directory. Correct under
-      Docker (`WORKDIR /app`); set it explicitly if launching from elsewhere.
+    - The database path is resolved from the project root, not the process working directory, so
+      the repository works wherever uvicorn or pytest was started. `HD_DATA_PATH` overrides it.
 - **[`geolocation.py`](geolocation.py)** — location resolution.
     - `get_latitude_longitude`, `get_address`, `batch_geocode`, `calculate_distance`.
     - Uses `geopy`; the module-level `tf` is a shared `TimezoneFinder` singleton.
@@ -23,12 +23,11 @@ This directory (`src/humandesign/services`) contains the service layer. It bridg
   inside the `/v2/calculate` handler.
 - **[`global_cycles.py`](global_cycles.py)** — `GlobalCycleEngine`. Cycle mechanics, loaded lazily
   inside the `/v2/calculate` handler.
-- **[`composite.py`](composite.py)** — relational analysis. **Currently has no HTTP surface.**
-    - Maia connection classification, center dynamics, bridging, aura dynamics, profile resonance,
-      variable synergy, nodal resonance, Penta dynamics.
-    - The endpoints that exposed this module were removed; the logic and its tests
-      (`tests/test_penta.py`, `tests/test_nodal_synergy.py`, `tests/test_variable_synergy.py`)
-      were retained. Reachable in code via `features.get_penta` and `features.hd_composite`.
+## Removed
+
+The relational service that backed the `/analyze/*` endpoints was deleted along with them. Penta and
+composite-combination logic remains in `features/core.py` — `get_penta`, `hd_composite`,
+`get_composite_combinations` — and is covered by `tests/test_penta.py`.
 
 ## Note on visualization
 

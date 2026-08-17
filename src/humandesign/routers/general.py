@@ -13,7 +13,7 @@ from ..schemas.general import HealthResponse
 from ..utils.health_utils import check_swisseph_health
 from datetime import datetime
 
-router = APIRouter()
+router = APIRouter(tags=["general"])
 
 @router.get("/health", response_model=HealthResponse)
 def health_check():
@@ -21,7 +21,7 @@ def health_check():
     from ..api import __version__
     from ..auth import _get_db
 
-    # Check SQLite connectivity
+    # Auth/logging database (api_auth.db) — writable runtime state
     db_status = "error"
     try:
         conn = _get_db()
@@ -31,13 +31,30 @@ def health_check():
     except Exception:
         db_status = "error"
 
+    # Reference database (hd_data.sqlite) — required by /v2/calculate enrichment.
+    # Checked separately: without it the calculation endpoints fail while the
+    # auth database stays perfectly healthy.
+    reference_db_status = "error"
+    try:
+        from ..services.sqlite_repository import SQLiteRepository
+
+        SQLiteRepository().connect().execute("SELECT 1 FROM public_gates LIMIT 1")
+        reference_db_status = "ready"
+    except Exception:
+        reference_db_status = "error"
+
+    ephemeris_status = check_swisseph_health()
+
+    healthy = db_status == "ready" and reference_db_status == "ready"
+
     return {
-        "status": "ok" if db_status == "ready" else "degraded",
+        "status": "ok" if healthy else "degraded",
         "version": __version__,
         "timestamp": datetime.now().isoformat(),
         "dependencies": {
-            "pysweph": check_swisseph_health(),
-            "sqlite": db_status
+            "pysweph": ephemeris_status,
+            "sqlite": db_status,
+            "hd_data": reference_db_status
         }
     }
 

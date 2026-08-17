@@ -10,6 +10,7 @@ from multiprocessing import Pool
 from tqdm.contrib.concurrent import process_map
 import sys
 import os
+import logging
 from .attributes import (
     get_inc_cross,
     get_profile,
@@ -29,16 +30,54 @@ from .mechanics import (
 )
 
 # --- Configure Swiss Ephemeris to use compressed JPL DE431 (.se1 files) ---
-# Priority: SE_EPHE_PATH env var > bundled ephe/ directory > Moshier fallback
+# Resolution order: SE_EPHE_PATH env var > bundled ephe/ directory.
+# With neither available, pysweph silently falls back to the Moshier analytical
+# model, which is measurably less precise than DE431. That fallback is logged, and
+# refused outright under ENVIRONMENT=production so a deployment cannot quietly
+# serve degraded results.
+_log = logging.getLogger(__name__)
+
 _ephe_path = os.environ.get("SE_EPHE_PATH")
+if _ephe_path and not os.path.isdir(_ephe_path):
+    _log.warning("SE_EPHE_PATH points to %r, which is not a directory. Ignoring it.", _ephe_path)
+    _ephe_path = None
+
 if not _ephe_path:
-    # Look for ephe/ relative to the project root (two levels up from features/)
+    # Look for ephe/ relative to the project root (three levels up from features/)
     _project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
     _candidate = os.path.join(_project_root, "ephe")
     if os.path.isdir(_candidate):
         _ephe_path = _candidate
+
 if _ephe_path:
     swe.set_ephe_path(_ephe_path)
+    _log.info("Swiss Ephemeris data directory: %s", _ephe_path)
+else:
+    _EPHE_MISSING = (
+        "Swiss Ephemeris data files were not found. Set SE_EPHE_PATH, or place the "
+        ".se1 files in the bundled ephe/ directory. Without them the engine falls "
+        "back to the Moshier analytical model, which is less precise than JPL DE431."
+    )
+    if os.environ.get("ENVIRONMENT", "").strip().lower() == "production":
+        raise RuntimeError(_EPHE_MISSING)
+    _log.warning("%s Continuing in Moshier mode because ENVIRONMENT is not 'production'.", _EPHE_MISSING)
+
+
+def ensure_ephe_path():
+    """Re-apply the ephemeris directory inside the calling thread.
+
+    ``swe_set_ephe_path`` stores its value in thread-local storage in this build of
+    pysweph. FastAPI executes non-async path operations in an anyio worker thread,
+    so a path applied at import time (main thread) is invisible to request handlers
+    and Swiss Ephemeris silently degrades to the Moshier model there. Measured
+    effect: identical Type/Authority/Profile/Cross/Centers, but the Variables
+    arrows differ on roughly 5% of charts because the lunar node position shifts by
+    up to ~13 arcseconds, comparable to the 94-arcsecond width of a tone.
+
+    Cheap and idempotent - call it at the head of every calculation entry point.
+    """
+    if _ephe_path:
+        swe.set_ephe_path(_ephe_path)
 
 def get_utc_offset_from_tz(timestamp,zone):
     """
@@ -91,6 +130,9 @@ class hd_features:
         Initialization of timestamp attributes for basic calculation 
         hd_constants.py 
         '''
+        # Thread-local ephemeris state - see ensure_ephe_path() for why this is here.
+        ensure_ephe_path()
+
         self.year = year
         self.month = month
         self.day = day

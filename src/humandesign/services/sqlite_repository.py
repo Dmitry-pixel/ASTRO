@@ -2,9 +2,17 @@ import sqlite3
 import os
 from typing import Dict, Any
 
+# hd_data.sqlite is reference data shipped with the repository. Resolve it against
+# the project root rather than the process working directory, so the repository
+# works regardless of where uvicorn or pytest was started from.
+# HD_DATA_PATH overrides the location.
+_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+DEFAULT_DB_PATH = os.environ.get("HD_DATA_PATH") or os.path.join(_PROJECT_ROOT, "hd_data.sqlite")
+
+
 class SQLiteRepository:
     _instance = None
-    _db_path = "hd_data.sqlite"
+    _db_path = DEFAULT_DB_PATH
 
     def __new__(cls):
         if cls._instance is None:
