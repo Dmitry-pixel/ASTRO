@@ -32,7 +32,7 @@ def calculate_hd_v2(
             latitude, longitude = get_latitude_longitude(request.place)
             
         if latitude is not None and longitude is not None:
-            if "/" in request.place:
+            if request.place and "/" in request.place:
                 zone = request.place
             else:
                 zone = tf.timezone_at(lat=latitude, lng=longitude) or 'Etc/UTC'

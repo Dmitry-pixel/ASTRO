@@ -36,11 +36,11 @@ def test_v2_advanced_mechanics():
 def test_v2_global_cycle_2027_transition():
     """Verify the 2027 transition for Global Cycles."""
     # Before 2027
-    resp_before = client.post("/v2/calculate", json={"year": 2026, "month": 12, "day": 31, "hour": 23, "minute": 59})
+    resp_before = client.post("/v2/calculate", json={"year": 2026, "month": 12, "day": 31, "hour": 23, "minute": 59, "place": "London, UK"})
     data_before = resp_before.json()
     assert data_before["advanced"]["global_cycle"]["cycle_cross"] == "Cross of Planning"
     
     # After 2027
-    resp_after = client.post("/v2/calculate", json={"year": 2027, "month": 1, "day": 1, "hour": 0, "minute": 0})
+    resp_after = client.post("/v2/calculate", json={"year": 2027, "month": 1, "day": 1, "hour": 0, "minute": 0, "place": "London, UK"})
     data_after = resp_after.json()
     assert data_after["advanced"]["global_cycle"]["cycle_cross"] == "Cross of the Sleeping Phoenix"

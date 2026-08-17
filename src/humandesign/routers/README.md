@@ -7,7 +7,7 @@ application's HTTP endpoints. All four routers are registered in `api.py`.
 
 - **[`general.py`](general.py)** — v1 surface, no prefix, tag `general`:
     - `GET /health`: Swiss Ephemeris mode plus both SQLite databases. Unauthenticated; used by the Docker healthcheck. Answers `degraded` if either database is unreachable.
-    - `GET /calculate`: Full chart calculation. Query parameters, bearer auth.
+    - `GET /calculate`: Full chart calculation. Query parameters, bearer auth. `year`, `month`, `day`, `hour` and `minute` are required, as is `place` unless both `latitude` and `longitude` are given.
 - **[`v2/general.py`](v2/general.py)** — prefix `/v2`, tag `v2`:
     - `POST /v2/calculate`: High-fidelity nested response with recursive `include`/`exclude` masking. Bearer auth.
 - **[`admin.py`](admin.py)** — prefix `/admin`, tag `admin`, admin token required:

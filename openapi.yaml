@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Human Design API
-  version: 3.4.1
+  version: 3.4.2
 paths:
   /health:
     get:
@@ -28,47 +28,42 @@ paths:
       parameters:
       - name: year
         in: query
-        required: false
+        required: true
         schema:
           type: integer
           description: Birth year
-          default: 1968
           title: Year
         description: Birth year
       - name: month
         in: query
-        required: false
+        required: true
         schema:
           type: integer
           description: Birth month
-          default: 2
           title: Month
         description: Birth month
       - name: day
         in: query
-        required: false
+        required: true
         schema:
           type: integer
           description: Birth day
-          default: 21
           title: Day
         description: Birth day
       - name: hour
         in: query
-        required: false
+        required: true
         schema:
           type: integer
           description: Birth hour
-          default: 11
           title: Hour
         description: Birth hour
       - name: minute
         in: query
-        required: false
+        required: true
         schema:
           type: integer
           description: Birth minute
-          default: 0
           title: Minute
         description: Birth minute
       - name: second
@@ -76,28 +71,32 @@ paths:
         required: false
         schema:
           type: integer
-          description: Birth second (optional, default 0)
+          description: Birth second
           default: 0
           title: Second
-        description: Birth second (optional, default 0)
+        description: Birth second
       - name: place
         in: query
         required: false
         schema:
-          type: string
-          description: Birth place (city, country)
-          default: Kirikkale, Turkey
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Birth place (city, country) or IANA timezone. Required unless latitude and longitude
+            are both supplied.
           title: Place
-        description: Birth place (city, country)
+        description: Birth place (city, country) or IANA timezone. Required unless latitude and longitude
+          are both supplied.
       - name: gender
         in: query
         required: false
         schema:
-          type: string
-          description: Gender (optional)
-          default: male
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Gender
           title: Gender
-        description: Gender (optional)
+        description: Gender
       - name: islive
         in: query
         required: false
@@ -114,9 +113,9 @@ paths:
           anyOf:
           - type: number
           - type: 'null'
-          description: Optional latitude for birth place
+          description: Latitude for the birth place; bypasses geocoding when given with longitude
           title: Latitude
-        description: Optional latitude for birth place
+        description: Latitude for the birth place; bypasses geocoding when given with longitude
       - name: longitude
         in: query
         required: false
@@ -124,9 +123,9 @@ paths:
           anyOf:
           - type: number
           - type: 'null'
-          description: Optional longitude for birth place
+          description: Longitude for the birth place; bypasses geocoding when given with latitude
           title: Longitude
-        description: Optional longitude for birth place
+        description: Longitude for the birth place; bypasses geocoding when given with latitude
       responses:
         '200':
           description: Successful Response
@@ -640,44 +639,40 @@ components:
           type: integer
           title: Year
           description: Birth year
-          default: 1968
         month:
           type: integer
           title: Month
           description: Birth month
-          default: 2
         day:
           type: integer
           title: Day
           description: Birth day
-          default: 21
         hour:
           type: integer
           title: Hour
           description: Birth hour
-          default: 11
         minute:
           type: integer
           title: Minute
           description: Birth minute
-          default: 0
         second:
           type: integer
           title: Second
           description: Birth second
           default: 0
         place:
-          type: string
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Place
-          description: Birth place
-          default: Kirikkale, Turkey
+          description: Birth place (city, country) or IANA timezone. Required unless latitude and longitude
+            are both supplied.
         gender:
           anyOf:
           - type: string
           - type: 'null'
           title: Gender
           description: Gender
-          default: male
         islive:
           anyOf:
           - type: boolean
@@ -690,11 +685,13 @@ components:
           - type: number
           - type: 'null'
           title: Latitude
+          description: Latitude; bypasses geocoding when given with longitude
         longitude:
           anyOf:
           - type: number
           - type: 'null'
           title: Longitude
+          description: Longitude; bypasses geocoding when given with latitude
         include:
           anyOf:
           - items:
@@ -717,6 +714,12 @@ components:
           example:
           - channels
       type: object
+      required:
+      - year
+      - month
+      - day
+      - hour
+      - minute
       title: CalculateRequestV2
     CalculateResponseV2:
       properties:

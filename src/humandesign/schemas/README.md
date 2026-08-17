@@ -8,8 +8,10 @@ validation and response serialization.
 - **[`general.py`](general.py)** — `HealthResponse`: the shape returned by `GET /health`.
   `dependencies` is a free-form string map, currently `pysweph`, `sqlite` and `hd_data`.
 - **[`v2/calculate.py`](v2/calculate.py)** — the v2 contract, 19 models.
-    - `CalculateRequestV2`: birth parameters plus the `include` / `exclude` masking lists. Every
-      field has a default, so an empty request body is valid.
+    - `CalculateRequestV2`: birth parameters plus the `include` / `exclude` masking lists.
+      `year`, `month`, `day`, `hour` and `minute` are required. A model validator requires either
+      `place` or both `latitude` and `longitude` — the API does not substitute a stand-in chart for
+      an incomplete request.
     - `CalculateResponseV2`: the response tree — `GeneralSectionV2`, `GatesV2`, `CentersV2`,
       `AnalyticsSectionV2`, `AdvancedSectionV2` and their leaf models.
     - Fields are `Optional` so that `response_model_exclude_none=True` produces sparse output after

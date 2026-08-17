@@ -1,18 +1,27 @@
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 class CalculateRequestV2(BaseModel):
-    year: int = Field(1968, description="Birth year")
-    month: int = Field(2, description="Birth month")
-    day: int = Field(21, description="Birth day")
-    hour: int = Field(11, description="Birth hour")
-    minute: int = Field(0, description="Birth minute")
+    year: int = Field(..., description="Birth year")
+    month: int = Field(..., description="Birth month")
+    day: int = Field(..., description="Birth day")
+    hour: int = Field(..., description="Birth hour")
+    minute: int = Field(..., description="Birth minute")
     second: int = Field(0, description="Birth second")
-    place: str = Field("Kirikkale, Turkey", description="Birth place")
-    gender: Optional[str] = Field("male", description="Gender")
+    place: Optional[str] = Field(
+        None,
+        description="Birth place (city, country) or IANA timezone. Required unless latitude and longitude are both supplied.",
+    )
+    gender: Optional[str] = Field(None, description="Gender")
     islive: Optional[bool] = Field(True, description="Whether alive")
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
+    latitude: Optional[float] = Field(None, description="Latitude; bypasses geocoding when given with longitude")
+    longitude: Optional[float] = Field(None, description="Longitude; bypasses geocoding when given with latitude")
+
+    @model_validator(mode="after")
+    def _require_place_or_coordinates(self):
+        if self.place is None and (self.latitude is None or self.longitude is None):
+            raise ValueError("Provide 'place', or both 'latitude' and 'longitude'.")
+        return self
     
     include: Optional[List[str]] = Field(None, description="Sections to include (e.g. ['general', 'personality_gates'])", example=["general", "personality_gates"])
     exclude: Optional[List[str]] = Field(None, description="Sections to exclude", example=["channels"])

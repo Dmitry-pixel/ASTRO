@@ -1,6 +1,6 @@
 # Project Architecture Blueprint
 
-**Version:** 3.4.1
+**Version:** 3.4.2
 **Project:** Human Design API (`humandesign-api`)
 **Scope:** Reflects the code as it exists in this repository. Every module, endpoint and
 dependency listed below was verified against source before writing.
@@ -140,8 +140,12 @@ channels JSON shaping) · `version.py` (reads version from `pyproject.toml`).
 ## 4. Request Flow — `POST /v2/calculate`
 
 1. **Auth.** `verify_token` resolves the bearer token to a site, sets `request.state.site_id`.
-2. **Validation.** Pydantic parses `CalculateRequestV2`. Every field has a default, so an empty body is accepted.
-3. **Location.** Supplied `latitude`/`longitude` are used as-is; otherwise `place` is geocoded. Timezone comes from the `timezonefinder` singleton.
+2. **Validation.** Pydantic parses `CalculateRequestV2`. `year`, `month`, `day`, `hour` and `minute`
+   are required; a model validator additionally demands `place`, or both `latitude` and `longitude`.
+   An incomplete body returns 422.
+3. **Location.** Supplied `latitude`/`longitude` are used as-is; otherwise `place` is geocoded. A
+   `place` containing `/` is treated as an IANA timezone; otherwise the zone comes from the
+   `timezonefinder` singleton.
 4. **Offset.** UTC offset derived from the zone with DST respected.
 5. **Astronomy.** Swiss Ephemeris computes planetary longitudes for personality and design times.
 6. **Rave transformation.** Longitudes mapped to gates, lines, colors and tones.
@@ -212,7 +216,6 @@ after a 15 s grace period. Volumes: `./data` writable, `hd_data.sqlite` read-onl
 
 | Item | Detail |
 |---|---|
-| Demo defaults on inputs | All birth parameters default to a fixed date and place, so a parameter-less request returns a plausible chart rather than a validation error |
 | Single worker | `--workers 1`; horizontal scaling requires multiple containers behind the proxy |
 | Moshier permitted outside production | Development and test runs continue without `ephe/`, so a local result can differ from a production one |
 | Reference database path | Resolved from the project root, overridable with `HD_DATA_PATH`. Moving `hd_data.sqlite` without setting that variable breaks `/v2/calculate` |

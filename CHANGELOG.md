@@ -9,6 +9,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.4.2] - 2026-08-17
+### Fixed
+- **Swiss Ephemeris ran in Moshier mode for every API request.** `swe_set_ephe_path`
+  is thread-local in pysweph, and FastAPI executes non-async path operations in a
+  worker threadpool, so the path applied at import time never reached request
+  handlers. The bundled JPL DE431 files were effectively unused in production.
+  `ensure_ephe_path()` now re-applies the path inside the calling thread.
+  **Output change:** measured over 200 charts, Type, Authority, Profile, Incarnation
+  Cross and the active centers are unchanged, while the Variables arrows differ on
+  11 of them (5.5%). The lunar node shifts by up to 13 arcseconds between the two
+  models, against a tone width of 94 arcseconds. Charts issued before this release
+  may disagree with charts issued after it on those arrows.
+- `GET /health` now checks `hd_data.sqlite` in addition to `api_auth.db` and reports
+  `degraded` if either is unreachable. It previously answered `ok` while
+  `POST /v2/calculate` failed on every request.
+- `hd_data.sqlite` is resolved from the project root instead of the process working
+  directory, so the service no longer depends on where it was launched from.
+  `HD_DATA_PATH` overrides the location.
+
+### Changed
+- **Breaking:** `year`, `month`, `day`, `hour` and `minute` are now required on both
+  `GET /calculate` and `POST /v2/calculate`. Location is required too: supply
+  `place`, or both `latitude` and `longitude`. Previously every parameter defaulted
+  to a fixed chart (1968-02-21, Kirikkale, Turkey), so a request that lost its
+  parameters returned a plausible 200 response instead of an error. Incomplete
+  requests now return 422.
+- `gender` no longer defaults to `"male"`; omitting it yields `null`.
+- A missing ephemeris directory raises `RuntimeError` at import under
+  `ENVIRONMENT=production`, and logs a warning otherwise. An `SE_EPHE_PATH` that
+  does not exist is logged and ignored rather than silently accepted.
+- Every route now carries an OpenAPI tag (`general`, `v2`, `admin`, `panel`), so the
+  Swagger UI groups them instead of collecting routes under `default`.
+
+### Removed
+- `services/composite.py`, `schemas/response_models.py` and `schemas/input_models.py`
+  together with `tests/test_nodal_synergy.py` and `tests/test_variable_synergy.py`.
+  These backed the `/analyze/*`, `/transits/*` and `/bodygraph` endpoints, which were
+  removed earlier; nothing in the application or the tests imported them. Penta and
+  composite-combination logic remains in `features/core.py`.
+
+### Added
+- `tests/test_ephemeris_threading.py` — regression guard for the thread-local
+  ephemeris path, built from the timestamps that were observed to flip.
+- `scripts/gen_openapi.py` — regenerates `openapi.yaml` from the live application, so
+  the specification cannot drift from the code again.
+
 ## [3.4.1] - 2026-01-23
 ### Added
 - **Deep Recursive Exclude**: Enhanced dot-notation support for `exclude` parameter up to 3+ levels (e.g., `["gates.personality.Sun"]`), ensuring full parity with whitelisting logic.

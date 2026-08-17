@@ -38,7 +38,7 @@ def test_calculate_with_new_fields():
     assert general["islive"] is True
 
 def test_calculate_backward_compatibility():
-    """Verify that /calculate still works without the new optional fields."""
+    """Verify that /calculate still works when the optional fields are omitted."""
     params = {
         "year": 1987,
         "month": 1,
@@ -51,7 +51,8 @@ def test_calculate_backward_compatibility():
     assert response.status_code == 200
     data = response.json()
     general = data["general"]
-    assert general["gender"] == "male"
+    # gender is no longer defaulted to "male" - when omitted it stays null
+    assert general["gender"] is None
     assert general["islive"] is True
     assert "age" in general
     assert "zodiac_sign" in general

@@ -60,20 +60,26 @@ def health_check():
 
 @router.get("/calculate")
 def calculate_hd(
-    year: int = Query(1968, description="Birth year"),
-    month: int = Query(2, description="Birth month"),
-    day: int = Query(21, description="Birth day"),
-    hour: int = Query(11, description="Birth hour"),
-    minute: int = Query(0, description="Birth minute"),
-    second: int = Query(0, description="Birth second (optional, default 0)"),
-    place: str = Query("Kirikkale, Turkey", description="Birth place (city, country)"),
-    gender: str = Query("male", description="Gender (optional)"),
+    year: int = Query(..., description="Birth year"),
+    month: int = Query(..., description="Birth month"),
+    day: int = Query(..., description="Birth day"),
+    hour: int = Query(..., description="Birth hour"),
+    minute: int = Query(..., description="Birth minute"),
+    second: int = Query(0, description="Birth second"),
+    place: Optional[str] = Query(None, description="Birth place (city, country) or IANA timezone. Required unless latitude and longitude are both supplied."),
+    gender: Optional[str] = Query(None, description="Gender"),
     islive: bool = Query(True, description="Whether the person is still alive (True) or deceased (False)"),
-    latitude: Optional[float] = Query(None, description="Optional latitude for birth place"),
-    longitude: Optional[float] = Query(None, description="Optional longitude for birth place"),
+    latitude: Optional[float] = Query(None, description="Latitude for the birth place; bypasses geocoding when given with longitude"),
+    longitude: Optional[float] = Query(None, description="Longitude for the birth place; bypasses geocoding when given with latitude"),
     authorized: bool = Depends(verify_token)
 ):
     # 1. Validate and collect input
+    if place is None and (latitude is None or longitude is None):
+        raise HTTPException(
+            status_code=422,
+            detail="Provide 'place', or both 'latitude' and 'longitude'."
+        )
+
     birth_time = (year, month, day, hour, minute, second)
 
     # 2. Geocode and timezone
@@ -83,7 +89,7 @@ def calculate_hd(
             latitude, longitude = get_latitude_longitude(place)
             
         if latitude is not None and longitude is not None:
-            if "/" in place:
+            if place and "/" in place:
                 zone = place
             else:
                 # Use singleton
