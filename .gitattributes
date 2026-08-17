@@ -1,0 +1,33 @@
+# ---------------------------------------------------------------------------
+# Line endings
+# ---------------------------------------------------------------------------
+# Normalize to LF in the repository; let Git pick the working-tree ending.
+* text=auto
+
+# These are executed by /bin/sh inside Linux containers and on the VPS. A CRLF
+# checkout on Windows makes the shebang unparsable, so pin them to LF everywhere.
+*.sh text eol=lf
+Dockerfile text eol=lf
+docker-compose.yml text eol=lf
+.env_example text eol=lf
+
+# ---------------------------------------------------------------------------
+# Binary payloads
+# ---------------------------------------------------------------------------
+# `binary` is shorthand for `-text -diff`: never munge line endings, never try
+# to produce a textual diff. Also excluded from language statistics, and marked
+# vendored so tooling treats them as third-party data rather than project source.
+
+# Swiss Ephemeris data (compressed JPL DE431). Shipped with the repository -
+# nothing downloads them, and their absence silently degrades precision.
+ephe/** binary
+ephe/** linguist-vendored=true
+
+# Human Design reference database: gate names, line descriptions, channels,
+# circuits. Authored content, not generated state - it cannot be recreated from
+# anything else in this repository.
+*.sqlite binary
+*.sqlite linguist-vendored=true
+
+*.ico binary
+*.se1 binary
