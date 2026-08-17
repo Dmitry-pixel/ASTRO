@@ -1,0 +1,176 @@
+{% extends "panel/base.html" %}
+{% block title %}Sites{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight" style="color:var(--c-txt-bright);">Sites</h1>
+            <p class="text-sm mt-1" style="color:var(--c-txt-dim);">Управление сайтами и API-токенами</p>
+        </div>
+        <button onclick="openModal('add')" class="btn-primary px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4v16m8-8H4"/></svg>
+            Добавить сайт
+        </button>
+    </div>
+    
+    <div class="card card-glow" id="sites-table">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="text-[11px] font-mono tracking-wider uppercase border-b" style="color:var(--c-txt-dim); border-color:var(--c-border);">
+                        <th class="text-left py-3 px-5">ID</th>
+                        <th class="text-left py-3 px-5">Домен</th>
+                        <th class="text-left py-3 px-5">Токен</th>
+                        <th class="text-center py-3 px-5">Статус</th>
+                        <th class="text-left py-3 px-5">Создан</th>
+                        <th class="text-right py-3 px-5">Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for site in sites %}
+                    <tr class="table-row border-b" style="border-color:var(--c-border);" id="site-row-{{ site.id }}">
+                        <td class="py-3 px-5 font-mono text-xs" style="color:var(--c-txt-dim);">{{ site.id }}</td>
+                        <td class="py-3 px-5 font-mono font-medium" style="color:var(--c-txt-bright);">{{ site.domain }}</td>
+                        <td class="py-3 px-5">
+                            {% if site.token %}
+                            <div class="flex items-center gap-2">
+                                <code class="text-xs font-mono px-2 py-1 rounded" id="token-{{ site.id }}"
+                                      style="background:var(--c-surface-2); color:var(--c-txt-dim);">{{ site.token[:8] }}••••••••</code>
+                                <button onclick="toggleToken({{ site.id }}, this.dataset.token)" data-token="{{ site.token | e }}"
+                                        style="color:var(--c-txt-dim);" class="hover:opacity-70 transition-opacity" title="Показать/скрыть">
+                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                        <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                    </svg>
+                                </button>
+                                <button onclick="copyToken(this.dataset.token)" data-token="{{ site.token | e }}" style="color:var(--c-txt-dim);" class="hover:opacity-70 transition-opacity" title="Копировать">
+                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                        <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            {% else %}
+                            <span class="text-xs" style="color:var(--c-txt-dim);">скрыт</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-5 text-center">
+                            {% if site.is_active %}<span class="badge badge-ok">active</span>
+                            {% else %}<span class="badge badge-err">disabled</span>{% endif %}
+                        </td>
+                        <td class="py-3 px-5 text-xs font-mono" style="color:var(--c-txt-dim);">{{ site.created_at }}</td>
+                        <td class="py-3 px-5 text-right">
+                            <div class="flex items-center justify-end gap-2">
+                                <button onclick="openModal('edit', {{ site | tojson }})" style="color:var(--c-txt-dim);" class="hover:opacity-70 p-1" title="Редактировать">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                </button>
+                                <button onclick="confirmDelete({{ site.id }}, '{{ site.domain }}')" style="color:var(--c-txt-dim);" class="hover:opacity-70 p-1" title="Удалить">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if not sites %}
+                    <tr><td colspan="6" class="py-12 text-center text-sm" style="color:var(--c-txt-dim);">Нет зарегистрированных сайтов</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Overlay -->
+<div id="modal-overlay" class="fixed inset-0 backdrop-blur-sm z-40 hidden" style="background:var(--c-overlay);" onclick="closeModal()"></div>
+<div id="modal" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md hidden">
+    <div class="card card-glow p-6" onclick="event.stopPropagation()">
+        <h3 id="modal-title" class="text-lg font-bold mb-5 font-mono" style="color:var(--c-txt-bright);"></h3>
+        <form id="modal-form" onsubmit="submitForm(event)">
+            <input type="hidden" id="form-site-id" value="">
+            <input type="hidden" id="form-mode" value="">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-mono mb-1.5 tracking-wider uppercase" style="color:var(--c-txt-dim);">Домен</label>
+                    <input type="text" id="form-domain" required class="input-field w-full px-3 py-2.5 rounded-lg text-sm font-mono" placeholder="example.com">
+                </div>
+                <div>
+                    <label class="block text-xs font-mono mb-1.5 tracking-wider uppercase" style="color:var(--c-txt-dim);">Токен <span style="opacity:0.5;">(пусто = авто)</span></label>
+                    <input type="text" id="form-token" class="input-field w-full px-3 py-2.5 rounded-lg text-sm font-mono" placeholder="авто-генерация">
+                </div>
+                <div id="form-active-row" class="hidden">
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" id="form-active" class="w-4 h-4" style="accent-color:var(--c-accent);">
+                        <span class="text-sm">Активен</span>
+                    </label>
+                </div>
+            </div>
+            <div class="flex items-center justify-end gap-3 mt-6">
+                <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-lg text-sm border transition-all" style="color:var(--c-txt-dim); border-color:var(--c-border);">Отмена</button>
+                <button type="submit" class="btn-primary px-5 py-2 rounded-lg text-sm font-semibold"><span id="modal-submit-text">Создать</span></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Confirmation -->
+<div id="delete-overlay" class="fixed inset-0 backdrop-blur-sm z-40 hidden" style="background:var(--c-overlay);" onclick="closeDelete()"></div>
+<div id="delete-modal" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-sm hidden">
+    <div class="card card-glow p-6">
+        <h3 class="text-lg font-bold mb-2" style="color:var(--c-txt-bright);">Удалить сайт?</h3>
+        <p class="text-sm mb-5" style="color:var(--c-txt-dim);">Домен <strong id="delete-domain" style="color:var(--c-err);"></strong> и все его логи будут удалены.</p>
+        <div class="flex items-center justify-end gap-3">
+            <button onclick="closeDelete()" class="px-4 py-2 rounded-lg text-sm border" style="color:var(--c-txt-dim); border-color:var(--c-border);">Отмена</button>
+            <button id="delete-btn" onclick="doDelete()" class="btn-danger px-5 py-2 rounded-lg text-sm font-semibold">Удалить</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    var deleteSiteId = null, tokenStates = {};
+    function openModal(mode, site) {
+        document.getElementById('modal-overlay').classList.remove('hidden');
+        document.getElementById('modal').classList.remove('hidden');
+        document.getElementById('form-mode').value = mode;
+        if (mode === 'add') {
+            document.getElementById('modal-title').textContent = 'Новый сайт';
+            document.getElementById('modal-submit-text').textContent = 'Создать';
+            document.getElementById('form-domain').value = '';
+            document.getElementById('form-token').value = '';
+            document.getElementById('form-site-id').value = '';
+            document.getElementById('form-active-row').classList.add('hidden');
+        } else {
+            document.getElementById('modal-title').textContent = 'Редактировать';
+            document.getElementById('modal-submit-text').textContent = 'Сохранить';
+            document.getElementById('form-domain').value = site.domain;
+            document.getElementById('form-token').value = site.token || '';
+            document.getElementById('form-site-id').value = site.id;
+            document.getElementById('form-active').checked = !!site.is_active;
+            document.getElementById('form-active-row').classList.remove('hidden');
+        }
+        document.getElementById('form-domain').focus();
+    }
+    function closeModal() { document.getElementById('modal-overlay').classList.add('hidden'); document.getElementById('modal').classList.add('hidden'); }
+    async function submitForm(e) {
+        e.preventDefault();
+        var mode = document.getElementById('form-mode').value;
+        var domain = document.getElementById('form-domain').value.trim();
+        var token = document.getElementById('form-token').value.trim();
+        if (mode === 'add') {
+            var resp = await fetch('/panel/api/sites', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({domain:domain, token:token||null}) });
+            if (resp.ok) { showToast('Сайт создан','ok'); closeModal(); location.reload(); } else { var err = await resp.json(); showToast(err.detail||'Ошибка','err'); }
+        } else {
+            var siteId = document.getElementById('form-site-id').value;
+            var isActive = document.getElementById('form-active').checked;
+            var resp = await fetch('/panel/api/sites/'+siteId, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({domain:domain, token:token||null, is_active:isActive}) });
+            if (resp.ok) { showToast('Сайт обновлён','ok'); closeModal(); location.reload(); } else { var err = await resp.json(); showToast(err.detail||'Ошибка','err'); }
+        }
+    }
+    function confirmDelete(id, domain) { deleteSiteId=id; document.getElementById('delete-domain').textContent=domain; document.getElementById('delete-overlay').classList.remove('hidden'); document.getElementById('delete-modal').classList.remove('hidden'); }
+    function closeDelete() { document.getElementById('delete-overlay').classList.add('hidden'); document.getElementById('delete-modal').classList.add('hidden'); deleteSiteId=null; }
+    async function doDelete() { if(!deleteSiteId) return; var resp=await fetch('/panel/api/sites/'+deleteSiteId,{method:'DELETE'}); if(resp.ok){showToast('Сайт удалён','ok');closeDelete();location.reload();}else{showToast('Ошибка удаления','err');} }
+    function toggleToken(id, full) { var el=document.getElementById('token-'+id); if(!tokenStates[id]){el.textContent=full;tokenStates[id]=true;}else{el.textContent=full.substring(0,8)+'••••••••';tokenStates[id]=false;} }
+    function copyToken(token) { navigator.clipboard.writeText(token).then(function(){showToast('Токен скопирован','ok');}); }
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape'){closeModal();closeDelete();} });
+</script>
+{% endblock %}

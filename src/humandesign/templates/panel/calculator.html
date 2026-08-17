@@ -1,0 +1,561 @@
+{% extends "panel/base.html" %}
+{% block title %}Test Calculator{% endblock %}
+
+{% block head %}
+<style>
+    .tab-btn { padding: 6px 14px; border-radius: 6px; font-size: 11px; font-family: 'JetBrains Mono', monospace;
+        cursor: pointer; transition: all 0.15s; background: transparent; border: none; color: var(--c-txt-dim); }
+    .tab-btn:hover { color: var(--c-txt); background: var(--c-accent-bg-hover); }
+    .tab-btn.active { color: var(--c-accent-2); background: var(--c-accent-bg); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .planet-row { display: grid; grid-template-columns: 100px 50px 40px 40px 40px 40px 1fr; gap: 0; font-size: 11px; font-family: 'JetBrains Mono', monospace; }
+    .planet-row > div { padding: 6px 8px; border-bottom: 1px solid var(--c-border); }
+    .planet-header > div { font-size: 9px; letter-spacing: 1px; color: var(--c-txt-dim); text-transform: uppercase; font-weight: 600; }
+    .json-viewer { font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1.6; white-space: pre-wrap;
+        word-break: break-all; background: var(--c-void); color: var(--c-txt-dim); border: 1px solid var(--c-border);
+        border-radius: 8px; padding: 16px; max-height: 600px; overflow: auto; transition: background 0.3s, color 0.3s; }
+    .json-key { color: var(--c-accent-2); }
+    .json-str { color: var(--c-ok); }
+    .json-num { color: var(--c-warn); }
+    .json-bool { color: var(--c-err); }
+    .json-null { color: var(--c-txt-dim); opacity: 0.5; }
+    .var-card { display: flex; flex-direction: column; align-items: center; padding: 10px; border-radius: 8px;
+        background: var(--c-surface-2); border: 1px solid var(--c-border); transition: background 0.3s; }
+    .var-arrow { font-size: 18px; font-weight: 700; }
+    .var-arrow.left { color: var(--c-err); }
+    .var-arrow.right { color: var(--c-ok); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="mb-8">
+        <h1 class="text-2xl font-bold tracking-tight" style="color:var(--c-txt-bright);">Test Calculator</h1>
+        <p class="text-sm mt-1" style="color:var(--c-txt-dim);">Тестовый расчёт Human Design карты через API</p>
+    </div>
+    
+    <!-- Input Form -->
+    <div class="card card-glow p-6 mb-6">
+        <form id="calc-form" onsubmit="runCalculation(event)">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <div class="lg:col-span-2">
+                    <label class="block text-[10px] font-mono mb-1 tracking-wider uppercase" style="color:var(--c-txt-dim);">Место рождения</label>
+                    <input type="text" id="f-place" value="Berlin, Germany" class="input-field w-full px-3 py-2 rounded-lg text-sm font-mono" placeholder="City, Country">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-mono mb-1 tracking-wider uppercase" style="color:var(--c-txt-dim);">Пол</label>
+                    <select id="f-gender" class="input-field w-full px-3 py-2 rounded-lg text-sm font-mono"><option value="male">male</option><option value="female">female</option></select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-mono mb-1 tracking-wider uppercase" style="color:var(--c-txt-dim);">API Токен</label>
+                    <select id="f-token" class="input-field w-full px-3 py-2 rounded-lg text-sm font-mono">
+                        {% for site in sites %}<option value="{{ site.token }}">{{ site.domain }} ({{ site.token[:8] }}...)</option>{% endfor %}
+                        {% if not sites %}<option value="" disabled>Нет сайтов</option>{% endif %}
+                    </select>
+                </div>
+            </div>
+            <div class="grid grid-cols-3 sm:grid-cols-6 gap-3 mb-4">
+                <div><label class="block text-[10px] font-mono mb-1 tracking-wider uppercase" style="color:var(--c-txt-dim);">Год</label><input type="number" id="f-year" value="1987" min="1900" max="2030" class="input-field w-full px-3 py-2 rounded-lg text-sm font-mono"></div>
+                <div><label class="block text-[10px] font-mono mb-1 tracking-wider uppercase" style="color:var(--c-txt-dim);">Месяц</label><input type="number" id="f-month" value="6" min="1" max="12" class="input-field w-full px-3 py-2 rounded-lg text-sm font-mono"></div>
+                <div><label class="block text-[10px] font-mono mb-1 tracking-wider uppercase" style="color:var(--c-txt-dim);">День</label><input type="number" id="f-day" value="15" min="1" max="31" class="input-field w-full px-3 py-2 rounded-lg text-sm font-mono"></div>
+                <div><label class="block text-[10px] font-mono mb-1 tracking-wider uppercase" style="color:var(--c-txt-dim);">Час</label><input type="number" id="f-hour" value="12" min="0" max="23" class="input-field w-full px-3 py-2 rounded-lg text-sm font-mono"></div>
+                <div><label class="block text-[10px] font-mono mb-1 tracking-wider uppercase" style="color:var(--c-txt-dim);">Минута</label><input type="number" id="f-minute" value="30" min="0" max="59" class="input-field w-full px-3 py-2 rounded-lg text-sm font-mono"></div>
+                <div><label class="block text-[10px] font-mono mb-1 tracking-wider uppercase" style="color:var(--c-txt-dim);">Секунда</label><input type="number" id="f-second" value="0" min="0" max="59" class="input-field w-full px-3 py-2 rounded-lg text-sm font-mono"></div>
+            </div>
+            <button type="submit" id="calc-btn" class="btn-primary px-6 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                Рассчитать
+            </button>
+        </form>
+    </div>
+    
+    <!-- Loading -->
+    <div id="result-loading" class="hidden card card-glow p-12">
+        <div class="flex flex-col items-center justify-center">
+            <div class="w-8 h-8 border-2 rounded-full animate-spin mb-3" style="border-color:var(--c-accent-bg); border-top-color:var(--c-accent);"></div>
+            <span class="text-sm font-mono" style="color:var(--c-txt-dim);">Расчёт...</span>
+        </div>
+    </div>
+    
+    <!-- Error -->
+    <div id="result-error" class="hidden card card-glow p-5">
+        <div class="p-4 rounded-lg text-sm font-mono" style="background:var(--c-err-bg); color:var(--c-err);"></div>
+    </div>
+    
+    <!-- Result Panel (hidden until calculation) -->
+    <div id="result-panel" class="hidden">
+        <!-- Tab Bar -->
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-1 p-1 rounded-lg" style="background:var(--c-surface-2);">
+                <button class="tab-btn active" onclick="switchTab('card')">
+                    <span class="flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Карта
+                    </span>
+                </button>
+                <button class="tab-btn" onclick="switchTab('planets')">
+                    <span class="flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2m11-11h-2M3 12H1m17.07-7.07l-1.42 1.42M6.34 17.66l-1.41 1.41m12.73 0l-1.42-1.41M6.34 6.34L4.93 4.93"/></svg>
+                        Планеты
+                    </span>
+                </button>
+                <button class="tab-btn" onclick="switchTab('analytics')">
+                    <span class="flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                        Аналитика
+                    </span>
+                </button>
+                <button class="tab-btn" onclick="switchTab('json')">
+                    <span class="flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                        JSON
+                    </span>
+                </button>
+            </div>
+            <div class="flex items-center gap-3">
+                <span id="calc-time" class="text-[11px] font-mono" style="color:var(--c-txt-dim);"></span>
+                <span id="calc-status" class="badge badge-ok hidden">200 OK</span>
+            </div>
+        </div>
+        
+        <!-- TAB: Card View -->
+        <div id="tab-card" class="tab-panel active">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <!-- General Info -->
+                <div class="card card-glow p-5 lg:col-span-2">
+                    <h4 class="text-xs font-mono tracking-wider uppercase mb-4" style="color:var(--c-txt-dim);">Общие данные</h4>
+                    <div id="res-general" class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm"></div>
+                </div>
+                <!-- Variables -->
+                <div class="card card-glow p-5">
+                    <h4 class="text-xs font-mono tracking-wider uppercase mb-4" style="color:var(--c-txt-dim);">Переменные</h4>
+                    <div id="res-variables" class="grid grid-cols-2 gap-3"></div>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+                <!-- Centers -->
+                <div class="card card-glow p-5">
+                    <h4 class="text-xs font-mono tracking-wider uppercase mb-4" style="color:var(--c-txt-dim);">Центры</h4>
+                    <div id="res-centers"></div>
+                </div>
+                <!-- Channels -->
+                <div class="card card-glow p-5">
+                    <h4 class="text-xs font-mono tracking-wider uppercase mb-4" style="color:var(--c-txt-dim);">Каналы</h4>
+                    <div id="res-channels"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- TAB: Planets -->
+        <div id="tab-planets" class="tab-panel">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div class="card card-glow p-5">
+                    <h4 class="text-xs font-mono tracking-wider uppercase mb-4 flex items-center gap-2" style="color:var(--c-txt-dim);">
+                        <span class="w-2 h-2 rounded-full" style="background:var(--c-accent);"></span> Личность (Personality)
+                    </h4>
+                    <div id="res-prs-planets"></div>
+                </div>
+                <div class="card card-glow p-5">
+                    <h4 class="text-xs font-mono tracking-wider uppercase mb-4 flex items-center gap-2" style="color:var(--c-txt-dim);">
+                        <span class="w-2 h-2 rounded-full" style="background:var(--c-err);"></span> Дизайн (Design)
+                    </h4>
+                    <div id="res-des-planets"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- TAB: Analytics -->
+        <div id="tab-analytics" class="tab-panel">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                <!-- Motivation & Perspective -->
+                <div class="card card-glow p-5">
+                    <h4 class="text-xs font-mono tracking-wider uppercase mb-4" style="color:var(--c-txt-dim);">Motivation & Perspective</h4>
+                    <div id="res-motiv-persp" class="grid grid-cols-2 gap-4"></div>
+                </div>
+                <!-- Quarter -->
+                <div class="card card-glow p-5">
+                    <h4 class="text-xs font-mono tracking-wider uppercase mb-4" style="color:var(--c-txt-dim);">Quarter</h4>
+                    <div id="res-quarter"></div>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                <!-- Sun Roles -->
+                <div class="card card-glow p-5">
+                    <h4 class="text-xs font-mono tracking-wider uppercase mb-4" style="color:var(--c-txt-dim);">Sun Roles</h4>
+                    <div id="res-sun-roles" class="grid grid-cols-2 gap-4"></div>
+                </div>
+                <!-- Line Counts -->
+                <div class="card card-glow p-5">
+                    <h4 class="text-xs font-mono tracking-wider uppercase mb-4" style="color:var(--c-txt-dim);">Line Counts</h4>
+                    <div id="res-line-counts"></div>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                <!-- Yin / Yang / Balance -->
+                <div class="card card-glow p-5">
+                    <h4 class="text-xs font-mono tracking-wider uppercase mb-4" style="color:var(--c-txt-dim);">Yin / Yang / Balance</h4>
+                    <div id="res-yinyang"></div>
+                </div>
+                <!-- Contour overview -->
+                <div class="card card-glow p-5">
+                    <h4 class="text-xs font-mono tracking-wider uppercase mb-4" style="color:var(--c-txt-dim);">Contour Overview</h4>
+                    <div id="res-contour-overview"></div>
+                </div>
+            </div>
+            <!-- Contour details: Real, Mind, Decis, BigO -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div class="card card-glow p-5">
+                    <h4 class="text-xs font-mono tracking-wider uppercase mb-4" style="color:var(--c-txt-dim);">Realization (Individual / Collective / Communal)</h4>
+                    <div id="res-contour-real"></div>
+                </div>
+                <div class="card card-glow p-5">
+                    <h4 class="text-xs font-mono tracking-wider uppercase mb-4" style="color:var(--c-txt-dim);">Mind (Individ / Logical / Abstract)</h4>
+                    <div id="res-contour-mind"></div>
+                </div>
+                <div class="card card-glow p-5">
+                    <h4 class="text-xs font-mono tracking-wider uppercase mb-4" style="color:var(--c-txt-dim);">Decision (Practical / Mental / Empathic)</h4>
+                    <div id="res-contour-decis"></div>
+                </div>
+                <div class="card card-glow p-5">
+                    <h4 class="text-xs font-mono tracking-wider uppercase mb-4" style="color:var(--c-txt-dim);">BigO (Competition / Strategy / ...)</h4>
+                    <div id="res-contour-bigo"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- TAB: JSON -->
+        <div id="tab-json" class="tab-panel">
+            <div class="card card-glow p-5">
+                <div class="flex items-center justify-between mb-4">
+                    <h4 class="text-xs font-mono tracking-wider uppercase" style="color:var(--c-txt-dim);">Raw JSON Response</h4>
+                    <div class="flex items-center gap-2">
+                        <button onclick="copyJSON()" class="px-3 py-1.5 rounded-lg text-[11px] font-mono border transition-all flex items-center gap-1.5" style="color:var(--c-txt-dim); border-color:var(--c-border);">
+                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                            Копировать
+                        </button>
+                        <button onclick="downloadJSON()" class="px-3 py-1.5 rounded-lg text-[11px] font-mono border transition-all flex items-center gap-1.5" style="color:var(--c-txt-dim); border-color:var(--c-border);">
+                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            Скачать .json
+                        </button>
+                    </div>
+                </div>
+                <div id="res-json" class="json-viewer"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    var lastResult = null;
+    var TAB_NAMES = ['card','planets','analytics','json'];
+    
+    /* ===== Tabs ===== */
+    function switchTab(name) {
+        document.querySelectorAll('.tab-btn').forEach(function(b,i){ b.classList.toggle('active', TAB_NAMES[i]===name); });
+        document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
+        document.getElementById('tab-'+name).classList.add('active');
+    }
+    
+    /* ===== Calculation ===== */
+    async function runCalculation(e) {
+        e.preventDefault();
+        var token = document.getElementById('f-token').value;
+        if (!token) { showToast('Выберите токен сайта','warn'); return; }
+        
+        document.getElementById('result-panel').classList.add('hidden');
+        document.getElementById('result-error').classList.add('hidden');
+        document.getElementById('result-loading').classList.remove('hidden');
+        document.getElementById('calc-time').textContent = '';
+        document.getElementById('calc-status').classList.add('hidden');
+        
+        var payload = {
+            year:+document.getElementById('f-year').value, month:+document.getElementById('f-month').value,
+            day:+document.getElementById('f-day').value, hour:+document.getElementById('f-hour').value,
+            minute:+document.getElementById('f-minute').value, second:+document.getElementById('f-second').value,
+            place:document.getElementById('f-place').value, gender:document.getElementById('f-gender').value
+        };
+        
+        var start = performance.now();
+        try {
+            var resp = await fetch('/v2/calculate', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify(payload) });
+            var elapsed = Math.round(performance.now()-start);
+            document.getElementById('calc-time').textContent = elapsed+' мс';
+            document.getElementById('result-loading').classList.add('hidden');
+            
+            if (!resp.ok) {
+                var err = await resp.json();
+                document.getElementById('result-error').querySelector('div').textContent = 'HTTP '+resp.status+': '+(err.detail||JSON.stringify(err));
+                document.getElementById('result-error').classList.remove('hidden');
+                return;
+            }
+            
+            lastResult = await resp.json();
+            document.getElementById('calc-status').classList.remove('hidden');
+            renderAllTabs(lastResult);
+            document.getElementById('result-panel').classList.remove('hidden');
+            switchTab('card');
+            
+        } catch(err) {
+            document.getElementById('result-loading').classList.add('hidden');
+            document.getElementById('result-error').querySelector('div').textContent = 'Ошибка: '+err.message;
+            document.getElementById('result-error').classList.remove('hidden');
+        }
+    }
+    
+    /* ===== Render All Tabs ===== */
+    function renderAllTabs(data) {
+        renderCardTab(data);
+        renderPlanetsTab(data);
+        renderAnalyticsTab(data);
+        renderJSONTab(data);
+    }
+    
+    /* --- Card Tab --- */
+    function renderCardTab(data) {
+        var g = data.general || {};
+        var fields = [
+            ['Тип энергии', g.energy_type, true], ['Профиль', g.profile, false],
+            ['Авторитет', g.inner_authority, false], ['Стратегия', g.strategy, false],
+            ['Подпись', g.signature, false], ['Не-я тема', g.not_self, false],
+            ['Определение', g.definition, false], ['Инкарнационный крест', g.inc_cross, false],
+            ['Зодиак', g.zodiac_sign, false], ['Аура', g.aura, false],
+            ['Дата рождения', g.birth_date, false], ['Дата дизайна', g.create_date, false],
+        ];
+        var html = fields.map(function(f) {
+            if (!f[1]) return '';
+            var valStyle = f[2] ? 'color:var(--c-accent-2);font-weight:600;' : 'color:var(--c-txt-bright);';
+            return '<div><div class="text-[10px] font-mono tracking-wider uppercase" style="color:var(--c-txt-dim);">'+f[0]+'</div>'
+                +'<div class="font-mono text-xs mt-0.5" style="'+valStyle+'">'+f[1]+'</div></div>';
+        }).join('');
+        document.getElementById('res-general').innerHTML = html;
+        
+        // Variables
+        var v = data.variables || (g.variables) || {};
+        var varHtml = '';
+        var varMap = [['top_left','Digestion','↖'],['top_right','Motivation','↗'],['bottom_left','Environment','↙'],['bottom_right','Perspective','↘']];
+        varMap.forEach(function(vm) {
+            var item = v[vm[0]];
+            if (!item) return;
+            var dir = item.value || '';
+            var arrCls = dir === 'left' ? 'left' : 'right';
+            var arrow = dir === 'left' ? '◄' : '►';
+            varHtml += '<div class="var-card"><div class="text-[9px] font-mono tracking-wider uppercase" style="color:var(--c-txt-dim);">'+vm[1]+'</div>'
+                +'<div class="var-arrow '+arrCls+' my-1">'+arrow+'</div>'
+                +'<div class="text-[10px] font-mono" style="color:var(--c-txt);">'+(item.def_type||dir)+'</div></div>';
+        });
+        if (v.short_code) varHtml += '<div class="col-span-2 text-center mt-2"><span class="badge" style="background:var(--c-accent-bg);color:var(--c-accent-2);font-size:11px;padding:4px 12px;">'+v.short_code+'</span></div>';
+        document.getElementById('res-variables').innerHTML = varHtml || '<div class="text-xs" style="color:var(--c-txt-dim);">—</div>';
+        
+        // Centers
+        var c = data.centers || {};
+        var def = (c.defined||[]).map(function(n){return '<span class="badge badge-ok mr-1 mb-1">'+n+'</span>';}).join('');
+        var und = (c.undefined||[]).map(function(n){return '<span class="badge badge-dim mr-1 mb-1">'+n+'</span>';}).join('');
+        document.getElementById('res-centers').innerHTML =
+            '<div class="mb-3"><div class="text-[10px] font-mono tracking-wider uppercase mb-2" style="color:var(--c-ok);">Определённые</div><div class="flex flex-wrap">'+(def||'—')+'</div></div>'
+            +'<div><div class="text-[10px] font-mono tracking-wider uppercase mb-2" style="color:var(--c-txt-dim);">Открытые</div><div class="flex flex-wrap">'+(und||'—')+'</div></div>';
+        
+        // Channels
+        var ch = data.channels || [];
+        if (Array.isArray(ch) && ch.length) {
+            document.getElementById('res-channels').innerHTML = ch.map(function(c){
+                var name = c.channel || c.Channel || JSON.stringify(c);
+                return '<div class="text-xs font-mono py-1.5 border-b flex items-center gap-2" style="color:var(--c-txt);border-color:var(--c-border);">'
+                    +'<span class="w-1.5 h-1.5 rounded-full flex-shrink-0" style="background:var(--c-accent);"></span>'+name+'</div>';
+            }).join('');
+        } else if (ch.Channels) {
+            document.getElementById('res-channels').innerHTML = ch.Channels.map(function(c){
+                return '<div class="text-xs font-mono py-1.5 border-b flex items-center gap-2" style="color:var(--c-txt);border-color:var(--c-border);">'
+                    +'<span class="w-1.5 h-1.5 rounded-full flex-shrink-0" style="background:var(--c-accent);"></span>'+c.channel+'</div>';
+            }).join('');
+        } else {
+            document.getElementById('res-channels').innerHTML = '<div class="text-xs" style="color:var(--c-txt-dim);">—</div>';
+        }
+    }
+    
+    /* --- Planets Tab --- */
+    function renderPlanetsTab(data) {
+        var gates = data.gates || {};
+        // Handle both v2 format ({personality:{...}, design:{...}}) and v1 ({prs:{Planets:[...]}, des:{Planets:[...]}})
+        document.getElementById('res-prs-planets').innerHTML = buildPlanetTable(gates.personality || gates.prs);
+        document.getElementById('res-des-planets').innerHTML = buildPlanetTable(gates.design || gates.des);
+    }
+    
+    function buildPlanetTable(src) {
+        if (!src) return '<div class="text-xs" style="color:var(--c-txt-dim);">—</div>';
+        
+        var header = '<div class="planet-row planet-header"><div>Планета</div><div>Гейт</div><div>Лин.</div><div>Цвет</div><div>Тон</div><div>Баз.</div><div>Канал</div></div>';
+        var rows = '';
+        
+        // v2 format: object {Sun: {gate,line,...}, Earth: {...}}
+        if (!src.Planets && typeof src === 'object') {
+            Object.keys(src).forEach(function(planet) {
+                var g = src[planet];
+                if (!g || typeof g !== 'object') return;
+                var chGate = g.ch_gate || g.Ch_Gate || '';
+                rows += '<div class="planet-row"><div style="color:var(--c-txt-bright);">'+planet+'</div>'
+                    +'<div style="color:var(--c-accent-2);font-weight:600;">'+g.gate+'</div>'
+                    +'<div>'+g.line+'</div><div>'+g.color+'</div><div>'+g.tone+'</div><div>'+g.base+'</div>'
+                    +'<div style="color:var(--c-txt-dim);">'+(chGate||'—')+'</div></div>';
+            });
+        }
+        // v1 format: {Planets: [{Planet,Gate,Line,...}]}
+        else if (src.Planets) {
+            src.Planets.forEach(function(p) {
+                var chGate = p.Ch_Gate || '';
+                rows += '<div class="planet-row"><div style="color:var(--c-txt-bright);">'+p.Planet+'</div>'
+                    +'<div style="color:var(--c-accent-2);font-weight:600;">'+p.Gate+'</div>'
+                    +'<div>'+p.Line+'</div><div>'+p.Color+'</div><div>'+p.Tone+'</div><div>'+p.Base+'</div>'
+                    +'<div style="color:var(--c-txt-dim);">'+(chGate||'—')+'</div></div>';
+            });
+        }
+        
+        return header + (rows || '<div class="text-xs p-2" style="color:var(--c-txt-dim);">Нет данных</div>');
+    }
+    
+    /* --- Analytics Tab --- */
+    function renderAnalyticsTab(data) {
+        var a = data.analytics || {};
+        
+        // Motivation & Perspective
+        var mpHtml = '';
+        mpHtml += '<div class="var-card"><div class="text-[10px] font-mono tracking-wider uppercase" style="color:var(--c-txt-dim);">Motivation</div>'
+            +'<div class="font-mono text-sm mt-1 font-semibold" style="color:var(--c-accent-2);">'+(a.motivation||'—')+'</div></div>';
+        mpHtml += '<div class="var-card"><div class="text-[10px] font-mono tracking-wider uppercase" style="color:var(--c-txt-dim);">Perspective</div>'
+            +'<div class="font-mono text-sm mt-1 font-semibold" style="color:var(--c-accent-2);">'+(a.perspective||'—')+'</div></div>';
+        document.getElementById('res-motiv-persp').innerHTML = mpHtml;
+        
+        // Quarter
+        var q = a.quarter || {};
+        document.getElementById('res-quarter').innerHTML =
+            '<div class="flex items-center gap-4">'
+            +'<div class="text-3xl font-bold font-mono" style="color:var(--c-accent-2);">'+(q.number||'—')+'</div>'
+            +'<div><div class="font-mono text-sm" style="color:var(--c-txt-bright);">'+(q.name||'—')+'</div></div></div>';
+        
+        // Sun Roles
+        var sr = a.sun_roles || {};
+        var prs = sr.prs_sun || {};
+        var des = sr.des_sun || {};
+        document.getElementById('res-sun-roles').innerHTML =
+            '<div class="var-card"><div class="text-[10px] font-mono tracking-wider uppercase" style="color:var(--c-txt-dim);">Personality Sun</div>'
+            +'<div class="font-mono text-sm mt-1 font-semibold" style="color:var(--c-accent-2);">'+(prs.role||'—')+'</div>'
+            +'<div class="font-mono text-[10px] mt-0.5" style="color:var(--c-txt-dim);">'+(prs.hexagram||'')+'</div></div>'
+            +'<div class="var-card"><div class="text-[10px] font-mono tracking-wider uppercase" style="color:var(--c-txt-dim);">Design Sun</div>'
+            +'<div class="font-mono text-sm mt-1 font-semibold" style="color:var(--c-err);">'+(des.role||'—')+'</div>'
+            +'<div class="font-mono text-[10px] mt-0.5" style="color:var(--c-txt-dim);">'+(des.hexagram||'')+'</div></div>';
+        
+        // Line Counts
+        var lc = a.line_counts || {};
+        var lcTotal = lc.total || {};
+        var lcPrs = lc.prs || {};
+        var lcDes = lc.des || {};
+        var lcHtml = '<div style="display:grid;grid-template-columns:60px repeat(6,1fr);gap:0;font-size:11px;font-family:\'JetBrains Mono\',monospace;">';
+        lcHtml += '<div style="padding:5px 4px;border-bottom:1px solid var(--c-border);font-size:9px;letter-spacing:1px;color:var(--c-txt-dim);">LINE</div>';
+        for (var i=1;i<=6;i++) lcHtml += '<div style="padding:5px 4px;text-align:center;border-bottom:1px solid var(--c-border);font-size:9px;letter-spacing:1px;color:var(--c-txt-dim);">'+i+'</div>';
+        lcHtml += '<div style="padding:5px 4px;color:var(--c-txt-dim);">PRS</div>';
+        for (var i=1;i<=6;i++) lcHtml += '<div style="padding:5px 4px;text-align:center;color:var(--c-txt);">'+(lcPrs[String(i)]||0)+'</div>';
+        lcHtml += '<div style="padding:5px 4px;color:var(--c-txt-dim);">DES</div>';
+        for (var i=1;i<=6;i++) lcHtml += '<div style="padding:5px 4px;text-align:center;color:var(--c-txt);">'+(lcDes[String(i)]||0)+'</div>';
+        lcHtml += '<div style="padding:5px 4px;border-top:1px solid var(--c-border);color:var(--c-txt-bright);font-weight:600;">TOTAL</div>';
+        for (var i=1;i<=6;i++) lcHtml += '<div style="padding:5px 4px;text-align:center;border-top:1px solid var(--c-border);color:var(--c-txt-bright);font-weight:600;">'+(lcTotal[String(i)]||0)+'</div>';
+        lcHtml += '</div>';
+        document.getElementById('res-line-counts').innerHTML = lcHtml;
+        
+        // Yin / Yang / Balance
+        var yy = a.yin_yang_balance || {};
+        document.getElementById('res-yinyang').innerHTML = renderClassBreakdown({'Yang':yy.Yang,'Yin':yy.Yin,'Balance':yy.Balance},
+            {'Yang':'var(--c-warn)','Yin':'var(--c-accent-2)','Balance':'var(--c-ok)'});
+        
+        // Contour overview (bar summary)
+        var ct = a.contour || {};
+        var overviewHtml = '';
+        ['realization','mind','decision','big_o'].forEach(function(key) {
+            var section = ct[key] || {};
+            overviewHtml += '<div class="mb-2"><div class="text-[10px] font-mono tracking-wider uppercase mb-1" style="color:var(--c-txt-dim);">'+key.replace('_',' ')+'</div>';
+            overviewHtml += '<div class="flex gap-1 flex-wrap">';
+            Object.keys(section).forEach(function(cls) {
+                var item = section[cls] || {};
+                var pct = item.share_pct || 0;
+                overviewHtml += '<span class="badge" style="background:var(--c-accent-bg);color:var(--c-accent-2);">'+cls+' '+pct+'%</span> ';
+            });
+            overviewHtml += '</div></div>';
+        });
+        document.getElementById('res-contour-overview').innerHTML = overviewHtml || '<div class="text-xs" style="color:var(--c-txt-dim);">—</div>';
+        
+        // Contour details
+        document.getElementById('res-contour-real').innerHTML = renderClassBreakdown(ct.realization || {});
+        document.getElementById('res-contour-mind').innerHTML = renderClassBreakdown(ct.mind || {});
+        document.getElementById('res-contour-decis').innerHTML = renderClassBreakdown(ct.decision || {});
+        document.getElementById('res-contour-bigo').innerHTML = renderClassBreakdown(ct.big_o || {});
+    }
+    
+    function renderClassBreakdown(obj, colorMap) {
+        colorMap = colorMap || {};
+        var html = '';
+        Object.keys(obj).forEach(function(cls) {
+            var item = obj[cls];
+            if (!item) return;
+            var pct = item.share_pct || 0;
+            var color = colorMap[cls] || 'var(--c-accent-2)';
+            html += '<div class="mb-3">';
+            html += '<div class="flex items-center justify-between mb-1">';
+            html += '<span class="font-mono text-xs font-semibold" style="color:'+color+';">'+cls+'</span>';
+            html += '<span class="font-mono text-[10px]" style="color:var(--c-txt-dim);">'+pct+'%</span>';
+            html += '</div>';
+            // Progress bar
+            html += '<div style="height:4px;border-radius:2px;background:var(--c-surface-2);overflow:hidden;">';
+            html += '<div style="height:100%;width:'+pct+'%;border-radius:2px;background:'+color+';transition:width 0.5s;"></div>';
+            html += '</div>';
+            // Values list
+            var vals = item.values || {};
+            var vKeys = Object.keys(vals);
+            if (vKeys.length) {
+                html += '<div class="mt-1.5 flex flex-wrap gap-1">';
+                vKeys.forEach(function(k) {
+                    html += '<span class="text-[9px] font-mono px-1.5 py-0.5 rounded" style="background:var(--c-surface-2);color:var(--c-txt-dim);">'+k+' '+vals[k]+'</span>';
+                });
+                html += '</div>';
+            }
+            html += '</div>';
+        });
+        return html || '<div class="text-xs" style="color:var(--c-txt-dim);">—</div>';
+    }
+    
+    /* --- JSON Tab --- */
+    function renderJSONTab(data) {
+        document.getElementById('res-json').innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));
+    }
+    
+    function syntaxHighlight(json) {
+        json = json.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function(match) {
+            var cls = 'json-num';
+            if (/^"/.test(match)) { cls = /:$/.test(match) ? 'json-key' : 'json-str'; }
+            else if (/true|false/.test(match)) { cls = 'json-bool'; }
+            else if (/null/.test(match)) { cls = 'json-null'; }
+            return '<span class="'+cls+'">'+match+'</span>';
+        });
+    }
+    
+    function copyJSON() {
+        if (!lastResult) return;
+        navigator.clipboard.writeText(JSON.stringify(lastResult, null, 2)).then(function(){ showToast('JSON скопирован','ok'); });
+    }
+    
+    function downloadJSON() {
+        if (!lastResult) return;
+        var blob = new Blob([JSON.stringify(lastResult, null, 2)], {type:'application/json'});
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        var g = lastResult.general || {};
+        var name = 'hd_' + (g.energy_type||'result').toLowerCase().replace(/\s+/g,'_') + '_' + (document.getElementById('f-year').value) + '.json';
+        a.download = name;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('Файл скачан: '+name, 'ok');
+    }
+</script>
+{% endblock %}

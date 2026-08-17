@@ -1,0 +1,164 @@
+{% extends "panel/base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight" style="color:var(--c-txt-bright);">Dashboard</h1>
+            <p class="text-sm mt-1" style="color:var(--c-txt-dim);">Статистика за {{ stats.period_days }} дней</p>
+        </div>
+        <select id="period-select" onchange="changePeriod(this.value)"
+                class="input-field px-3 py-1.5 rounded-lg text-xs font-mono">
+            <option value="7" {{ 'selected' if stats.period_days == 7 }}>7 дней</option>
+            <option value="30" {{ 'selected' if stats.period_days == 30 }}>30 дней</option>
+            <option value="90" {{ 'selected' if stats.period_days == 90 }}>90 дней</option>
+        </select>
+    </div>
+    
+    <!-- Metric Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div class="card card-glow p-5">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-[11px] font-mono tracking-wider uppercase" style="color:var(--c-txt-dim);">Запросы</span>
+                <svg class="w-4 h-4" style="color:var(--c-accent);opacity:0.4;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+            </div>
+            <div class="text-3xl font-bold font-mono" style="color:var(--c-txt-bright);">{{ total_requests }}</div>
+            <div class="text-xs mt-1" style="color:var(--c-txt-dim);">всего за период</div>
+        </div>
+        <div class="card card-glow p-5">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-[11px] font-mono tracking-wider uppercase" style="color:var(--c-txt-dim);">Сайты</span>
+                <svg class="w-4 h-4" style="color:var(--c-ok);opacity:0.4;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg>
+            </div>
+            <div class="text-3xl font-bold font-mono" style="color:var(--c-txt-bright);">{{ active_sites }}</div>
+            <div class="text-xs mt-1" style="color:var(--c-txt-dim);">активных из {{ total_sites }}</div>
+        </div>
+        <div class="card card-glow p-5">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-[11px] font-mono tracking-wider uppercase" style="color:var(--c-txt-dim);">Успех</span>
+                <svg class="w-4 h-4" style="color:var(--c-ok);opacity:0.4;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div class="text-3xl font-bold font-mono" style="color:var(--c-txt-bright);">{{ success_rate }}%</div>
+            <div class="text-xs mt-1" style="color:var(--c-txt-dim);">успешных запросов</div>
+        </div>
+        <div class="card card-glow p-5">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-[11px] font-mono tracking-wider uppercase" style="color:var(--c-txt-dim);">Скорость</span>
+                <svg class="w-4 h-4" style="color:var(--c-warn);opacity:0.4;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            </div>
+            <div class="text-3xl font-bold font-mono" style="color:var(--c-txt-bright);">{{ avg_response_ms }}</div>
+            <div class="text-xs mt-1" style="color:var(--c-txt-dim);">мс среднее</div>
+        </div>
+    </div>
+    
+    <!-- Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
+        <div class="card card-glow p-5 lg:col-span-2">
+            <h3 class="text-sm font-semibold mb-4 font-mono tracking-wide" style="color:var(--c-txt-bright);">Запросы по дням</h3>
+            <div class="h-64"><canvas id="dailyChart"></canvas></div>
+        </div>
+        <div class="card card-glow p-5">
+            <h3 class="text-sm font-semibold mb-4 font-mono tracking-wide" style="color:var(--c-txt-bright);">Эндпоинты</h3>
+            <div class="h-64"><canvas id="endpointChart"></canvas></div>
+        </div>
+    </div>
+    
+    <!-- Sites Table -->
+    <div class="card card-glow p-5">
+        <h3 class="text-sm font-semibold mb-4 font-mono tracking-wide" style="color:var(--c-txt-bright);">Статистика по сайтам</h3>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="text-[11px] font-mono tracking-wider uppercase border-b" style="color:var(--c-txt-dim); border-color:var(--c-border);">
+                        <th class="text-left py-3 px-3">Домен</th>
+                        <th class="text-right py-3 px-3">Запросы</th>
+                        <th class="text-right py-3 px-3">Успех</th>
+                        <th class="text-right py-3 px-3">Ошибки</th>
+                        <th class="text-right py-3 px-3">Ср. время</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for site in stats.sites %}
+                    <tr class="table-row border-b" style="border-color:var(--c-border);">
+                        <td class="py-3 px-3 font-mono" style="color:var(--c-txt-bright);">{{ site.domain }}</td>
+                        <td class="py-3 px-3 text-right font-mono">{{ site.total_requests or 0 }}</td>
+                        <td class="py-3 px-3 text-right"><span class="badge badge-ok">{{ site.success or 0 }}</span></td>
+                        <td class="py-3 px-3 text-right">
+                            {% if site.errors and site.errors > 0 %}<span class="badge badge-err">{{ site.errors }}</span>
+                            {% else %}<span class="badge badge-dim">0</span>{% endif %}
+                        </td>
+                        <td class="py-3 px-3 text-right font-mono" style="color:var(--c-txt-dim);">{{ site.avg_response_ms or '—' }} мс</td>
+                    </tr>
+                    {% endfor %}
+                    {% if not stats.sites %}
+                    <tr><td colspan="5" class="py-8 text-center text-sm" style="color:var(--c-txt-dim);">Нет данных</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    var dailyData = {{ daily_json | safe }};
+    var endpointData = {{ endpoint_json | safe }};
+    var dailyChartInst = null, epChartInst = null;
+    
+    var epColors = ['#6c5ce7','#00cec9','#fdcb6e','#ff6b81','#a29bfe','#55efc4','#fab1a0','#74b9ff'];
+    var epColorsLight = ['#5a4bd6','#0a8f8a','#b58a1b','#d44058','#6c5ce7','#0a8f8a','#b58a1b','#5a4bd6'];
+    
+    function buildCharts() {
+        var cc = chartColors();
+        var isLight = getTheme() === 'light';
+        
+        if (dailyChartInst) dailyChartInst.destroy();
+        if (epChartInst) epChartInst.destroy();
+        
+        dailyChartInst = new Chart(document.getElementById('dailyChart').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: dailyData.map(function(d){ return d.date; }),
+                datasets: [{
+                    label: 'Запросы', data: dailyData.map(function(d){ return d.requests; }),
+                    borderColor: cc.line, backgroundColor: cc.fill, fill: true, tension: 0.4, borderWidth: 2,
+                    pointRadius: 3, pointBackgroundColor: cc.line, pointBorderColor: cc.surface, pointBorderWidth: 2, pointHoverRadius: 6,
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: cc.label, font: { family:'JetBrains Mono', size:10 }, maxTicksLimit:8 }, grid: { color: cc.grid } },
+                    y: { ticks: { color: cc.label, font: { family:'JetBrains Mono', size:10 } }, grid: { color: cc.grid }, beginAtZero: true }
+                }
+            }
+        });
+        
+        epChartInst = new Chart(document.getElementById('endpointChart').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: endpointData.map(function(e){ return e.endpoint; }),
+                datasets: [{
+                    data: endpointData.map(function(e){ return e.requests; }),
+                    backgroundColor: (isLight ? epColorsLight : epColors).slice(0, endpointData.length),
+                    borderColor: cc.surface, borderWidth: 2,
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, cutout: '65%',
+                plugins: { legend: { position:'bottom', labels: { color: cc.label, font:{ family:'JetBrains Mono', size:10 }, padding:12, usePointStyle:true, pointStyleWidth:8 } } }
+            }
+        });
+    }
+    
+    buildCharts();
+    
+    // Rebuild charts on theme switch
+    function onThemeChange() { setTimeout(buildCharts, 50); }
+    
+    function changePeriod(days) { window.location.href = '/panel/dashboard?days=' + days; }
+</script>
+{% endblock %}

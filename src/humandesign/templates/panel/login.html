@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ru" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — Astro Gates</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>(function(){var t=localStorage.getItem('ag_theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();</script>
+    <style>
+        :root, [data-theme="dark"] {
+            --c-void: #0a0a0f; --c-surface: #111118; --c-surface-2: #1a1a24;
+            --c-border: #2a2a3a; --c-txt: #c8c8d8; --c-txt-dim: #6a6a80;
+            --c-txt-bright: #eeeef4; --c-accent: #6c5ce7; --c-accent-2: #a29bfe;
+            --c-accent-bg: rgba(108,92,231,0.12); --c-err: #ff6b81; --c-err-bg: rgba(255,107,129,0.12);
+            --c-grain-opacity: 0.4;
+            --c-glow-1: rgba(108,92,231,0.15); --c-glow-2: rgba(162,155,254,0.1);
+        }
+        [data-theme="light"] {
+            --c-void: #f5f4f1; --c-surface: #ffffff; --c-surface-2: #f8f7f4;
+            --c-border: #dddbd4; --c-txt: #4a4840; --c-txt-dim: #8a8780;
+            --c-txt-bright: #1a1918; --c-accent: #5a4bd6; --c-accent-2: #6c5ce7;
+            --c-accent-bg: rgba(90,75,214,0.07); --c-err: #d44058; --c-err-bg: rgba(212,64,88,0.07);
+            --c-grain-opacity: 0.12;
+            --c-glow-1: rgba(90,75,214,0.08); --c-glow-2: rgba(108,92,231,0.06);
+        }
+        body { background: var(--c-void); color: var(--c-txt); transition: background 0.3s, color 0.3s; }
+        .grain { position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+            background-repeat: repeat; opacity: var(--c-grain-opacity); }
+        .input-field { background: var(--c-surface-2); border: 1px solid var(--c-border); color: var(--c-txt); transition: border-color 0.15s, background 0.3s; }
+        .input-field:focus { border-color: var(--c-accent); outline: none; box-shadow: 0 0 0 3px rgba(108,92,231,0.15); }
+        @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        .float-anim { animation: float 6s ease-in-out infinite; }
+        .theme-btn { position: fixed; top: 16px; right: 16px; width: 36px; height: 36px; border-radius: 50%;
+            background: var(--c-surface); border: 1px solid var(--c-border); cursor: pointer;
+            display: flex; align-items: center; justify-content: center; transition: all 0.2s; z-index: 10; }
+        .theme-btn:hover { border-color: var(--c-accent); }
+        .theme-btn svg { width: 16px; height: 16px; color: var(--c-txt-dim); }
+        .theme-btn .ico-sun { display: none; }
+        [data-theme="light"] .theme-btn .ico-moon { display: none; }
+        [data-theme="light"] .theme-btn .ico-sun { display: block; }
+    </style>
+</head>
+<body class="h-full font-sans antialiased flex items-center justify-center" style="font-family: Outfit, sans-serif;">
+    <div class="grain"></div>
+    
+    <!-- Theme toggle -->
+    <div class="theme-btn" onclick="toggleTheme()" title="Сменить тему">
+        <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+        <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+    </div>
+    
+    <div class="w-full max-w-sm px-6" style="position: relative; z-index: 1;">
+        <!-- Glow -->
+        <div style="position:absolute;inset:0;opacity:0.7;pointer-events:none;
+            background:radial-gradient(circle at 30% 30%, var(--c-glow-1) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 70%, var(--c-glow-2) 0%, transparent 50%);"></div>
+        
+        <!-- Logo -->
+        <div style="text-align:center; margin-bottom:36px; position:relative;">
+            <div class="float-anim" style="display:inline-flex; align-items:center; justify-content:center; width:60px; height:60px; border-radius:16px; background:var(--c-accent-bg); border:1px solid var(--c-border); margin-bottom:18px;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--c-accent-2);">
+                    <circle cx="12" cy="12" r="10"/><path d="M12 2a7 7 0 017 7c0 5-7 11-7 11S5 14 5 9a7 7 0 017-7z"/>
+                </svg>
+            </div>
+            <div style="font-size:18px; font-weight:700; color:var(--c-txt-bright); letter-spacing:3px; font-family:'JetBrains Mono',monospace;">ASTRO GATES</div>
+            <div style="font-size:10px; color:var(--c-txt-dim); letter-spacing:5px; margin-top:4px; font-family:'JetBrains Mono',monospace;">ADMIN PANEL</div>
+        </div>
+        
+        <!-- Login box -->
+        <div style="background:var(--c-surface); border:1px solid var(--c-border); border-radius:12px; padding:24px; position:relative; transition:background 0.3s, border-color 0.3s;">
+            {% if error %}
+            <div style="margin-bottom:16px; padding:8px 12px; border-radius:8px; background:var(--c-err-bg); color:var(--c-err); font-size:13px; font-family:'JetBrains Mono',monospace;">
+                {{ error }}
+            </div>
+            {% endif %}
+            
+            <form method="POST" action="/panel/login">
+                <div style="margin-bottom:16px;">
+                    <label style="display:block; font-size:10px; color:var(--c-txt-dim); letter-spacing:2px; margin-bottom:6px; font-family:'JetBrains Mono',monospace;">ADMIN TOKEN</label>
+                    <input type="password" name="token" required autofocus
+                           class="input-field" style="width:100%; padding:10px 12px; border-radius:8px; font-size:13px; font-family:'JetBrains Mono',monospace; box-sizing:border-box;"
+                           placeholder="HD_ADMIN_TOKEN">
+                </div>
+                <button type="submit" style="width:100%; padding:10px; border-radius:8px; background:var(--c-accent); color:#fff; font-size:13px; font-weight:600; letter-spacing:0.5px; border:none; cursor:pointer; transition:filter 0.15s;">
+                    Войти
+                </button>
+            </form>
+        </div>
+        
+        <p style="text-align:center; font-size:10px; color:var(--c-txt-dim); opacity:0.5; font-family:'JetBrains Mono',monospace; margin-top:20px;">
+            Токен задаётся в .env → HD_ADMIN_TOKEN
+        </p>
+    </div>
+    
+    <script>
+        function toggleTheme() {
+            var next = (document.documentElement.getAttribute('data-theme') || 'dark') === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('ag_theme', next);
+        }
+    </script>
+</body>
+</html>

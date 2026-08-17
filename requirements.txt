@@ -1,0 +1,26 @@
+# =============================================================
+# Runtime dependencies — pinned for reproducible Docker builds
+# To update: pip install --upgrade <pkg> && pip freeze | grep <pkg>
+# =============================================================
+
+# Core computation
+numpy==2.1.2
+pandas==2.2.3
+python-dateutil==2.9.0.post0
+tzdata==2024.2
+pysweph==2.10.3.6
+tqdm==4.66.5
+
+# Web framework
+fastapi==0.115.6
+uvicorn==0.27.1
+pydantic==2.10.4
+jinja2==3.1.5
+python-multipart==0.0.18
+
+# Geo & timezone
+geopy==2.4.1
+timezonefinder==8.2.1
+
+# Config
+python-dotenv==1.0.1

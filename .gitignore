@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.env
+api_auth.db
+data/
+venv/
+.venv/
+.coverage
+*.sqlite
+!hd_data.sqlite

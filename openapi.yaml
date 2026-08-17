@@ -1,0 +1,1495 @@
+openapi: 3.1.0
+info:
+  title: Human Design API
+  version: 3.4.1
+paths:
+  /calculate:
+    get:
+      summary: Calculate Hd
+      operationId: calculate_hd_calculate_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: year
+        in: query
+        required: true
+        schema:
+          type: integer
+          description: Birth year
+          default: 1968
+          title: Year
+          example: 1968
+        description: Birth year
+      - name: month
+        in: query
+        required: true
+        schema:
+          type: integer
+          description: Birth month
+          default: 2
+          title: Month
+          example: 2
+        description: Birth month
+      - name: day
+        in: query
+        required: true
+        schema:
+          type: integer
+          description: Birth day
+          default: 21
+          title: Day
+          example: 21
+        description: Birth day
+      - name: hour
+        in: query
+        required: true
+        schema:
+          type: integer
+          description: Birth hour
+          default: 11
+          title: Hour
+          example: 11
+        description: Birth hour
+      - name: minute
+        in: query
+        required: true
+        schema:
+          type: integer
+          description: Birth minute
+          default: 0
+          title: Minute
+          example: 0
+        description: Birth minute
+      - name: second
+        in: query
+        required: false
+        schema:
+          type: integer
+          description: Birth second (optional, default 0)
+          default: 0
+          title: Second
+          example: 0
+        description: Birth second (optional, default 0)
+      - name: place
+        in: query
+        required: true
+        schema:
+          type: string
+          description: Birth place (city, country)
+          default: Kirikkale, Turkey
+          title: Place
+          example: Kirikkale, Turkey
+        description: Birth place (city, country)
+      - name: gender
+        in: query
+        required: false
+        schema:
+          type: string
+          description: Gender (optional)
+          default: male
+          title: Gender
+        description: Gender (optional)
+      - name: islive
+        in: query
+        required: false
+        schema:
+          type: boolean
+          description: Whether the person is alive (true) or deceased (false)
+          default: true
+          title: Islive
+        description: Whether the person is alive (true) or deceased (false)
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalculateResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /bodygraph:
+    get:
+      summary: Get Bodygraph Image
+      operationId: get_bodygraph_image_bodygraph_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: year
+        in: query
+        required: true
+        schema:
+          type: integer
+          description: Birth year
+          default: 1968
+          title: Year
+        description: Birth year
+      - name: month
+        in: query
+        required: true
+        schema:
+          type: integer
+          description: Birth month
+          default: 2
+          title: Month
+        description: Birth month
+      - name: day
+        in: query
+        required: true
+        schema:
+          type: integer
+          description: Birth day
+          default: 21
+          title: Day
+        description: Birth day
+      - name: hour
+        in: query
+        required: true
+        schema:
+          type: integer
+          description: Birth hour
+          default: 11
+          title: Hour
+        description: Birth hour
+      - name: minute
+        in: query
+        required: true
+        schema:
+          type: integer
+          description: Birth minute
+          default: 0
+          title: Minute
+        description: Birth minute
+      - name: second
+        in: query
+        required: false
+        schema:
+          type: integer
+          description: Birth second (optional, default 0)
+          default: 0
+          title: Second
+        description: Birth second (optional, default 0)
+      - name: place
+        in: query
+        required: true
+        schema:
+          type: string
+          description: Birth place (city, country)
+          default: Kirikkale, Turkey
+          title: Place
+        description: Birth place (city, country)
+      - name: fmt
+        in: query
+        required: false
+        schema:
+          type: string
+          description: 'Image format: png, svg, jpg/jpeg'
+          default: png
+          title: Fmt
+        description: 'Image format: png, svg, jpg/jpeg'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /transits/solar_return:
+    get:
+      summary: Get Solar Return
+      operationId: get_solar_return_transits_solar_return_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: year
+        in: query
+        required: true
+        schema:
+          type: integer
+          description: Birth year
+          title: Year
+        description: Birth year
+      - name: month
+        in: query
+        required: true
+        schema:
+          type: integer
+          description: Birth month
+          title: Month
+        description: Birth month
+      - name: day
+        in: query
+        required: true
+        schema:
+          type: integer
+          description: Birth day
+          title: Day
+        description: Birth day
+      - name: hour
+        in: query
+        required: true
+        schema:
+          type: integer
+          description: Birth hour
+          title: Hour
+        description: Birth hour
+      - name: minute
+        in: query
+        required: false
+        schema:
+          type: integer
+          description: Birth minute (default 0)
+          default: 0
+          title: Minute
+        description: Birth minute (default 0)
+      - name: second
+        in: query
+        required: false
+        schema:
+          type: integer
+          description: Birth second (optional, default 0)
+          default: 0
+          title: Second
+        description: Birth second (optional, default 0)
+      - name: place
+        in: query
+        required: true
+        schema:
+          type: string
+          description: Birth place (city, country)
+          title: Place
+        description: Birth place (city, country)
+      - name: sr_year_offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          description: Calculate Solar Return for X years after birth. 0 is the current SR.
+          default: 0
+          title: Sr Year Offset
+        description: Calculate Solar Return for X years after birth. 0 is the current SR.
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /transits/daily:
+    get:
+      summary: Get Daily Transit
+      operationId: get_daily_transit_transits_daily_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: year
+        in: query
+        required: true
+        schema:
+          type: integer
+          description: Birth year
+          title: Year
+        description: Birth year
+      - name: month
+        in: query
+        required: true
+        schema:
+          type: integer
+          description: Birth month
+          title: Month
+        description: Birth month
+      - name: day
+        in: query
+        required: true
+        schema:
+          type: integer
+          description: Birth day
+          title: Day
+        description: Birth day
+      - name: hour
+        in: query
+        required: true
+        schema:
+          type: integer
+          description: Birth hour
+          title: Hour
+        description: Birth hour
+      - name: minute
+        in: query
+        required: false
+        schema:
+          type: integer
+          description: Birth minute (default 0)
+          default: 0
+          title: Minute
+        description: Birth minute (default 0)
+      - name: second
+        in: query
+        required: false
+        schema:
+          type: integer
+          description: Birth second (optional, default 0)
+          default: 0
+          title: Second
+        description: Birth second (optional, default 0)
+      - name: place
+        in: query
+        required: true
+        schema:
+          type: string
+          description: Birth place (city, country)
+          title: Place
+        description: Birth place (city, country)
+      - name: transit_year
+        in: query
+        required: true
+        schema:
+          type: integer
+          description: Transit year to analyze
+          title: Transit Year
+        description: Transit year to analyze
+      - name: transit_month
+        in: query
+        required: true
+        schema:
+          type: integer
+          description: Transit month to analyze
+          title: Transit Month
+        description: Transit month to analyze
+      - name: transit_day
+        in: query
+        required: true
+        schema:
+          type: integer
+          description: Transit day to analyze
+          title: Transit Day
+        description: Transit day to analyze
+      - name: current_place
+        in: query
+        required: false
+        schema:
+          type: string
+          description: Current location for transit calculation (optional, defaults to Birth Place)
+          title: Current Place
+        description: Current location for transit calculation (optional, defaults to Birth Place)
+      - name: transit_hour
+        in: query
+        required: false
+        schema:
+          type: integer
+          description: Transit hour (local time at calculation place, default 12)
+          default: 12
+          title: Transit Hour
+        description: Transit hour (local time at calculation place, default 12)
+      - name: transit_minute
+        in: query
+        required: false
+        schema:
+          type: integer
+          description: Transit minute (default 0)
+          default: 0
+          title: Transit Minute
+        description: Transit minute (default 0)
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    type: object
+                    properties:
+                      transit_date_local:
+                        type: string
+                      transit_date_utc:
+                        type: string
+                      birth_date_utc:
+                        type: string
+                      birth_date:
+                        type: string
+                        description: "Birth date in ISO format"
+                      create_date:
+                        type: string
+                        description: "Design/Creation date"
+                      place:
+                        type: string
+                        description: "Birth place"
+                      age:
+                        type: integer
+                      gender:
+                        type: string
+                      islive:
+                        type: boolean
+                      zodiac_sign:
+                        type: string
+                      energy_type:
+                        type: string
+                      strategy:
+                        type: string
+                      signature:
+                        type: string
+                      not_self:
+                        type: string
+                      aura:
+                        type: string
+                      inner_authority:
+                        type: string
+                      inc_cross:
+                        type: string
+                      profile:
+                        type: string
+                      calculation_place:
+                        type: string
+                      location:
+                        type: string
+                      type:
+                        type: string
+                      authority:
+                        type: string
+                      total_centers:
+                        type: integer
+                      defined_centers:
+                        type: array
+                        items:
+                          type: string
+                      undefined_centers:
+                        type: array
+                        items:
+                          type: string
+                      definition:
+                        type: string
+                      channels:
+                        type: object
+                        properties:
+                          Channels:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                channel:
+                                  type: string
+                                  description: "Formatted channel string (e.g. '6/59: Name (Desc)')"
+                  composite_changes:
+                    type: object
+                    properties:
+                      new_channels:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            gates:
+                              type: string
+                            name:
+                              type: string
+                            description:
+                              type: string
+                      new_centers:
+                        type: array
+                        items:
+                          type: string
+                  planetary_transits:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        planets:
+                          type: string
+                        gate:
+                          type: integer
+                        line:
+                          type: integer
+                        color:
+                          type: integer
+                        tone:
+                          type: integer
+                        base:
+                          type: integer
+                        lon:
+                          type: number
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /analyze/composite:
+    post:
+      summary: Analyze Composite
+      description: "Calculate Composite Chart features for exactly 2 people.\nExposes detailed pairwise composite logic including new and duplicated channels/chakras.\n\nInput:\n{\n    \"person1\": { ... },\n    \"person2\": { ... }\n}"
+      operationId: analyze_composite_analyze_composite_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              additionalProperties:
+                $ref: '#/components/schemas/PersonInput'
+              type: object
+              title: Inputs
+              description: Dictionary of exactly 2 people for Composite analysis.
+            example:
+              person1:
+                place: Berlin, Germany
+                year: 1985
+                month: 6
+                day: 15
+                hour: 14
+                minute: 30
+              person2:
+                place: Munich, Germany
+                year: 1988
+                month: 11
+                day: 22
+                hour: 9
+                minute: 15
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /analyze/maia-penta:
+    post:
+      summary: Analyze Maia-Penta Hybrid
+      description: "Unified flagship endpoint for Family/Group Harmony. Combines pairwise Matrix dynamics AND holistic Penta group analysis.\n\nInput:\n{\n    \"group_type\": \"family\",\n    \"verbosity\": \"all\",\n    \"participants\": { \"p1\": { ... }, \"p2\": { ... } }\n}"
+      operationId: analyze_maia_penta_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HybridAnalysisRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HybridAnalysisResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+
+  /analyze/penta:
+    post:
+      summary: Analyze Penta (Sovereign Standard)
+      description: "Enhanced Penta Analysis (v2) returning a hierarchical, semantic JSON structure with Channels, Gaps, and Functional Zones (Upper/Lower).\n\nInput:\n{\n    \"group_type\": \"family\",\n    \"participants\": { \"p1\": { ... }, \"p2\": { ... }, \"p3\": { ... } }\n}"
+      operationId: analyze_penta_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PentaRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /v2/calculate:
+    post:
+      summary: Calculate Human Design (V2)
+      description: "Flagship V2 endpoint: Verbose by default, supports partial output masking, semantic enrichment, and advanced mechanics."
+      operationId: calculate_hd_v2_post
+      tags:
+        - v2
+      security:
+        - HTTPBearer: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CalculateRequestV2'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalculateResponseV2'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+components:
+  schemas:
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    PersonInput:
+      properties:
+        place:
+          type: string
+          minLength: 1
+          title: Place
+          description: Place of birth (City, Country)
+        year:
+          anyOf:
+          - type: integer
+          - type: string
+          title: Year
+          description: Birth year (1800-2100)
+        month:
+          anyOf:
+          - type: integer
+          - type: string
+          title: Month
+          description: Birth month (1-12)
+        day:
+          anyOf:
+          - type: integer
+          - type: string
+          title: Day
+          description: Birth day (1-31)
+        hour:
+          anyOf:
+          - type: integer
+          - type: string
+          title: Hour
+          description: Birth hour (0-23)
+        minute:
+          anyOf:
+          - type: integer
+          - type: string
+          title: Minute
+          description: Birth minute (0-59)
+        gender:
+          type: string
+          title: Gender
+          description: Gender (optional)
+        islive:
+          type: boolean
+          default: true
+          title: Islive
+          description: Whether the person is alive (true) or deceased (false)
+        latitude:
+          type: number
+          nullable: true
+          title: Latitude
+          description: "Optional: Latitude for birth place (bypassing geocoding)"
+        longitude:
+          type: number
+          nullable: true
+          title: Longitude
+          description: "Optional: Longitude for birth place (bypassing geocoding)"
+      type: object
+      required:
+      - place
+      - year
+      - month
+      - day
+      - hour
+      - minute
+      title: PersonInput
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    CalculateResponse:
+      type: object
+      properties:
+        general:
+          $ref: '#/components/schemas/GeneralOutput'
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChannelInfo'
+        gates:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: '#/components/schemas/GateInfo'
+      title: CalculateResponse
+    GeneralOutput:
+      type: object
+      properties:
+        birth_date:
+          type: string
+          title: Birth Date
+        create_date:
+          type: string
+          title: Create Date
+        birth_place:
+          type: string
+          title: Birth Place
+        age:
+          type: integer
+          title: Age
+          description: Calculated age in years
+        gender:
+          type: string
+          title: Gender
+          default: male
+        islive:
+          type: boolean
+          title: Islive
+          description: Whether the person is alive (true) or deceased (false)
+          default: true
+        zodiac_sign:
+          type: string
+          title: Zodiac Sign
+          description: Western astrological sign
+        energy_type:
+          type: string
+          title: Energy Type
+        inner_authority:
+          type: string
+          title: Inner Authority
+        inc_cross:
+          type: string
+          title: Inc Cross
+        profile:
+          type: string
+          title: Profile
+        active_chakras:
+          type: array
+          items:
+            type: string
+          title: Active Chakras
+        inactive_chakras:
+          type: array
+          items:
+            type: string
+          title: Inactive Chakras
+        definition:
+          type: string
+          title: Definition
+        variables:
+          $ref: '#/components/schemas/Variables'
+
+      required:
+      - birth_date
+      - create_date
+      - energy_type
+      - inner_authority
+      - inc_cross
+      - profile
+      - active_chakras
+      - inactive_chakras
+      - definition
+      - variables
+      title: GeneralOutput
+    VariableDetail:
+      type: object
+      properties:
+        value:
+          type: string
+          title: Value
+        name:
+          type: string
+          title: Name
+        aspect:
+          type: string
+          title: Aspect
+        def_type:
+          type: string
+          title: Definition Type
+      required:
+      - value
+      - name
+      - aspect
+      - def_type
+      title: VariableDetail
+    Variables:
+      type: object
+      properties:
+        top_right:
+          $ref: '#/components/schemas/VariableDetail'
+        bottom_right:
+          $ref: '#/components/schemas/VariableDetail'
+        top_left:
+          $ref: '#/components/schemas/VariableDetail'
+        bottom_left:
+          $ref: '#/components/schemas/VariableDetail'
+        short_code:
+          type: string
+          title: Short Code
+          description: Standard shorthand for all four variables (e.g., 'PRL DRR')
+      required:
+      - top_right
+      - bottom_right
+      - top_left
+      - bottom_left
+      - short_code
+      title: Variables
+    GateInfo:
+      type: object
+      properties:
+        gate:
+          type: integer
+        line:
+          type: integer
+        color:
+          type: integer
+        tone:
+          type: integer
+        base:
+          type: integer
+        is_active:
+          type: boolean
+      required:
+      - gate
+      - line
+      - color
+      - tone
+      - base
+      - is_active
+      title: GateInfo
+    ChannelInfo:
+      type: object
+      properties:
+        name:
+          type: string
+        gates:
+          type: array
+          items:
+            type: integer
+        meaning:
+          type: string
+      required:
+      - name
+      - gates
+      title: ChannelInfo
+    PentaRequest:
+      type: object
+      properties:
+        participants:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/PersonInput'
+          description: "Dictionary of participants (3-5 people)"
+        group_type:
+          type: string
+          default: family
+          description: "Type of group analysis: 'family' (default) or 'business'"
+      required:
+        - participants
+      title: PentaRequest
+
+    HybridAnalysisRequest:
+      type: object
+      properties:
+        participants:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/PersonInput'
+          description: "Dictionary of participants (2+ people)"
+        group_type:
+          type: string
+          default: family
+          description: "Type of group analysis: 'family' (default) or 'business'"
+        verbosity:
+          type: string
+          default: all
+          description: "Detail level: 'all' (default) or 'partial'"
+      required:
+        - participants
+      title: HybridAnalysisRequest
+
+    PentaDetail:
+      type: object
+      properties:
+        active_skills:
+          type: array
+          items:
+            type: string
+        penta_gaps:
+          type: array
+          items:
+            type: string
+        is_functional:
+          type: boolean
+        total_defined_centers:
+          type: integer
+          nullable: true
+          description: "Total number of centers defined by the collective group"
+      title: PentaDetail
+
+    SubLineDetail:
+      type: object
+      properties:
+        gate:
+          type: integer
+        line:
+          type: integer
+        color:
+          type: integer
+        tone:
+          type: integer
+        base:
+          type: integer
+        planet:
+          type: string
+        position:
+          type: string
+          description: "High-precision planetary position (e.g., '12.450')"
+      title: SubLineDetail
+
+    MetaDetail:
+      type: object
+      properties:
+        engine:
+          type: string
+        ephemeris:
+          type: string
+        timestamp:
+          type: string
+      title: MetaDetail
+
+    MaiaDetail:
+      type: object
+      properties:
+        channel:
+          type: array
+          items:
+            type: integer
+          description: "The two gates forming the channel"
+        meaning:
+          type: array
+          items:
+            type: string
+          description: "The spiritual and mechanical names of the channel"
+        type:
+          type: string
+          description: "Maia classification: Electromagnetic, Compromise, Dominance, or Companionship"
+        circuitry:
+          type: string
+          description: "The Human Design circuitry group (Individual, Tribal, Collective)"
+        planetary_trigger:
+          type: string
+          description: "The planets activating the gates in this connection"
+        activations:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubLineDetail'
+          description: "High-fidelity activation data (Gate, Line, Color, Tone, Base)"
+      title: MaiaDetail
+
+    SynergyDetail:
+      type: object
+      properties:
+        thematic_label:
+          type: string
+          description: "Professional Maian theme (e.g. '8-1 Have some fun')"
+        bridge_active:
+          type: boolean
+          description: "True if this combination bridges a split definition"
+        center_dynamics:
+          type: object
+          additionalProperties:
+            type: string
+          description: "Conditioning dynamic for each center (fixed, conditioning_p1_to_p2, etc.)"
+        aura_dynamic:
+          type: string
+          description: "Professional label for Type-to-Type energetic interaction"
+        love_gate_highlights:
+          type: array
+          items:
+            type: integer
+          description: "List of active G-Center love gates in the connection"
+        space_count:
+          type: integer
+          description: "Number of completely open centers in the composite (Relational Space)"
+        circuitry_dominant:
+          type: string
+          description: "The dominant circuitry group in the partnership"
+        profile_resonance:
+          type: string
+          description: "Resonance or Harmony level between the two profiles"
+        node_resonance:
+          type: string
+          description: "Resonance level between the South and North Nodes (Environmental Fit)"
+        dominant_sub_circuit:
+          type: string
+          description: "Maximum detail on the sub-circuitry (e.g., Knowing vs. Logical)"
+        planetary_flavor_summary:
+          type: string
+          description: "The dominant planetary quality of the attraction (e.g., Venus-Mars)"
+        group_dynamic_summary:
+          type: string
+          description: "Classification of the group structure (Dyad, Penta, Wa)"
+        penta_details:
+          $ref: '#/components/schemas/PentaDetail'
+          nullable: true
+        variable_synergy:
+          $ref: '#/components/schemas/VariableSynergyDetail'
+          nullable: true
+        environmental_resonance_detail:
+          $ref: '#/components/schemas/EnvironmentalResonanceDetail'
+          nullable: true
+      title: SynergyDetail
+    VariableSynergyDetail:
+      type: object
+      properties:
+        alignment:
+          type: string
+          description: "High-level alignment type (e.g., 'Symmetrical Force', 'Polarized')"
+        operational_insight:
+          type: string
+          description: "Business/Tactical insight based on arrow combination"
+        lifestyle_insight:
+          type: string
+          description: "Relational/Daily life insight based on arrow combination"
+        shorthand_synergy:
+          type: string
+          description: "Shorthand code for the synergy (e.g., 'Strategic-Heavy')"
+    EnvironmentalResonanceDetail:
+      type: object
+      properties:
+        resonance_type:
+          type: string
+          description: "e.g. 'Shared Frequency', 'Harmonic Pull', 'Individual Path'"
+        gates:
+          type: array
+          items:
+            type: integer
+          description: "The gates triggering the resonance"
+        operational_insight:
+          type: string
+          description: "Business context for the nodal environment"
+        lifestyle_insight:
+          type: string
+          description: "Relational context for the nodal environment"
+
+    CombinationItem:
+      type: object
+      properties:
+        id:
+          type: string
+        other_person:
+          type: string
+        new_chakra:
+          type: array
+          items:
+            type: string
+        chakra_count:
+          type: integer
+        new_channels:
+          type: array
+          items:
+            type: array
+            items:
+              type: integer
+        new_ch_meaning:
+          type: array
+          items:
+            type: string
+        duplicated_channels:
+          type: array
+          items:
+            type: array
+            items:
+              type: integer
+        duplicated_ch_meaning:
+          type: array
+          items:
+            type: string
+        connection_code:
+          type: string
+          description: "The 9-0 etc. connection classification code"
+        maia_details:
+          type: array
+          items:
+            $ref: '#/components/schemas/MaiaDetail'
+        synergy:
+          $ref: '#/components/schemas/SynergyDetail'
+      title: CombinationItem
+
+    CompositePersonDetail:
+      type: object
+      properties:
+        name:
+          type: string
+        place:
+          type: string
+        tz:
+          type: string
+        birth_date:
+          type: string
+        create_date:
+          type: string
+        energy_type:
+          type: string
+        strategy:
+          type: string
+          nullable: true
+        signature:
+          type: string
+          nullable: true
+        not_self:
+          type: string
+          nullable: true
+        aura:
+          type: string
+          nullable: true
+        inner_authority:
+          type: string
+        inc_cross:
+          type: string
+        profile:
+          type: string
+        defined_centers:
+          type: array
+          items:
+            type: string
+        undefined_centers:
+          type: array
+          items:
+            type: string
+        definition:
+          type: string
+        variables:
+          $ref: '#/components/schemas/Variables'
+          nullable: true
+        lunar_context:
+          type: string
+          nullable: true
+          description: "Lunar phase at birth"
+        activations:
+          type: object
+          additionalProperties:
+             $ref: '#/components/schemas/SubLineDetail'
+          nullable: true
+          description: "Full planetary activation matrix"
+        channels:
+          type: array
+          items:
+            type: object
+      title: CompositePersonDetail
+
+    HybridAnalysisResponse:
+      type: object
+      properties:
+        meta:
+          $ref: '#/components/schemas/MetaDetail'
+          nullable: true
+        participants:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/CompositePersonDetail'
+          nullable: true
+        penta_dynamics:
+          $ref: '#/components/schemas/PentaDetail'
+          nullable: true
+        dyad_matrix:
+          type: array
+          items:
+            $ref: '#/components/schemas/CombinationItem'
+      title: HybridAnalysisResponse
+
+    CalculateRequestV2:
+      type: object
+      required:
+        - year
+        - month
+        - day
+        - hour
+        - minute
+        - place
+      properties:
+        year:
+          type: integer
+          default: 1968
+        month:
+          type: integer
+          default: 2
+        day:
+          type: integer
+          default: 21
+        hour:
+          type: integer
+          default: 11
+        minute:
+          type: integer
+          default: 0
+        second:
+          type: integer
+          default: 0
+        place:
+          type: string
+          default: "Kirikkale, Turkey"
+        gender:
+          type: string
+          default: "male"
+        islive:
+          type: boolean
+          default: true
+        latitude:
+          type: number
+          format: float
+          nullable: true
+        longitude:
+          type: number
+          format: float
+          nullable: true
+        include:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: "List of sections to include. Supports dot-notation for nested fields (e.g. 'gates.personality')."
+          example: ["general", "gates.personality"]
+        exclude:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: "List of sections to exclude. Supports dot-notation for nested fields."
+          example: ["channels"]
+      title: CalculateRequestV2
+
+    CalculateResponseV2:
+      type: object
+      properties:
+        general:
+          $ref: '#/components/schemas/GeneralSectionV2'
+        centers:
+          $ref: '#/components/schemas/CentersV2'
+        channels:
+          type: array
+          items:
+            type: object
+          nullable: true
+        variables:
+          $ref: '#/components/schemas/VariablesV2'
+        gates:
+          $ref: '#/components/schemas/GatesV2'
+        mechanics:
+          type: object
+          nullable: true
+        advanced:
+          $ref: '#/components/schemas/AdvancedSectionV2'
+      title: CalculateResponseV2
+
+    GeneralSectionV2:
+      type: object
+      properties:
+        birth_date:
+          type: string
+        create_date:
+          type: string
+        birth_place:
+          type: string
+        age:
+          type: integer
+        gender:
+          type: string
+        islive:
+          type: boolean
+        zodiac_sign:
+          type: string
+        energy_type:
+          type: string
+        strategy:
+          type: string
+        signature:
+          type: string
+        not_self:
+          type: string
+        aura:
+          type: string
+        inner_authority:
+          type: string
+        inc_cross:
+          type: string
+        profile:
+          type: string
+        definition:
+          type: string
+      title: GeneralSectionV2
+
+    CentersV2:
+      type: object
+      properties:
+        defined:
+          type: array
+          items:
+            type: string
+        undefined:
+          type: array
+          items:
+            type: string
+      title: CentersV2
+
+    VariablesV2:
+      type: object
+      properties:
+        top_right:
+          $ref: '#/components/schemas/VariableItemV2'
+        bottom_right:
+          $ref: '#/components/schemas/VariableItemV2'
+        top_left:
+          $ref: '#/components/schemas/VariableItemV2'
+        bottom_left:
+          $ref: '#/components/schemas/VariableItemV2'
+        short_code:
+          type: string
+      title: VariablesV2
+
+    VariableItemV2:
+      type: object
+      properties:
+        value:
+          type: string
+        name:
+          type: string
+        aspect:
+          type: string
+        def_type:
+          type: string
+      title: VariableItemV2
+
+    GatesV2:
+      type: object
+      properties:
+        personality:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/GateV2'
+        design:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/GateV2'
+      title: GatesV2
+
+    GateV2:
+      type: object
+      properties:
+        gate:
+          type: integer
+        line:
+          type: integer
+        color:
+          type: integer
+        tone:
+          type: integer
+        base:
+          type: integer
+        lon:
+          type: number
+        gate_name:
+          type: string
+          nullable: true
+        gate_summary:
+          type: string
+          nullable: true
+        line_name:
+          type: string
+          nullable: true
+        line_description:
+          type: string
+          nullable: true
+        fixation:
+          type: object
+          nullable: true
+      title: GateV2
+
+    AdvancedSectionV2:
+      type: object
+      properties:
+        dream_rave:
+          $ref: '#/components/schemas/DreamRaveOutput'
+        global_cycle:
+          $ref: '#/components/schemas/GlobalCycleOutput'
+      title: AdvancedSectionV2
+
+    DreamRaveOutput:
+      type: object
+      properties:
+        activated_centers:
+          type: array
+          items:
+            type: string
+        activated_gates:
+          type: array
+          items:
+            type: integer
+        status:
+          type: string
+      title: DreamRaveOutput
+
+    GlobalCycleOutput:
+      type: object
+      properties:
+        great_cycle:
+          type: string
+        cycle_cross:
+          type: string
+        gates:
+          type: array
+          items:
+            type: integer
+        description:
+          type: string
+      title: GlobalCycleOutput
+
+  securitySchemes:
+    HTTPBearer:
+      type: http
+      scheme: bearer
+

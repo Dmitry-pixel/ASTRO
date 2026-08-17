@@ -1,0 +1,120 @@
+{% extends "panel/base.html" %}
+{% block title %}Live Logs{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight" style="color:var(--c-txt-bright);">Live Logs</h1>
+            <p class="text-sm mt-1" style="color:var(--c-txt-dim);">Журнал API-запросов в реальном времени</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="auto-refresh" checked class="w-3.5 h-3.5" style="accent-color:var(--c-accent);">
+                <span class="text-xs font-mono" style="color:var(--c-txt-dim);">Авто-обновление</span>
+            </label>
+            <button onclick="loadLogs()" class="px-3 py-1.5 rounded-lg text-xs font-mono border transition-all" style="color:var(--c-txt-dim); border-color:var(--c-border);">Обновить</button>
+        </div>
+    </div>
+    
+    <div class="card card-glow p-4 mb-6">
+        <div class="flex flex-wrap items-end gap-4">
+            <div>
+                <label class="block text-[10px] font-mono mb-1 tracking-wider uppercase" style="color:var(--c-txt-dim);">Сайт</label>
+                <select id="filter-site" onchange="loadLogs()" class="input-field px-3 py-1.5 rounded-lg text-xs font-mono">
+                    <option value="">Все сайты</option>
+                    {% for site in sites %}<option value="{{ site.id }}">{{ site.domain }}</option>{% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-[10px] font-mono mb-1 tracking-wider uppercase" style="color:var(--c-txt-dim);">Эндпоинт</label>
+                <input type="text" id="filter-endpoint" onchange="loadLogs()" class="input-field px-3 py-1.5 rounded-lg text-xs font-mono w-40" placeholder="/v2/calculate">
+            </div>
+            <div>
+                <label class="block text-[10px] font-mono mb-1 tracking-wider uppercase" style="color:var(--c-txt-dim);">Статус</label>
+                <select id="filter-status" onchange="loadLogs()" class="input-field px-3 py-1.5 rounded-lg text-xs font-mono">
+                    <option value="">Все</option><option value="200">200 OK</option><option value="error">Ошибки</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-[10px] font-mono mb-1 tracking-wider uppercase" style="color:var(--c-txt-dim);">Лимит</label>
+                <select id="filter-limit" onchange="loadLogs()" class="input-field px-3 py-1.5 rounded-lg text-xs font-mono">
+                    <option value="50">50</option><option value="100" selected>100</option><option value="500">500</option>
+                </select>
+            </div>
+            <div class="ml-auto"><span id="log-count" class="text-[11px] font-mono" style="color:var(--c-txt-dim);"></span></div>
+        </div>
+    </div>
+    
+    <div class="card card-glow overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="sticky top-0 z-10" style="background:var(--c-surface);">
+                    <tr class="text-[11px] font-mono tracking-wider uppercase border-b" style="color:var(--c-txt-dim); border-color:var(--c-border);">
+                        <th class="text-left py-3 px-4">Время</th>
+                        <th class="text-left py-3 px-4">Домен</th>
+                        <th class="text-left py-3 px-4">Метод</th>
+                        <th class="text-left py-3 px-4">Эндпоинт</th>
+                        <th class="text-center py-3 px-4">Статус</th>
+                        <th class="text-right py-3 px-4">Время (мс)</th>
+                    </tr>
+                </thead>
+                <tbody id="logs-body">
+                    <tr><td colspan="6" class="py-12 text-center text-sm" style="color:var(--c-txt-dim);">Загрузка...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    var refreshInterval = null;
+    async function loadLogs() {
+        var params = new URLSearchParams();
+        var siteId = document.getElementById('filter-site').value;
+        var endpoint = document.getElementById('filter-endpoint').value;
+        var status = document.getElementById('filter-status').value;
+        var limit = document.getElementById('filter-limit').value;
+        if (siteId) params.set('site_id', siteId);
+        if (endpoint) params.set('endpoint', endpoint);
+        if (status) params.set('status', status);
+        params.set('limit', limit);
+        try {
+            var resp = await fetch('/panel/api/logs?'+params.toString());
+            if (!resp.ok) throw new Error('HTTP '+resp.status);
+            var data = await resp.json();
+            document.getElementById('log-count').textContent = data.logs.length+' записей';
+            renderLogs(data.logs);
+        } catch(err) {
+            document.getElementById('logs-body').innerHTML = '<tr><td colspan="6" class="py-8 text-center text-sm font-mono" style="color:var(--c-err);">Ошибка: '+err.message+'</td></tr>';
+        }
+    }
+    function renderLogs(logs) {
+        if (!logs.length) { document.getElementById('logs-body').innerHTML = '<tr><td colspan="6" class="py-12 text-center text-sm" style="color:var(--c-txt-dim);">Нет записей</td></tr>'; return; }
+        var rows = logs.map(function(log) {
+            var isErr = log.status_code && log.status_code >= 400;
+            var statusBadge = isErr ? '<span class="badge badge-err">'+log.status_code+'</span>' : '<span class="badge badge-ok">'+(log.status_code||200)+'</span>';
+            var mKey = (log.method||'GET').toUpperCase();
+            var mColors = { GET:'var(--c-method-get)', POST:'var(--c-method-post)', PUT:'var(--c-method-put)', DELETE:'var(--c-method-delete)' };
+            var mColor = mColors[mKey] || 'var(--c-txt)';
+            return '<tr class="table-row border-b" style="border-color:var(--c-border);opacity:0.4;">'
+                +'<td class="py-2.5 px-4 font-mono text-[11px] whitespace-nowrap" style="color:var(--c-txt-dim);">'+(log.created_at||'—')+'</td>'
+                +'<td class="py-2.5 px-4 font-mono text-xs" style="color:var(--c-txt);">'+(log.domain||'id:'+log.site_id)+'</td>'
+                +'<td class="py-2.5 px-4 font-mono text-[11px] font-bold" style="color:'+mColor+';">'+mKey+'</td>'
+                +'<td class="py-2.5 px-4 font-mono text-xs" style="color:var(--c-txt-dim);">'+log.endpoint+'</td>'
+                +'<td class="py-2.5 px-4 text-center">'+statusBadge+'</td>'
+                +'<td class="py-2.5 px-4 text-right font-mono text-[11px]" style="color:var(--c-txt-dim);">'+(log.response_time_ms!=null?log.response_time_ms:'—')+'</td>'
+                +'</tr>';
+        }).join('');
+        document.getElementById('logs-body').innerHTML = rows;
+    }
+    function setupAutoRefresh() {
+        var cb = document.getElementById('auto-refresh');
+        function toggle() { if (cb.checked) { refreshInterval=setInterval(loadLogs,5000); } else { clearInterval(refreshInterval); } }
+        cb.addEventListener('change', toggle); toggle();
+    }
+    loadLogs(); setupAutoRefresh();
+</script>
+{% endblock %}

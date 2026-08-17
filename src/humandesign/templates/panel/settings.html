@@ -1,0 +1,199 @@
+{% extends "panel/base.html" %}
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="mb-8">
+        <h1 class="text-2xl font-bold tracking-tight" style="color:var(--c-txt-bright);">Settings</h1>
+        <p class="text-sm mt-1" style="color:var(--c-txt-dim);">Настройки безопасности и конфигурация</p>
+    </div>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Change Admin Token -->
+        <div class="card card-glow p-6">
+            <div class="flex items-center gap-3 mb-5">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:var(--c-accent-bg);">
+                    <svg class="w-4 h-4" style="color:var(--c-accent-2);" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-sm font-semibold font-mono tracking-wide" style="color:var(--c-txt-bright);">Admin Token</h3>
+                    <p class="text-xs mt-0.5" style="color:var(--c-txt-dim);">Смена токена для входа в панель и /admin/* API</p>
+                </div>
+            </div>
+            
+            <div id="token-change-form">
+                <div class="space-y-4">
+                    <!-- Current token (masked) -->
+                    <div>
+                        <label class="block text-[10px] font-mono mb-1.5 tracking-wider uppercase" style="color:var(--c-txt-dim);">Текущий токен</label>
+                        <div class="flex items-center gap-2">
+                            <code id="current-token-display" class="flex-1 text-xs font-mono px-3 py-2 rounded-lg" 
+                                  style="background:var(--c-surface-2); color:var(--c-txt-dim); border:1px solid var(--c-border);">{{ token_masked }}</code>
+                            <button onclick="toggleCurrentToken()" class="px-2 py-2 rounded-lg border transition-all" 
+                                    style="border-color:var(--c-border); color:var(--c-txt-dim);" title="Показать/скрыть">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- New token -->
+                    <div>
+                        <label class="block text-[10px] font-mono mb-1.5 tracking-wider uppercase" style="color:var(--c-txt-dim);">Новый токен</label>
+                        <div class="flex items-center gap-2">
+                            <input type="text" id="new-token" 
+                                   class="input-field flex-1 px-3 py-2 rounded-lg text-sm font-mono"
+                                   placeholder="Введите новый токен или сгенерируйте">
+                            <button onclick="generateToken()" class="px-3 py-2 rounded-lg text-[11px] font-mono border transition-all flex items-center gap-1.5"
+                                    style="color:var(--c-txt-dim); border-color:var(--c-border);" title="Сгенерировать случайный">
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                </svg>
+                                Генерировать
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Confirm current token -->
+                    <div>
+                        <label class="block text-[10px] font-mono mb-1.5 tracking-wider uppercase" style="color:var(--c-txt-dim);">Подтвердите текущий токен</label>
+                        <input type="password" id="confirm-current" 
+                               class="input-field w-full px-3 py-2 rounded-lg text-sm font-mono"
+                               placeholder="Введите текущий токен для подтверждения">
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between mt-6">
+                    <div id="change-status" class="text-xs font-mono" style="color:var(--c-txt-dim);"></div>
+                    <button onclick="changeToken()" class="btn-primary px-5 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Сменить токен
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Info Card -->
+        <div class="space-y-6">
+            <!-- Token info -->
+            <div class="card card-glow p-6">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:var(--c-ok-bg);">
+                        <svg class="w-4 h-4" style="color:var(--c-ok);" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                            <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-sm font-semibold font-mono tracking-wide" style="color:var(--c-txt-bright);">Как это работает</h3>
+                </div>
+                <div class="space-y-3 text-xs" style="color:var(--c-txt-dim); line-height:1.7;">
+                    <p>Admin-токен используется для двух целей:</p>
+                    <div class="pl-3 space-y-1.5" style="border-left:2px solid var(--c-border);">
+                        <p>Вход в эту админ-панель (<code class="font-mono px-1 py-0.5 rounded" style="background:var(--c-surface-2);">/panel/login</code>)</p>
+                        <p>Авторизация API-запросов к <code class="font-mono px-1 py-0.5 rounded" style="background:var(--c-surface-2);">/admin/*</code> эндпоинтам (Bearer token)</p>
+                    </div>
+                    <p>При смене токена: значение обновляется в памяти сервера и записывается в файл <code class="font-mono px-1 py-0.5 rounded" style="background:var(--c-surface-2);">.env</code>. Перезапуск сервера не требуется.</p>
+                    <p>Текущая сессия остаётся активной после смены. Все остальные сессии (если есть) тоже продолжат работать до истечения 24ч.</p>
+                </div>
+            </div>
+            
+            <!-- .env path -->
+            <div class="card card-glow p-6">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:var(--c-surface-2);">
+                        <svg class="w-4 h-4" style="color:var(--c-txt-dim);" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-sm font-semibold font-mono tracking-wide" style="color:var(--c-txt-bright);">Конфигурация</h3>
+                </div>
+                <div class="space-y-2 text-xs font-mono">
+                    <div class="flex items-center justify-between py-2 border-b" style="border-color:var(--c-border);">
+                        <span style="color:var(--c-txt-dim);">.env файл</span>
+                        <code class="px-2 py-1 rounded" style="background:var(--c-surface-2); color:var(--c-txt);">{{ env_path }}</code>
+                    </div>
+                    <div class="flex items-center justify-between py-2 border-b" style="border-color:var(--c-border);">
+                        <span style="color:var(--c-txt-dim);">Переменная</span>
+                        <code class="px-2 py-1 rounded" style="background:var(--c-surface-2); color:var(--c-accent-2);">HD_ADMIN_TOKEN</code>
+                    </div>
+                    <div class="flex items-center justify-between py-2 border-b" style="border-color:var(--c-border);">
+                        <span style="color:var(--c-txt-dim);">Длина токена</span>
+                        <span style="color:var(--c-txt);">{{ token_length }} символов</span>
+                    </div>
+                    <div class="flex items-center justify-between py-2">
+                        <span style="color:var(--c-txt-dim);">Версия API</span>
+                        <span style="color:var(--c-txt);">{{ version }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    var tokenVisible = false;
+    var fullToken = {{ token_full | tojson }};
+    var maskedToken = {{ token_masked | tojson }};
+    
+    function toggleCurrentToken() {
+        tokenVisible = !tokenVisible;
+        document.getElementById('current-token-display').textContent = tokenVisible ? fullToken : maskedToken;
+    }
+    
+    function generateToken() {
+        var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+        var token = '';
+        var arr = new Uint8Array(43);
+        crypto.getRandomValues(arr);
+        for (var i = 0; i < 43; i++) token += chars[arr[i] % chars.length];
+        document.getElementById('new-token').value = token;
+    }
+    
+    async function changeToken() {
+        var newToken = document.getElementById('new-token').value.trim();
+        var confirmCurrent = document.getElementById('confirm-current').value.trim();
+        var statusEl = document.getElementById('change-status');
+        
+        if (!newToken) { showToast('Введите новый токен', 'warn'); return; }
+        if (newToken.length < 8) { showToast('Токен должен быть не менее 8 символов', 'warn'); return; }
+        if (!confirmCurrent) { showToast('Подтвердите текущий токен', 'warn'); return; }
+        
+        statusEl.textContent = 'Сохранение...';
+        statusEl.style.color = 'var(--c-txt-dim)';
+        
+        try {
+            var resp = await fetch('/panel/api/settings/token', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ current_token: confirmCurrent, new_token: newToken })
+            });
+            
+            if (resp.ok) {
+                var data = await resp.json();
+                showToast('Токен успешно изменён', 'ok');
+                statusEl.textContent = '';
+                
+                // Update displayed values
+                fullToken = newToken;
+                maskedToken = newToken.substring(0, 6) + '••••••••••••';
+                document.getElementById('current-token-display').textContent = tokenVisible ? fullToken : maskedToken;
+                document.getElementById('new-token').value = '';
+                document.getElementById('confirm-current').value = '';
+            } else {
+                var err = await resp.json();
+                showToast(err.detail || 'Ошибка', 'err');
+                statusEl.textContent = '';
+            }
+        } catch (err) {
+            showToast('Ошибка: ' + err.message, 'err');
+            statusEl.textContent = '';
+        }
+    }
+</script>
+{% endblock %}

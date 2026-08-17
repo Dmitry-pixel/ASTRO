@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ru" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Admin{% endblock %} — Astro Gates</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Prevent FOUC: apply saved theme before paint -->
+    <script>
+        (function(){var t=localStorage.getItem('ag_theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
+    </script>
+    <script>
+        tailwind.config = {
+            theme: { extend: { fontFamily: {
+                'mono': ['JetBrains Mono', 'monospace'],
+                'sans': ['Outfit', 'sans-serif'],
+            }}}
+        }
+    </script>
+    <style>
+        /* ======================== DARK THEME (default) ======================== */
+        :root, [data-theme="dark"] {
+            --c-void: #0a0a0f;
+            --c-surface: #111118;
+            --c-surface-2: #1a1a24;
+            --c-surface-3: #22222f;
+            --c-border: #2a2a3a;
+            --c-border-2: #353548;
+            --c-txt: #c8c8d8;
+            --c-txt-dim: #6a6a80;
+            --c-txt-bright: #eeeef4;
+            --c-accent: #6c5ce7;
+            --c-accent-2: #a29bfe;
+            --c-ok: #00cec9;
+            --c-ok-bg: rgba(0,206,201,0.12);
+            --c-warn: #fdcb6e;
+            --c-warn-bg: rgba(253,203,110,0.12);
+            --c-err: #ff6b81;
+            --c-err-bg: rgba(255,107,129,0.12);
+            --c-accent-bg: rgba(108,92,231,0.12);
+            --c-accent-bg-hover: rgba(108,92,231,0.06);
+            --c-accent-border: rgba(108,92,231,0.3);
+            --c-card-shadow: 0 0 0 1px rgba(108,92,231,0.1), 0 4px 24px rgba(0,0,0,0.3);
+            --c-overlay: rgba(0,0,0,0.6);
+            --c-grain-opacity: 0.4;
+            --c-scrollbar-track: #0a0a0f;
+            --c-scrollbar-thumb: #2a2a3a;
+            --c-chart-line: #6c5ce7;
+            --c-chart-fill: rgba(108,92,231,0.08);
+            --c-chart-grid: rgba(42,42,58,0.3);
+            --c-chart-label: #6a6a80;
+            --c-method-post: #a29bfe;
+            --c-method-get: #00cec9;
+            --c-method-put: #fdcb6e;
+            --c-method-delete: #ff6b81;
+        }
+
+        /* ======================== LIGHT THEME ======================== */
+        [data-theme="light"] {
+            --c-void: #f5f4f1;
+            --c-surface: #ffffff;
+            --c-surface-2: #f8f7f4;
+            --c-surface-3: #efeeea;
+            --c-border: #dddbd4;
+            --c-border-2: #ccc9c0;
+            --c-txt: #4a4840;
+            --c-txt-dim: #8a8780;
+            --c-txt-bright: #1a1918;
+            --c-accent: #5a4bd6;
+            --c-accent-2: #6c5ce7;
+            --c-ok: #0a8f8a;
+            --c-ok-bg: rgba(10,143,138,0.09);
+            --c-warn: #b58a1b;
+            --c-warn-bg: rgba(181,138,27,0.09);
+            --c-err: #d44058;
+            --c-err-bg: rgba(212,64,88,0.07);
+            --c-accent-bg: rgba(90,75,214,0.07);
+            --c-accent-bg-hover: rgba(90,75,214,0.04);
+            --c-accent-border: rgba(90,75,214,0.25);
+            --c-card-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 0 0 1px rgba(0,0,0,0.03);
+            --c-overlay: rgba(0,0,0,0.25);
+            --c-grain-opacity: 0.12;
+            --c-scrollbar-track: #f5f4f1;
+            --c-scrollbar-thumb: #dddbd4;
+            --c-chart-line: #5a4bd6;
+            --c-chart-fill: rgba(90,75,214,0.05);
+            --c-chart-grid: rgba(0,0,0,0.06);
+            --c-chart-label: #8a8780;
+            --c-method-post: #5a4bd6;
+            --c-method-get: #0a8f8a;
+            --c-method-put: #b58a1b;
+            --c-method-delete: #d44058;
+        }
+
+        /* ======================== BASE STYLES ======================== */
+        body { background: var(--c-void); color: var(--c-txt); transition: background 0.3s, color 0.3s; }
+        .grain { position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+            background-repeat: repeat; opacity: var(--c-grain-opacity); transition: opacity 0.3s; }
+        .sidebar-link { transition: all 0.15s ease; border-left: 3px solid transparent; color: var(--c-txt); }
+        .sidebar-link:hover { background: var(--c-accent-bg-hover); border-left-color: var(--c-accent-border); }
+        .sidebar-link.active { background: var(--c-accent-bg); border-left-color: var(--c-accent); color: var(--c-accent-2); }
+        .card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 8px; transition: background 0.3s, border-color 0.3s; }
+        .card-glow { box-shadow: var(--c-card-shadow); }
+        .btn-primary { background: var(--c-accent); color: #fff; transition: all 0.15s ease; }
+        .btn-primary:hover { filter: brightness(0.9); box-shadow: 0 0 20px rgba(108,92,231,0.25); }
+        .btn-danger { background: var(--c-err-bg); color: var(--c-err); border: 1px solid transparent; transition: all 0.15s; }
+        .btn-danger:hover { filter: brightness(0.95); }
+        .input-field { background: var(--c-surface-2); border: 1px solid var(--c-border); color: var(--c-txt); transition: border-color 0.15s, background 0.3s; }
+        .input-field:focus { border-color: var(--c-accent); outline: none; box-shadow: 0 0 0 3px rgba(108,92,231,0.15); }
+        .table-row { transition: background 0.1s; }
+        .table-row:hover { background: var(--c-accent-bg-hover); }
+        .badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 9999px; font-weight: 500; letter-spacing: 0.04em; }
+        .badge-ok { background: var(--c-ok-bg); color: var(--c-ok); }
+        .badge-err { background: var(--c-err-bg); color: var(--c-err); }
+        .badge-dim { background: rgba(106,106,128,0.12); color: var(--c-txt-dim); }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        .htmx-indicator { display: none; }
+        .htmx-request .htmx-indicator { display: inline-block; }
+        .pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c-ok); animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--c-scrollbar-track); }
+        ::-webkit-scrollbar-thumb { background: var(--c-scrollbar-thumb); border-radius: 3px; }
+
+        /* Theme toggle switch */
+        .theme-switch { position: relative; width: 48px; height: 26px; border-radius: 13px; cursor: pointer;
+            background: var(--c-surface-2); border: 1px solid var(--c-border); transition: all 0.3s ease; flex-shrink: 0; }
+        .theme-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px;
+            border-radius: 50%; background: var(--c-accent); transition: transform 0.3s ease; }
+        [data-theme="light"] .theme-switch::after { transform: translateX(22px); }
+        .theme-switch svg { position: absolute; top: 5px; width: 14px; height: 14px; }
+        .theme-switch .ico-moon { left: 5px; color: var(--c-txt-dim); opacity: 1; transition: opacity 0.2s; }
+        .theme-switch .ico-sun { right: 5px; color: var(--c-txt-dim); opacity: 0.35; transition: opacity 0.2s; }
+        [data-theme="light"] .theme-switch .ico-moon { opacity: 0.35; }
+        [data-theme="light"] .theme-switch .ico-sun { opacity: 1; }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body class="h-full font-sans antialiased">
+    <div class="grain"></div>
+    
+    <div class="flex h-full">
+        <!-- Sidebar -->
+        <aside class="w-60 flex-shrink-0 border-r flex flex-col" style="background:var(--c-surface); border-color:var(--c-border);">
+            <div class="px-5 py-5 border-b" style="border-color:var(--c-border);">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:var(--c-accent-bg);">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="color:var(--c-accent-2);">
+                            <circle cx="12" cy="12" r="10"/><path d="M12 2a7 7 0 017 7c0 5-7 11-7 11S5 14 5 9a7 7 0 017-7z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="text-sm font-bold tracking-wide font-mono" style="color:var(--c-txt-bright);">ASTRO GATES</div>
+                        <div class="text-[10px] font-mono tracking-widest uppercase" style="color:var(--c-txt-dim);">Admin Panel</div>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="flex-1 py-4 px-2 space-y-1">
+                <a href="/panel/dashboard" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-md text-sm {% if active_page == 'dashboard' %}active{% endif %}">
+                    <svg class="w-4 h-4 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                        <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+                    </svg><span>Dashboard</span>
+                </a>
+                <a href="/panel/sites" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-md text-sm {% if active_page == 'sites' %}active{% endif %}">
+                    <svg class="w-4 h-4 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 014 10 15 15 0 01-4 10 15 15 0 01-4-10A15 15 0 0112 2z"/>
+                    </svg><span>Sites</span>
+                </a>
+                <a href="/panel/calculator" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-md text-sm {% if active_page == 'calculator' %}active{% endif %}">
+                    <svg class="w-4 h-4 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
+                    </svg><span>Test Calculator</span>
+                </a>
+                <a href="/panel/logs" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-md text-sm {% if active_page == 'logs' %}active{% endif %}">
+                    <svg class="w-4 h-4 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
+                        <rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14h6M9 18h4"/>
+                    </svg><span>Live Logs</span>
+                </a>
+                <div class="my-3 mx-3 border-t" style="border-color:var(--c-border);"></div>
+                <a href="/panel/settings" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-md text-sm {% if active_page == 'settings' %}active{% endif %}">
+                    <svg class="w-4 h-4 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg><span>Settings</span>
+                </a>
+            </nav>
+            
+            <div class="px-4 py-3 border-t" style="border-color:var(--c-border);">
+                <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <div class="pulse-dot"></div>
+                        <span class="text-[11px] font-mono" style="color:var(--c-txt-dim);">v{{ version }}</span>
+                    </div>
+                    <div class="theme-switch" onclick="toggleTheme()" title="Сменить тему">
+                        <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+                        <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                    </div>
+                    <a href="/panel/logout" class="text-[11px] font-mono" style="color:var(--c-txt-dim);">Выход</a>
+                </div>
+            </div>
+        </aside>
+        
+        <main class="flex-1 overflow-auto">
+            <div class="p-6 lg:p-8 max-w-7xl">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+    
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
+    
+    <script>
+        function getTheme() { return document.documentElement.getAttribute('data-theme') || 'dark'; }
+        function toggleTheme() {
+            var next = getTheme() === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('ag_theme', next);
+            if (typeof onThemeChange === 'function') onThemeChange(next);
+        }
+        function chartColors() {
+            var s = getComputedStyle(document.documentElement);
+            return {
+                line: s.getPropertyValue('--c-chart-line').trim(),
+                fill: s.getPropertyValue('--c-chart-fill').trim(),
+                grid: s.getPropertyValue('--c-chart-grid').trim(),
+                label: s.getPropertyValue('--c-chart-label').trim(),
+                surface: s.getPropertyValue('--c-surface').trim(),
+            };
+        }
+        function showToast(msg, type) {
+            type = type || 'ok';
+            var c = document.getElementById('toast-container'), t = document.createElement('div');
+            t.className = 'fade-in';
+            t.style.cssText = 'padding:8px 16px;border-radius:8px;font-size:13px;font-family:JetBrains Mono,monospace;';
+            var st = { ok:'background:var(--c-ok-bg);color:var(--c-ok);', err:'background:var(--c-err-bg);color:var(--c-err);', warn:'background:var(--c-warn-bg);color:var(--c-warn);' };
+            t.style.cssText += st[type] || st.ok;
+            t.textContent = msg; c.appendChild(t);
+            setTimeout(function(){ t.style.opacity='0'; t.style.transition='opacity 0.3s'; setTimeout(function(){ t.remove(); }, 300); }, 3000);
+        }
+        document.addEventListener('htmx:responseError', function(e){ showToast('Ошибка: '+(e.detail.xhr.status||'сервер недоступен'), 'err'); });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,91 @@
+# ============================================================
+# .dockerignore — Astro Gates Human Design API
+# Strategy: exclude specific items, no risky glob patterns
+# ============================================================
+
+# --- Git ---
+.git
+.gitignore
+.gitattributes
+
+# --- Python caches ---
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.egg-info
+*.egg
+dist
+build
+*.whl
+
+# --- Virtual environments ---
+venv
+.venv
+env
+.env.local
+.env.production
+
+# --- Secrets & local config ---
+.env
+
+# --- Auth database (lives in Docker volume, not image) ---
+api_auth.db
+
+# --- Node ---
+node_modules
+package-lock.json
+yarn.lock
+
+# --- IDE / OS ---
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# --- Tests & docs ---
+tests
+docs
+.coverage
+.pytest_cache
+htmlcov
+.tox
+.nox
+
+# --- CI/CD ---
+.github
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+
+# --- Deploy scripts (used outside container) ---
+deploy.sh
+setup_ubuntu.sh
+
+# --- Misc ---
+*.log
+*.tar.gz
+*.zip
+data/
+current_response.json
+random_response.json
+CHANGELOG.md
+SETUP_RU.md
+LICENSE
+openapi.yaml
+.env_example
+CLAUDE.md
+
+# ============================================================
+# Files that MUST be in the Docker image (not listed above):
+#   src/              — Python application code
+#   ephe/             — Swiss Ephemeris .se1 files
+#   hd_data.sqlite    — HD reference database (gate names, etc.)
+#   requirements.txt  — pip dependencies
+#   pyproject.toml    — package metadata
+#   Dockerfile        — (auto-included by Docker)
+#   README.md
+# ============================================================
