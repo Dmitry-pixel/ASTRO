@@ -3,6 +3,18 @@ info:
   title: Human Design API
   version: 3.4.1
 paths:
+  /health:
+    get:
+      summary: Health Check
+      description: Operational status and system info.
+      operationId: health_check_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
   /calculate:
     get:
       summary: Calculate Hd
@@ -12,53 +24,48 @@ paths:
       parameters:
       - name: year
         in: query
-        required: true
+        required: false
         schema:
           type: integer
           description: Birth year
           default: 1968
           title: Year
-          example: 1968
         description: Birth year
       - name: month
         in: query
-        required: true
+        required: false
         schema:
           type: integer
           description: Birth month
           default: 2
           title: Month
-          example: 2
         description: Birth month
       - name: day
         in: query
-        required: true
+        required: false
         schema:
           type: integer
           description: Birth day
           default: 21
           title: Day
-          example: 21
         description: Birth day
       - name: hour
         in: query
-        required: true
+        required: false
         schema:
           type: integer
           description: Birth hour
           default: 11
           title: Hour
-          example: 11
         description: Birth hour
       - name: minute
         in: query
-        required: true
+        required: false
         schema:
           type: integer
           description: Birth minute
           default: 0
           title: Minute
-          example: 0
         description: Birth minute
       - name: second
         in: query
@@ -68,17 +75,15 @@ paths:
           description: Birth second (optional, default 0)
           default: 0
           title: Second
-          example: 0
         description: Birth second (optional, default 0)
       - name: place
         in: query
-        required: true
+        required: false
         schema:
           type: string
           description: Birth place (city, country)
           default: Kirikkale, Turkey
           title: Place
-          example: Kirikkale, Turkey
         description: Birth place (city, country)
       - name: gender
         in: query
@@ -94,102 +99,30 @@ paths:
         required: false
         schema:
           type: boolean
-          description: Whether the person is alive (true) or deceased (false)
+          description: Whether the person is still alive (True) or deceased (False)
           default: true
           title: Islive
-        description: Whether the person is alive (true) or deceased (false)
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CalculateResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-  /bodygraph:
-    get:
-      summary: Get Bodygraph Image
-      operationId: get_bodygraph_image_bodygraph_get
-      security:
-      - HTTPBearer: []
-      parameters:
-      - name: year
-        in: query
-        required: true
-        schema:
-          type: integer
-          description: Birth year
-          default: 1968
-          title: Year
-        description: Birth year
-      - name: month
-        in: query
-        required: true
-        schema:
-          type: integer
-          description: Birth month
-          default: 2
-          title: Month
-        description: Birth month
-      - name: day
-        in: query
-        required: true
-        schema:
-          type: integer
-          description: Birth day
-          default: 21
-          title: Day
-        description: Birth day
-      - name: hour
-        in: query
-        required: true
-        schema:
-          type: integer
-          description: Birth hour
-          default: 11
-          title: Hour
-        description: Birth hour
-      - name: minute
-        in: query
-        required: true
-        schema:
-          type: integer
-          description: Birth minute
-          default: 0
-          title: Minute
-        description: Birth minute
-      - name: second
+        description: Whether the person is still alive (True) or deceased (False)
+      - name: latitude
         in: query
         required: false
         schema:
-          type: integer
-          description: Birth second (optional, default 0)
-          default: 0
-          title: Second
-        description: Birth second (optional, default 0)
-      - name: place
-        in: query
-        required: true
-        schema:
-          type: string
-          description: Birth place (city, country)
-          default: Kirikkale, Turkey
-          title: Place
-        description: Birth place (city, country)
-      - name: fmt
+          anyOf:
+          - type: number
+          - type: 'null'
+          description: Optional latitude for birth place
+          title: Latitude
+        description: Optional latitude for birth place
+      - name: longitude
         in: query
         required: false
         schema:
-          type: string
-          description: 'Image format: png, svg, jpg/jpeg'
-          default: png
-          title: Fmt
-        description: 'Image format: png, svg, jpg/jpeg'
+          anyOf:
+          - type: number
+          - type: 'null'
+          description: Optional longitude for birth place
+          title: Longitude
+        description: Optional longitude for birth place
       responses:
         '200':
           description: Successful Response
@@ -202,436 +135,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /transits/solar_return:
-    get:
-      summary: Get Solar Return
-      operationId: get_solar_return_transits_solar_return_get
-      security:
-      - HTTPBearer: []
-      parameters:
-      - name: year
-        in: query
-        required: true
-        schema:
-          type: integer
-          description: Birth year
-          title: Year
-        description: Birth year
-      - name: month
-        in: query
-        required: true
-        schema:
-          type: integer
-          description: Birth month
-          title: Month
-        description: Birth month
-      - name: day
-        in: query
-        required: true
-        schema:
-          type: integer
-          description: Birth day
-          title: Day
-        description: Birth day
-      - name: hour
-        in: query
-        required: true
-        schema:
-          type: integer
-          description: Birth hour
-          title: Hour
-        description: Birth hour
-      - name: minute
-        in: query
-        required: false
-        schema:
-          type: integer
-          description: Birth minute (default 0)
-          default: 0
-          title: Minute
-        description: Birth minute (default 0)
-      - name: second
-        in: query
-        required: false
-        schema:
-          type: integer
-          description: Birth second (optional, default 0)
-          default: 0
-          title: Second
-        description: Birth second (optional, default 0)
-      - name: place
-        in: query
-        required: true
-        schema:
-          type: string
-          description: Birth place (city, country)
-          title: Place
-        description: Birth place (city, country)
-      - name: sr_year_offset
-        in: query
-        required: false
-        schema:
-          type: integer
-          description: Calculate Solar Return for X years after birth. 0 is the current SR.
-          default: 0
-          title: Sr Year Offset
-        description: Calculate Solar Return for X years after birth. 0 is the current SR.
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-  /transits/daily:
-    get:
-      summary: Get Daily Transit
-      operationId: get_daily_transit_transits_daily_get
-      security:
-      - HTTPBearer: []
-      parameters:
-      - name: year
-        in: query
-        required: true
-        schema:
-          type: integer
-          description: Birth year
-          title: Year
-        description: Birth year
-      - name: month
-        in: query
-        required: true
-        schema:
-          type: integer
-          description: Birth month
-          title: Month
-        description: Birth month
-      - name: day
-        in: query
-        required: true
-        schema:
-          type: integer
-          description: Birth day
-          title: Day
-        description: Birth day
-      - name: hour
-        in: query
-        required: true
-        schema:
-          type: integer
-          description: Birth hour
-          title: Hour
-        description: Birth hour
-      - name: minute
-        in: query
-        required: false
-        schema:
-          type: integer
-          description: Birth minute (default 0)
-          default: 0
-          title: Minute
-        description: Birth minute (default 0)
-      - name: second
-        in: query
-        required: false
-        schema:
-          type: integer
-          description: Birth second (optional, default 0)
-          default: 0
-          title: Second
-        description: Birth second (optional, default 0)
-      - name: place
-        in: query
-        required: true
-        schema:
-          type: string
-          description: Birth place (city, country)
-          title: Place
-        description: Birth place (city, country)
-      - name: transit_year
-        in: query
-        required: true
-        schema:
-          type: integer
-          description: Transit year to analyze
-          title: Transit Year
-        description: Transit year to analyze
-      - name: transit_month
-        in: query
-        required: true
-        schema:
-          type: integer
-          description: Transit month to analyze
-          title: Transit Month
-        description: Transit month to analyze
-      - name: transit_day
-        in: query
-        required: true
-        schema:
-          type: integer
-          description: Transit day to analyze
-          title: Transit Day
-        description: Transit day to analyze
-      - name: current_place
-        in: query
-        required: false
-        schema:
-          type: string
-          description: Current location for transit calculation (optional, defaults to Birth Place)
-          title: Current Place
-        description: Current location for transit calculation (optional, defaults to Birth Place)
-      - name: transit_hour
-        in: query
-        required: false
-        schema:
-          type: integer
-          description: Transit hour (local time at calculation place, default 12)
-          default: 12
-          title: Transit Hour
-        description: Transit hour (local time at calculation place, default 12)
-      - name: transit_minute
-        in: query
-        required: false
-        schema:
-          type: integer
-          description: Transit minute (default 0)
-          default: 0
-          title: Transit Minute
-        description: Transit minute (default 0)
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  meta:
-                    type: object
-                    properties:
-                      transit_date_local:
-                        type: string
-                      transit_date_utc:
-                        type: string
-                      birth_date_utc:
-                        type: string
-                      birth_date:
-                        type: string
-                        description: "Birth date in ISO format"
-                      create_date:
-                        type: string
-                        description: "Design/Creation date"
-                      place:
-                        type: string
-                        description: "Birth place"
-                      age:
-                        type: integer
-                      gender:
-                        type: string
-                      islive:
-                        type: boolean
-                      zodiac_sign:
-                        type: string
-                      energy_type:
-                        type: string
-                      strategy:
-                        type: string
-                      signature:
-                        type: string
-                      not_self:
-                        type: string
-                      aura:
-                        type: string
-                      inner_authority:
-                        type: string
-                      inc_cross:
-                        type: string
-                      profile:
-                        type: string
-                      calculation_place:
-                        type: string
-                      location:
-                        type: string
-                      type:
-                        type: string
-                      authority:
-                        type: string
-                      total_centers:
-                        type: integer
-                      defined_centers:
-                        type: array
-                        items:
-                          type: string
-                      undefined_centers:
-                        type: array
-                        items:
-                          type: string
-                      definition:
-                        type: string
-                      channels:
-                        type: object
-                        properties:
-                          Channels:
-                            type: array
-                            items:
-                              type: object
-                              properties:
-                                channel:
-                                  type: string
-                                  description: "Formatted channel string (e.g. '6/59: Name (Desc)')"
-                  composite_changes:
-                    type: object
-                    properties:
-                      new_channels:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            gates:
-                              type: string
-                            name:
-                              type: string
-                            description:
-                              type: string
-                      new_centers:
-                        type: array
-                        items:
-                          type: string
-                  planetary_transits:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        planets:
-                          type: string
-                        gate:
-                          type: integer
-                        line:
-                          type: integer
-                        color:
-                          type: integer
-                        tone:
-                          type: integer
-                        base:
-                          type: integer
-                        lon:
-                          type: number
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-  /analyze/composite:
-    post:
-      summary: Analyze Composite
-      description: "Calculate Composite Chart features for exactly 2 people.\nExposes detailed pairwise composite logic including new and duplicated channels/chakras.\n\nInput:\n{\n    \"person1\": { ... },\n    \"person2\": { ... }\n}"
-      operationId: analyze_composite_analyze_composite_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              additionalProperties:
-                $ref: '#/components/schemas/PersonInput'
-              type: object
-              title: Inputs
-              description: Dictionary of exactly 2 people for Composite analysis.
-            example:
-              person1:
-                place: Berlin, Germany
-                year: 1985
-                month: 6
-                day: 15
-                hour: 14
-                minute: 30
-              person2:
-                place: Munich, Germany
-                year: 1988
-                month: 11
-                day: 22
-                hour: 9
-                minute: 15
-        required: true
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-      security:
-      - HTTPBearer: []
-  /analyze/maia-penta:
-    post:
-      summary: Analyze Maia-Penta Hybrid
-      description: "Unified flagship endpoint for Family/Group Harmony. Combines pairwise Matrix dynamics AND holistic Penta group analysis.\n\nInput:\n{\n    \"group_type\": \"family\",\n    \"verbosity\": \"all\",\n    \"participants\": { \"p1\": { ... }, \"p2\": { ... } }\n}"
-      operationId: analyze_maia_penta_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/HybridAnalysisRequest'
-        required: true
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HybridAnalysisResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-      security:
-      - HTTPBearer: []
-
-  /analyze/penta:
-    post:
-      summary: Analyze Penta (Sovereign Standard)
-      description: "Enhanced Penta Analysis (v2) returning a hierarchical, semantic JSON structure with Channels, Gaps, and Functional Zones (Upper/Lower).\n\nInput:\n{\n    \"group_type\": \"family\",\n    \"participants\": { \"p1\": { ... }, \"p2\": { ... }, \"p3\": { ... } }\n}"
-      operationId: analyze_penta_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PentaRequest'
-        required: true
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-      security:
-      - HTTPBearer: []
   /v2/calculate:
     post:
-      summary: Calculate Human Design (V2)
-      description: "Flagship V2 endpoint: Verbose by default, supports partial output masking, semantic enrichment, and advanced mechanics."
-      operationId: calculate_hd_v2_post
       tags:
-        - v2
-      security:
-        - HTTPBearer: []
+      - v2
+      summary: Calculate Hd V2
+      operationId: calculate_hd_v2_v2_calculate_post
       requestBody:
         content:
           application/json:
@@ -651,9 +160,845 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-
+      security:
+      - HTTPBearer: []
+  /admin/sites:
+    get:
+      tags:
+      - admin
+      summary: List Sites
+      description: List all registered sites (tokens hidden).
+      operationId: list_sites_admin_sites_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+    post:
+      tags:
+      - admin
+      summary: Create Site
+      description: Register a new site with API access.
+      operationId: create_site_admin_sites_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SiteCreate'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /admin/sites/{site_id}:
+    put:
+      tags:
+      - admin
+      summary: Edit Site
+      description: Update site domain, token, or active status.
+      operationId: edit_site_admin_sites__site_id__put
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: site_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Site Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SiteUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - admin
+      summary: Remove Site
+      description: Delete site and all its request logs.
+      operationId: remove_site_admin_sites__site_id__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: site_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Site Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /admin/stats:
+    get:
+      tags:
+      - admin
+      summary: View Stats
+      description: View request statistics per site, daily breakdown, and endpoint usage.
+      operationId: view_stats_admin_stats_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: site_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          description: Filter by site ID
+          title: Site Id
+        description: Filter by site ID
+      - name: days
+        in: query
+        required: false
+        schema:
+          type: integer
+          description: Period in days
+          default: 30
+          title: Days
+        description: Period in days
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /panel/login:
+    get:
+      summary: Login Page
+      operationId: login_page_panel_login_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            text/html:
+              schema:
+                type: string
+    post:
+      summary: Login Submit
+      operationId: login_submit_panel_login_post
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Body_login_submit_panel_login_post'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            text/html:
+              schema:
+                type: string
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /panel/logout:
+    get:
+      summary: Logout
+      operationId: logout_panel_logout_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /panel/dashboard:
+    get:
+      summary: Dashboard
+      operationId: dashboard_panel_dashboard_get
+      parameters:
+      - name: days
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 365
+          minimum: 1
+          default: 30
+          title: Days
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            text/html:
+              schema:
+                type: string
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /panel/sites:
+    get:
+      summary: Sites Page
+      operationId: sites_page_panel_sites_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            text/html:
+              schema:
+                type: string
+  /panel/calculator:
+    get:
+      summary: Calculator Page
+      operationId: calculator_page_panel_calculator_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            text/html:
+              schema:
+                type: string
+  /panel/logs:
+    get:
+      summary: Logs Page
+      operationId: logs_page_panel_logs_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            text/html:
+              schema:
+                type: string
+  /panel/api/sites:
+    post:
+      summary: Api Create Site
+      operationId: api_create_site_panel_api_sites_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /panel/api/sites/{site_id}:
+    put:
+      summary: Api Update Site
+      operationId: api_update_site_panel_api_sites__site_id__put
+      parameters:
+      - name: site_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Site Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      summary: Api Delete Site
+      operationId: api_delete_site_panel_api_sites__site_id__delete
+      parameters:
+      - name: site_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Site Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /panel/api/logs:
+    get:
+      summary: Api Get Logs
+      operationId: api_get_logs_panel_api_logs_get
+      parameters:
+      - name: site_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Site Id
+      - name: endpoint
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Endpoint
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 1000
+          minimum: 1
+          default: 100
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /panel/settings:
+    get:
+      summary: Settings Page
+      operationId: settings_page_panel_settings_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            text/html:
+              schema:
+                type: string
+  /panel/api/settings/token:
+    put:
+      summary: Api Change Token
+      operationId: api_change_token_panel_api_settings_token_put
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /panel:
+    get:
+      summary: Panel Root
+      operationId: panel_root_panel_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
 components:
   schemas:
+    AdvancedSectionV2:
+      properties:
+        dream_rave:
+          anyOf:
+          - $ref: '#/components/schemas/DreamRaveOutput'
+          - type: 'null'
+        global_cycle:
+          anyOf:
+          - $ref: '#/components/schemas/GlobalCycleOutput'
+          - type: 'null'
+      type: object
+      title: AdvancedSectionV2
+    AnalyticsSectionV2:
+      properties:
+        motivation:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Motivation
+        perspective:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Perspective
+        quarter:
+          anyOf:
+          - $ref: '#/components/schemas/QuarterV2'
+          - type: 'null'
+        line_counts:
+          anyOf:
+          - $ref: '#/components/schemas/LineCountsV2'
+          - type: 'null'
+        sun_roles:
+          anyOf:
+          - $ref: '#/components/schemas/SunRolesV2'
+          - type: 'null'
+        yin_yang_balance:
+          anyOf:
+          - $ref: '#/components/schemas/YinYangBalanceV2'
+          - type: 'null'
+        contour:
+          anyOf:
+          - $ref: '#/components/schemas/ContourV2'
+          - type: 'null'
+      type: object
+      title: AnalyticsSectionV2
+      description: 'Extended analytics: quarter, line counts, sun roles, yin/yang, contour.'
+    Body_login_submit_panel_login_post:
+      properties:
+        token:
+          type: string
+          title: Token
+      type: object
+      required:
+      - token
+      title: Body_login_submit_panel_login_post
+    CalculateRequestV2:
+      properties:
+        year:
+          type: integer
+          title: Year
+          description: Birth year
+          default: 1968
+        month:
+          type: integer
+          title: Month
+          description: Birth month
+          default: 2
+        day:
+          type: integer
+          title: Day
+          description: Birth day
+          default: 21
+        hour:
+          type: integer
+          title: Hour
+          description: Birth hour
+          default: 11
+        minute:
+          type: integer
+          title: Minute
+          description: Birth minute
+          default: 0
+        second:
+          type: integer
+          title: Second
+          description: Birth second
+          default: 0
+        place:
+          type: string
+          title: Place
+          description: Birth place
+          default: Kirikkale, Turkey
+        gender:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Gender
+          description: Gender
+          default: male
+        islive:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Islive
+          description: Whether alive
+          default: true
+        latitude:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Latitude
+        longitude:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Longitude
+        include:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Include
+          description: Sections to include (e.g. ['general', 'personality_gates'])
+          example:
+          - general
+          - personality_gates
+        exclude:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Exclude
+          description: Sections to exclude
+          example:
+          - channels
+      type: object
+      title: CalculateRequestV2
+    CalculateResponseV2:
+      properties:
+        general:
+          anyOf:
+          - $ref: '#/components/schemas/GeneralSectionV2'
+          - type: 'null'
+        centers:
+          anyOf:
+          - $ref: '#/components/schemas/CentersV2'
+          - type: 'null'
+        channels:
+          anyOf:
+          - items:
+              type: object
+            type: array
+          - type: 'null'
+          title: Channels
+        variables:
+          anyOf:
+          - $ref: '#/components/schemas/VariablesV2'
+          - type: 'null'
+        gates:
+          anyOf:
+          - $ref: '#/components/schemas/GatesV2'
+          - type: 'null'
+        mechanics:
+          anyOf:
+          - type: object
+          - type: 'null'
+          title: Mechanics
+        analytics:
+          anyOf:
+          - $ref: '#/components/schemas/AnalyticsSectionV2'
+          - type: 'null'
+        advanced:
+          anyOf:
+          - $ref: '#/components/schemas/AdvancedSectionV2'
+          - type: 'null'
+      type: object
+      title: CalculateResponseV2
+    CentersV2:
+      properties:
+        defined:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Defined
+        undefined:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Undefined
+      type: object
+      title: CentersV2
+    ClassBreakdownV2:
+      properties:
+        values:
+          anyOf:
+          - additionalProperties:
+              type: string
+            type: object
+          - type: 'null'
+          title: Values
+        share_pct:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Share Pct
+        total:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Total
+      type: object
+      title: ClassBreakdownV2
+      description: Classification result with planet-gate values and share percentage.
+    ContourV2:
+      properties:
+        realization:
+          anyOf:
+          - additionalProperties:
+              $ref: '#/components/schemas/ClassBreakdownV2'
+            type: object
+          - type: 'null'
+          title: Realization
+        mind:
+          anyOf:
+          - additionalProperties:
+              $ref: '#/components/schemas/ClassBreakdownV2'
+            type: object
+          - type: 'null'
+          title: Mind
+        decision:
+          anyOf:
+          - additionalProperties:
+              $ref: '#/components/schemas/ClassBreakdownV2'
+            type: object
+          - type: 'null'
+          title: Decision
+        big_o:
+          anyOf:
+          - additionalProperties:
+              $ref: '#/components/schemas/ClassBreakdownV2'
+            type: object
+          - type: 'null'
+          title: Big O
+      type: object
+      title: ContourV2
+      description: 'Contour analysis: realization, mind, decision, big_o classifications.'
+    DreamRaveOutput:
+      properties:
+        activated_centers:
+          items:
+            type: string
+          type: array
+          title: Activated Centers
+        activated_gates:
+          items:
+            type: integer
+          type: array
+          title: Activated Gates
+        status:
+          type: string
+          title: Status
+      type: object
+      required:
+      - activated_centers
+      - activated_gates
+      - status
+      title: DreamRaveOutput
+    GateV2:
+      properties:
+        gate:
+          type: integer
+          title: Gate
+        line:
+          type: integer
+          title: Line
+        color:
+          type: integer
+          title: Color
+        tone:
+          type: integer
+          title: Tone
+        base:
+          type: integer
+          title: Base
+        lon:
+          type: number
+          title: Lon
+        gate_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Gate Name
+        gate_summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Gate Summary
+        line_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Line Name
+        line_description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Line Description
+        fixation:
+          anyOf:
+          - type: object
+          - type: 'null'
+          title: Fixation
+      type: object
+      required:
+      - gate
+      - line
+      - color
+      - tone
+      - base
+      - lon
+      title: GateV2
+    GatesV2:
+      properties:
+        personality:
+          anyOf:
+          - additionalProperties:
+              $ref: '#/components/schemas/GateV2'
+            type: object
+          - type: 'null'
+          title: Personality
+        design:
+          anyOf:
+          - additionalProperties:
+              $ref: '#/components/schemas/GateV2'
+            type: object
+          - type: 'null'
+          title: Design
+      type: object
+      title: GatesV2
+    GeneralSectionV2:
+      properties:
+        birth_date:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Birth Date
+        create_date:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Create Date
+        birth_place:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Birth Place
+        age:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Age
+        gender:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Gender
+        islive:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Islive
+        zodiac_sign:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Zodiac Sign
+        energy_type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Energy Type
+        strategy:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Strategy
+        signature:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Signature
+        not_self:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Not Self
+        aura:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Aura
+        inner_authority:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Inner Authority
+        inc_cross:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Inc Cross
+        profile:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Profile
+        definition:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Definition
+      type: object
+      title: GeneralSectionV2
+    GlobalCycleOutput:
+      properties:
+        great_cycle:
+          type: string
+          title: Great Cycle
+        cycle_cross:
+          type: string
+          title: Cycle Cross
+        gates:
+          items:
+            type: integer
+          type: array
+          title: Gates
+        description:
+          type: string
+          title: Description
+      type: object
+      required:
+      - great_cycle
+      - cycle_cross
+      - gates
+      - description
+      title: GlobalCycleOutput
     HTTPValidationError:
       properties:
         detail:
@@ -663,71 +1008,137 @@ components:
           title: Detail
       type: object
       title: HTTPValidationError
-    PersonInput:
+    HealthResponse:
       properties:
-        place:
+        status:
           type: string
-          minLength: 1
-          title: Place
-          description: Place of birth (City, Country)
-        year:
-          anyOf:
-          - type: integer
-          - type: string
-          title: Year
-          description: Birth year (1800-2100)
-        month:
-          anyOf:
-          - type: integer
-          - type: string
-          title: Month
-          description: Birth month (1-12)
-        day:
-          anyOf:
-          - type: integer
-          - type: string
-          title: Day
-          description: Birth day (1-31)
-        hour:
-          anyOf:
-          - type: integer
-          - type: string
-          title: Hour
-          description: Birth hour (0-23)
-        minute:
-          anyOf:
-          - type: integer
-          - type: string
-          title: Minute
-          description: Birth minute (0-59)
-        gender:
+          title: Status
+          description: Operational status of the API
+        version:
           type: string
-          title: Gender
-          description: Gender (optional)
-        islive:
-          type: boolean
-          default: true
-          title: Islive
-          description: Whether the person is alive (true) or deceased (false)
-        latitude:
-          type: number
-          nullable: true
-          title: Latitude
-          description: "Optional: Latitude for birth place (bypassing geocoding)"
-        longitude:
-          type: number
-          nullable: true
-          title: Longitude
-          description: "Optional: Longitude for birth place (bypassing geocoding)"
+          title: Version
+          description: Current version of the API
+        timestamp:
+          type: string
+          title: Timestamp
+          description: ISO 8601 timestamp of the response
+        dependencies:
+          additionalProperties:
+            type: string
+          type: object
+          title: Dependencies
+          description: Status of core dependencies
       type: object
       required:
-      - place
-      - year
-      - month
-      - day
-      - hour
-      - minute
-      title: PersonInput
+      - status
+      - version
+      - timestamp
+      title: HealthResponse
+      description: Schema for the health check response.
+    LineCountsV2:
+      properties:
+        prs:
+          anyOf:
+          - additionalProperties:
+              type: integer
+            type: object
+          - type: 'null'
+          title: Prs
+        des:
+          anyOf:
+          - additionalProperties:
+              type: integer
+            type: object
+          - type: 'null'
+          title: Des
+        total:
+          anyOf:
+          - additionalProperties:
+              type: integer
+            type: object
+          - type: 'null'
+          title: Total
+      type: object
+      title: LineCountsV2
+    QuarterV2:
+      properties:
+        number:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Number
+        name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Name
+      type: object
+      title: QuarterV2
+    SiteCreate:
+      properties:
+        domain:
+          type: string
+          minLength: 3
+          title: Domain
+          description: Domain name (e.g. mysite.com)
+        token:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Token
+          description: Custom token (auto-generated if empty)
+      type: object
+      required:
+      - domain
+      title: SiteCreate
+    SiteUpdate:
+      properties:
+        domain:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Domain
+          description: New domain name
+        token:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Token
+          description: New token
+        is_active:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Is Active
+          description: Enable/disable site
+      type: object
+      title: SiteUpdate
+    SunRoleItemV2:
+      properties:
+        hexagram:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Hexagram
+        role:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Role
+      type: object
+      title: SunRoleItemV2
+    SunRolesV2:
+      properties:
+        prs_sun:
+          anyOf:
+          - $ref: '#/components/schemas/SunRoleItemV2'
+          - type: 'null'
+        des_sun:
+          anyOf:
+          - $ref: '#/components/schemas/SunRoleItemV2'
+          - type: 'null'
+      type: object
+      title: SunRolesV2
     ValidationError:
       properties:
         loc:
@@ -749,747 +1160,72 @@ components:
       - msg
       - type
       title: ValidationError
-    CalculateResponse:
-      type: object
-      properties:
-        general:
-          $ref: '#/components/schemas/GeneralOutput'
-        channels:
-          type: array
-          items:
-            $ref: '#/components/schemas/ChannelInfo'
-        gates:
-          type: object
-          additionalProperties:
-            type: array
-            items:
-              $ref: '#/components/schemas/GateInfo'
-      title: CalculateResponse
-    GeneralOutput:
-      type: object
-      properties:
-        birth_date:
-          type: string
-          title: Birth Date
-        create_date:
-          type: string
-          title: Create Date
-        birth_place:
-          type: string
-          title: Birth Place
-        age:
-          type: integer
-          title: Age
-          description: Calculated age in years
-        gender:
-          type: string
-          title: Gender
-          default: male
-        islive:
-          type: boolean
-          title: Islive
-          description: Whether the person is alive (true) or deceased (false)
-          default: true
-        zodiac_sign:
-          type: string
-          title: Zodiac Sign
-          description: Western astrological sign
-        energy_type:
-          type: string
-          title: Energy Type
-        inner_authority:
-          type: string
-          title: Inner Authority
-        inc_cross:
-          type: string
-          title: Inc Cross
-        profile:
-          type: string
-          title: Profile
-        active_chakras:
-          type: array
-          items:
-            type: string
-          title: Active Chakras
-        inactive_chakras:
-          type: array
-          items:
-            type: string
-          title: Inactive Chakras
-        definition:
-          type: string
-          title: Definition
-        variables:
-          $ref: '#/components/schemas/Variables'
-
-      required:
-      - birth_date
-      - create_date
-      - energy_type
-      - inner_authority
-      - inc_cross
-      - profile
-      - active_chakras
-      - inactive_chakras
-      - definition
-      - variables
-      title: GeneralOutput
-    VariableDetail:
-      type: object
+    VariableItemV2:
       properties:
         value:
-          type: string
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Value
         name:
-          type: string
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Name
         aspect:
-          type: string
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Aspect
         def_type:
-          type: string
-          title: Definition Type
-      required:
-      - value
-      - name
-      - aspect
-      - def_type
-      title: VariableDetail
-    Variables:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Def Type
       type: object
-      properties:
-        top_right:
-          $ref: '#/components/schemas/VariableDetail'
-        bottom_right:
-          $ref: '#/components/schemas/VariableDetail'
-        top_left:
-          $ref: '#/components/schemas/VariableDetail'
-        bottom_left:
-          $ref: '#/components/schemas/VariableDetail'
-        short_code:
-          type: string
-          title: Short Code
-          description: Standard shorthand for all four variables (e.g., 'PRL DRR')
-      required:
-      - top_right
-      - bottom_right
-      - top_left
-      - bottom_left
-      - short_code
-      title: Variables
-    GateInfo:
-      type: object
-      properties:
-        gate:
-          type: integer
-        line:
-          type: integer
-        color:
-          type: integer
-        tone:
-          type: integer
-        base:
-          type: integer
-        is_active:
-          type: boolean
-      required:
-      - gate
-      - line
-      - color
-      - tone
-      - base
-      - is_active
-      title: GateInfo
-    ChannelInfo:
-      type: object
-      properties:
-        name:
-          type: string
-        gates:
-          type: array
-          items:
-            type: integer
-        meaning:
-          type: string
-      required:
-      - name
-      - gates
-      title: ChannelInfo
-    PentaRequest:
-      type: object
-      properties:
-        participants:
-          type: object
-          additionalProperties:
-            $ref: '#/components/schemas/PersonInput'
-          description: "Dictionary of participants (3-5 people)"
-        group_type:
-          type: string
-          default: family
-          description: "Type of group analysis: 'family' (default) or 'business'"
-      required:
-        - participants
-      title: PentaRequest
-
-    HybridAnalysisRequest:
-      type: object
-      properties:
-        participants:
-          type: object
-          additionalProperties:
-            $ref: '#/components/schemas/PersonInput'
-          description: "Dictionary of participants (2+ people)"
-        group_type:
-          type: string
-          default: family
-          description: "Type of group analysis: 'family' (default) or 'business'"
-        verbosity:
-          type: string
-          default: all
-          description: "Detail level: 'all' (default) or 'partial'"
-      required:
-        - participants
-      title: HybridAnalysisRequest
-
-    PentaDetail:
-      type: object
-      properties:
-        active_skills:
-          type: array
-          items:
-            type: string
-        penta_gaps:
-          type: array
-          items:
-            type: string
-        is_functional:
-          type: boolean
-        total_defined_centers:
-          type: integer
-          nullable: true
-          description: "Total number of centers defined by the collective group"
-      title: PentaDetail
-
-    SubLineDetail:
-      type: object
-      properties:
-        gate:
-          type: integer
-        line:
-          type: integer
-        color:
-          type: integer
-        tone:
-          type: integer
-        base:
-          type: integer
-        planet:
-          type: string
-        position:
-          type: string
-          description: "High-precision planetary position (e.g., '12.450')"
-      title: SubLineDetail
-
-    MetaDetail:
-      type: object
-      properties:
-        engine:
-          type: string
-        ephemeris:
-          type: string
-        timestamp:
-          type: string
-      title: MetaDetail
-
-    MaiaDetail:
-      type: object
-      properties:
-        channel:
-          type: array
-          items:
-            type: integer
-          description: "The two gates forming the channel"
-        meaning:
-          type: array
-          items:
-            type: string
-          description: "The spiritual and mechanical names of the channel"
-        type:
-          type: string
-          description: "Maia classification: Electromagnetic, Compromise, Dominance, or Companionship"
-        circuitry:
-          type: string
-          description: "The Human Design circuitry group (Individual, Tribal, Collective)"
-        planetary_trigger:
-          type: string
-          description: "The planets activating the gates in this connection"
-        activations:
-          type: array
-          items:
-            $ref: '#/components/schemas/SubLineDetail'
-          description: "High-fidelity activation data (Gate, Line, Color, Tone, Base)"
-      title: MaiaDetail
-
-    SynergyDetail:
-      type: object
-      properties:
-        thematic_label:
-          type: string
-          description: "Professional Maian theme (e.g. '8-1 Have some fun')"
-        bridge_active:
-          type: boolean
-          description: "True if this combination bridges a split definition"
-        center_dynamics:
-          type: object
-          additionalProperties:
-            type: string
-          description: "Conditioning dynamic for each center (fixed, conditioning_p1_to_p2, etc.)"
-        aura_dynamic:
-          type: string
-          description: "Professional label for Type-to-Type energetic interaction"
-        love_gate_highlights:
-          type: array
-          items:
-            type: integer
-          description: "List of active G-Center love gates in the connection"
-        space_count:
-          type: integer
-          description: "Number of completely open centers in the composite (Relational Space)"
-        circuitry_dominant:
-          type: string
-          description: "The dominant circuitry group in the partnership"
-        profile_resonance:
-          type: string
-          description: "Resonance or Harmony level between the two profiles"
-        node_resonance:
-          type: string
-          description: "Resonance level between the South and North Nodes (Environmental Fit)"
-        dominant_sub_circuit:
-          type: string
-          description: "Maximum detail on the sub-circuitry (e.g., Knowing vs. Logical)"
-        planetary_flavor_summary:
-          type: string
-          description: "The dominant planetary quality of the attraction (e.g., Venus-Mars)"
-        group_dynamic_summary:
-          type: string
-          description: "Classification of the group structure (Dyad, Penta, Wa)"
-        penta_details:
-          $ref: '#/components/schemas/PentaDetail'
-          nullable: true
-        variable_synergy:
-          $ref: '#/components/schemas/VariableSynergyDetail'
-          nullable: true
-        environmental_resonance_detail:
-          $ref: '#/components/schemas/EnvironmentalResonanceDetail'
-          nullable: true
-      title: SynergyDetail
-    VariableSynergyDetail:
-      type: object
-      properties:
-        alignment:
-          type: string
-          description: "High-level alignment type (e.g., 'Symmetrical Force', 'Polarized')"
-        operational_insight:
-          type: string
-          description: "Business/Tactical insight based on arrow combination"
-        lifestyle_insight:
-          type: string
-          description: "Relational/Daily life insight based on arrow combination"
-        shorthand_synergy:
-          type: string
-          description: "Shorthand code for the synergy (e.g., 'Strategic-Heavy')"
-    EnvironmentalResonanceDetail:
-      type: object
-      properties:
-        resonance_type:
-          type: string
-          description: "e.g. 'Shared Frequency', 'Harmonic Pull', 'Individual Path'"
-        gates:
-          type: array
-          items:
-            type: integer
-          description: "The gates triggering the resonance"
-        operational_insight:
-          type: string
-          description: "Business context for the nodal environment"
-        lifestyle_insight:
-          type: string
-          description: "Relational context for the nodal environment"
-
-    CombinationItem:
-      type: object
-      properties:
-        id:
-          type: string
-        other_person:
-          type: string
-        new_chakra:
-          type: array
-          items:
-            type: string
-        chakra_count:
-          type: integer
-        new_channels:
-          type: array
-          items:
-            type: array
-            items:
-              type: integer
-        new_ch_meaning:
-          type: array
-          items:
-            type: string
-        duplicated_channels:
-          type: array
-          items:
-            type: array
-            items:
-              type: integer
-        duplicated_ch_meaning:
-          type: array
-          items:
-            type: string
-        connection_code:
-          type: string
-          description: "The 9-0 etc. connection classification code"
-        maia_details:
-          type: array
-          items:
-            $ref: '#/components/schemas/MaiaDetail'
-        synergy:
-          $ref: '#/components/schemas/SynergyDetail'
-      title: CombinationItem
-
-    CompositePersonDetail:
-      type: object
-      properties:
-        name:
-          type: string
-        place:
-          type: string
-        tz:
-          type: string
-        birth_date:
-          type: string
-        create_date:
-          type: string
-        energy_type:
-          type: string
-        strategy:
-          type: string
-          nullable: true
-        signature:
-          type: string
-          nullable: true
-        not_self:
-          type: string
-          nullable: true
-        aura:
-          type: string
-          nullable: true
-        inner_authority:
-          type: string
-        inc_cross:
-          type: string
-        profile:
-          type: string
-        defined_centers:
-          type: array
-          items:
-            type: string
-        undefined_centers:
-          type: array
-          items:
-            type: string
-        definition:
-          type: string
-        variables:
-          $ref: '#/components/schemas/Variables'
-          nullable: true
-        lunar_context:
-          type: string
-          nullable: true
-          description: "Lunar phase at birth"
-        activations:
-          type: object
-          additionalProperties:
-             $ref: '#/components/schemas/SubLineDetail'
-          nullable: true
-          description: "Full planetary activation matrix"
-        channels:
-          type: array
-          items:
-            type: object
-      title: CompositePersonDetail
-
-    HybridAnalysisResponse:
-      type: object
-      properties:
-        meta:
-          $ref: '#/components/schemas/MetaDetail'
-          nullable: true
-        participants:
-          type: object
-          additionalProperties:
-            $ref: '#/components/schemas/CompositePersonDetail'
-          nullable: true
-        penta_dynamics:
-          $ref: '#/components/schemas/PentaDetail'
-          nullable: true
-        dyad_matrix:
-          type: array
-          items:
-            $ref: '#/components/schemas/CombinationItem'
-      title: HybridAnalysisResponse
-
-    CalculateRequestV2:
-      type: object
-      required:
-        - year
-        - month
-        - day
-        - hour
-        - minute
-        - place
-      properties:
-        year:
-          type: integer
-          default: 1968
-        month:
-          type: integer
-          default: 2
-        day:
-          type: integer
-          default: 21
-        hour:
-          type: integer
-          default: 11
-        minute:
-          type: integer
-          default: 0
-        second:
-          type: integer
-          default: 0
-        place:
-          type: string
-          default: "Kirikkale, Turkey"
-        gender:
-          type: string
-          default: "male"
-        islive:
-          type: boolean
-          default: true
-        latitude:
-          type: number
-          format: float
-          nullable: true
-        longitude:
-          type: number
-          format: float
-          nullable: true
-        include:
-          type: array
-          items:
-            type: string
-          nullable: true
-          description: "List of sections to include. Supports dot-notation for nested fields (e.g. 'gates.personality')."
-          example: ["general", "gates.personality"]
-        exclude:
-          type: array
-          items:
-            type: string
-          nullable: true
-          description: "List of sections to exclude. Supports dot-notation for nested fields."
-          example: ["channels"]
-      title: CalculateRequestV2
-
-    CalculateResponseV2:
-      type: object
-      properties:
-        general:
-          $ref: '#/components/schemas/GeneralSectionV2'
-        centers:
-          $ref: '#/components/schemas/CentersV2'
-        channels:
-          type: array
-          items:
-            type: object
-          nullable: true
-        variables:
-          $ref: '#/components/schemas/VariablesV2'
-        gates:
-          $ref: '#/components/schemas/GatesV2'
-        mechanics:
-          type: object
-          nullable: true
-        advanced:
-          $ref: '#/components/schemas/AdvancedSectionV2'
-      title: CalculateResponseV2
-
-    GeneralSectionV2:
-      type: object
-      properties:
-        birth_date:
-          type: string
-        create_date:
-          type: string
-        birth_place:
-          type: string
-        age:
-          type: integer
-        gender:
-          type: string
-        islive:
-          type: boolean
-        zodiac_sign:
-          type: string
-        energy_type:
-          type: string
-        strategy:
-          type: string
-        signature:
-          type: string
-        not_self:
-          type: string
-        aura:
-          type: string
-        inner_authority:
-          type: string
-        inc_cross:
-          type: string
-        profile:
-          type: string
-        definition:
-          type: string
-      title: GeneralSectionV2
-
-    CentersV2:
-      type: object
-      properties:
-        defined:
-          type: array
-          items:
-            type: string
-        undefined:
-          type: array
-          items:
-            type: string
-      title: CentersV2
-
-    VariablesV2:
-      type: object
-      properties:
-        top_right:
-          $ref: '#/components/schemas/VariableItemV2'
-        bottom_right:
-          $ref: '#/components/schemas/VariableItemV2'
-        top_left:
-          $ref: '#/components/schemas/VariableItemV2'
-        bottom_left:
-          $ref: '#/components/schemas/VariableItemV2'
-        short_code:
-          type: string
-      title: VariablesV2
-
-    VariableItemV2:
-      type: object
-      properties:
-        value:
-          type: string
-        name:
-          type: string
-        aspect:
-          type: string
-        def_type:
-          type: string
       title: VariableItemV2
-
-    GatesV2:
-      type: object
+    VariablesV2:
       properties:
-        personality:
-          type: object
-          additionalProperties:
-            $ref: '#/components/schemas/GateV2'
-        design:
-          type: object
-          additionalProperties:
-            $ref: '#/components/schemas/GateV2'
-      title: GatesV2
-
-    GateV2:
+        top_right:
+          anyOf:
+          - $ref: '#/components/schemas/VariableItemV2'
+          - type: 'null'
+        bottom_right:
+          anyOf:
+          - $ref: '#/components/schemas/VariableItemV2'
+          - type: 'null'
+        top_left:
+          anyOf:
+          - $ref: '#/components/schemas/VariableItemV2'
+          - type: 'null'
+        bottom_left:
+          anyOf:
+          - $ref: '#/components/schemas/VariableItemV2'
+          - type: 'null'
+        short_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Short Code
       type: object
+      title: VariablesV2
+    YinYangBalanceV2:
       properties:
-        gate:
-          type: integer
-        line:
-          type: integer
-        color:
-          type: integer
-        tone:
-          type: integer
-        base:
-          type: integer
-        lon:
-          type: number
-        gate_name:
-          type: string
-          nullable: true
-        gate_summary:
-          type: string
-          nullable: true
-        line_name:
-          type: string
-          nullable: true
-        line_description:
-          type: string
-          nullable: true
-        fixation:
-          type: object
-          nullable: true
-      title: GateV2
-
-    AdvancedSectionV2:
+        Yang:
+          anyOf:
+          - $ref: '#/components/schemas/ClassBreakdownV2'
+          - type: 'null'
+        Yin:
+          anyOf:
+          - $ref: '#/components/schemas/ClassBreakdownV2'
+          - type: 'null'
+        Balance:
+          anyOf:
+          - $ref: '#/components/schemas/ClassBreakdownV2'
+          - type: 'null'
       type: object
-      properties:
-        dream_rave:
-          $ref: '#/components/schemas/DreamRaveOutput'
-        global_cycle:
-          $ref: '#/components/schemas/GlobalCycleOutput'
-      title: AdvancedSectionV2
-
-    DreamRaveOutput:
-      type: object
-      properties:
-        activated_centers:
-          type: array
-          items:
-            type: string
-        activated_gates:
-          type: array
-          items:
-            type: integer
-        status:
-          type: string
-      title: DreamRaveOutput
-
-    GlobalCycleOutput:
-      type: object
-      properties:
-        great_cycle:
-          type: string
-        cycle_cross:
-          type: string
-        gates:
-          type: array
-          items:
-            type: integer
-        description:
-          type: string
-      title: GlobalCycleOutput
-
+      title: YinYangBalanceV2
   securitySchemes:
     HTTPBearer:
       type: http
       scheme: bearer
-
