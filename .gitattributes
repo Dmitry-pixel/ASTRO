@@ -20,7 +20,11 @@ docker-compose.yml text eol=lf
 
 # Swiss Ephemeris data (compressed JPL DE431). Shipped with the repository -
 # nothing downloads them, and their absence silently degrades precision.
-ephe/** binary
+# Only the .se1 files are binary; sefstars.txt is a plain-text catalogue and must
+# stay LF, or a Windows checkout rewrites it with CRLF and the bytes stop matching
+# the upstream distribution.
+ephe/*.se1 binary
+ephe/sefstars.txt text eol=lf
 ephe/** linguist-vendored=true
 
 # Human Design reference database: gate names, line descriptions, channels,
