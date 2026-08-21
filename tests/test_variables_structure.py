@@ -1,5 +1,9 @@
 from fastapi.testclient import TestClient
 from humandesign.api import app
+import pytest
+
+# Geocodes "Kirikkale, Turkey" through Nominatim, so it needs the network.
+pytestmark = pytest.mark.network
 
 client = TestClient(app)
 

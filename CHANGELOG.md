@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [Unreleased]
+### Added
+- GitHub Actions runs the test suite on every push and pull request to `main`. The required job runs
+  `pytest -m "not network"`; a second, non-blocking job runs the three geocoding tests separately, so a
+  rate-limited Nominatim cannot turn the build red and train everyone to ignore it.
+- `[tool.pytest.ini_options]` in pyproject: `pythonpath = ["src"]` and the `network` marker. `pytest` now
+  works from a clean checkout without setting `PYTHONPATH`.
+
+### Changed
+- Dropped the obsolete `version: '3.8'` key from `docker-compose.yml`; Compose v2 ignores it and warns on
+  every invocation.
 
 ## [3.4.3] - 2026-08-21
 ### Fixed

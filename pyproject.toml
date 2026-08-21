@@ -53,6 +53,14 @@ dev = [
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
+[tool.pytest.ini_options]
+# tests import the package from src/ without an editable install
+pythonpath = ["src"]
+testpaths = ["tests"]
+markers = [
+    "network: reaches an external service (Nominatim geocoding). Excluded from the required CI gate so a rate-limited or unreachable geocoder cannot turn the build red.",
+]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
