@@ -9,6 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.4.3] - 2026-08-21
+### Fixed
+- **Impossible birth dates reached the ephemeris.** Out-of-range components
+  (`month=13`, `hour=24`) surfaced as a 500 from the calculation layer, and a day
+  the month does not have (31 April, 29 February of a common year) was normalised
+  away, shifting the chart by a day with no signal to the caller. Both interfaces
+  now return 422 before any calculation runs. The numeric ranges are declared on
+  the request models, so they appear in `openapi.yaml`.
+- **The admin panel session guard did not redirect.** `_require_session` raised
+  `HTTPException(302)` with a `Location` header, which FastAPI renders as a JSON
+  error body rather than a redirect. It now returns a `RedirectResponse`, and all
+  ten call sites return it.
+
+### Changed
+- `uvicorn` pinned to 0.42.0. The repository carried 0.27.1 while production had
+  been running 0.42.0 since March; the older pin was a leftover from the v16
+  unpack and would have downgraded the server on the next deploy.
+- `include` and `exclude` on `POST /v2/calculate` document the valid section names
+  and the difference between `None`/`[]` (everything) and a non-empty whitelist.
+
+### Note
+This release folds in four fixes that had been applied directly on the production
+host on 2026-06-08 and never committed. Production ran 3.4.1 plus those patches;
+3.4.3 is the first version where the repository and the deployed code agree.
+
 ## [3.4.2] - 2026-08-17
 ### Fixed
 - **Swiss Ephemeris ran in Moshier mode for every API request.** `swe_set_ephe_path`
