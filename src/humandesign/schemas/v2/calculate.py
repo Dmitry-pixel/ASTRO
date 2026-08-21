@@ -30,8 +30,25 @@ class CalculateRequestV2(BaseModel):
         validate_calendar_date(self.year, self.month, self.day)
         return self
     
-    include: Optional[List[str]] = Field(None, description="Sections to include (e.g. ['general', 'personality_gates'])", example=["general", "personality_gates"])
-    exclude: Optional[List[str]] = Field(None, description="Sections to exclude", example=["channels"])
+    include: Optional[List[str]] = Field(
+        None,
+        description=(
+            "Sections to keep in the response. "
+            "Available: general, centers, channels, gates, variables, analytics, "
+            "advanced, mechanics. "
+            "None or [] returns every section; a non-empty list returns only "
+            "the sections it names. Unknown names are ignored."
+        ),
+        example=["general", "centers"],
+    )
+    exclude: Optional[List[str]] = Field(
+        None,
+        description=(
+            "Sections to drop from the response, applied after 'include'. "
+            "Unknown names are ignored."
+        ),
+        example=["channels"],
+    )
 
 class VariableItemV2(BaseModel):
     value: Optional[str] = None
