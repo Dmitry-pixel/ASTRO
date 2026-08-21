@@ -1,6 +1,10 @@
 from fastapi.testclient import TestClient
 from humandesign.api import app
 from humandesign.dependencies import verify_token
+import pytest
+
+# Geocodes "London, UK" through Nominatim, so it needs the network.
+pytestmark = pytest.mark.network
 
 app.dependency_overrides[verify_token] = lambda: True
 client = TestClient(app)

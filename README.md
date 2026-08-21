@@ -1,5 +1,7 @@
 # Human Design API
 
+[![tests](https://github.com/Dmitry-pixel/ASTRO/actions/workflows/tests.yml/badge.svg)](https://github.com/Dmitry-pixel/ASTRO/actions/workflows/tests.yml)
+
 Python-based Human Design calculation API. Calculates Energy Types, Profiles, Incarnation Crosses, Gates, Variables, and extended analytics using Swiss Ephemeris (JPL DE431).
 
 ## Quick Start
