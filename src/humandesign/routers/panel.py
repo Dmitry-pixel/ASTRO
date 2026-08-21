@@ -59,9 +59,16 @@ def _check_session(request: Request) -> bool:
     return bool(token and _sessions.get(token))
 
 
-def _require_session(request: Request):
+def _require_session(request: Request) -> Optional[RedirectResponse]:
+    """Return a redirect to the login page, or None when the session is valid.
+
+    Raising HTTPException(302) sent the browser a JSON error body with a
+    Location header attached, which is not a redirect any client is obliged
+    to follow. Callers must return whatever this hands back.
+    """
     if not _check_session(request):
-        raise HTTPException(status_code=302, headers={"Location": "/panel/login"})
+        return RedirectResponse("/panel/login", status_code=302)
+    return None
 
 
 # ============================================================
@@ -108,8 +115,9 @@ async def logout(request: Request):
 
 @router.get("/panel/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request, days: int = Query(30, ge=1, le=365)):
-    _require_session(request)
-    
+    redirect = _require_session(request)
+    if redirect:
+        return redirect
     stats = get_stats(days=days)
     
     # Compute aggregates
@@ -150,8 +158,9 @@ async def dashboard(request: Request, days: int = Query(30, ge=1, le=365)):
 
 @router.get("/panel/sites", response_class=HTMLResponse)
 async def sites_page(request: Request):
-    _require_session(request)
-    
+    redirect = _require_session(request)
+    if redirect:
+        return redirect
     # Get sites WITH tokens for the panel
     conn = _get_db()
     rows = conn.execute(
@@ -174,8 +183,9 @@ async def sites_page(request: Request):
 
 @router.get("/panel/calculator", response_class=HTMLResponse)
 async def calculator_page(request: Request):
-    _require_session(request)
-    
+    redirect = _require_session(request)
+    if redirect:
+        return redirect
     # Get sites with tokens for the dropdown
     conn = _get_db()
     rows = conn.execute(
@@ -198,8 +208,9 @@ async def calculator_page(request: Request):
 
 @router.get("/panel/logs", response_class=HTMLResponse)
 async def logs_page(request: Request):
-    _require_session(request)
-    
+    redirect = _require_session(request)
+    if redirect:
+        return redirect
     sites = get_all_sites()
     
     return templates.TemplateResponse("panel/logs.html", {
@@ -216,7 +227,9 @@ async def logs_page(request: Request):
 
 @router.post("/panel/api/sites")
 async def api_create_site(request: Request):
-    _require_session(request)
+    redirect = _require_session(request)
+    if redirect:
+        return redirect
     body = await request.json()
     try:
         site = add_site(body["domain"], body.get("token"))
@@ -236,7 +249,9 @@ async def api_create_site(request: Request):
 
 @router.put("/panel/api/sites/{site_id}")
 async def api_update_site(request: Request, site_id: int):
-    _require_session(request)
+    redirect = _require_session(request)
+    if redirect:
+        return redirect
     body = await request.json()
     try:
         site = update_site(
@@ -252,7 +267,9 @@ async def api_update_site(request: Request, site_id: int):
 
 @router.delete("/panel/api/sites/{site_id}")
 async def api_delete_site(request: Request, site_id: int):
-    _require_session(request)
+    redirect = _require_session(request)
+    if redirect:
+        return redirect
     if delete_site(site_id):
         return {"status": "deleted", "site_id": site_id}
     raise HTTPException(status_code=404, detail=f"Site id={site_id} not found")
@@ -266,8 +283,9 @@ async def api_get_logs(
     status: Optional[str] = Query(None),
     limit: int = Query(100, ge=1, le=1000),
 ):
-    _require_session(request)
-    
+    redirect = _require_session(request)
+    if redirect:
+        return redirect
     conn = _get_db()
     
     where_clauses = []
@@ -307,8 +325,9 @@ async def api_get_logs(
 
 @router.get("/panel/settings", response_class=HTMLResponse)
 async def settings_page(request: Request):
-    _require_session(request)
-    
+    redirect = _require_session(request)
+    if redirect:
+        return redirect
     current_token = _auth_module.ADMIN_TOKEN or ""
     token_masked = current_token[:6] + "••••••••••••" if len(current_token) > 6 else "••••••"
     
@@ -325,7 +344,9 @@ async def settings_page(request: Request):
 
 @router.put("/panel/api/settings/token")
 async def api_change_token(request: Request):
-    _require_session(request)
+    redirect = _require_session(request)
+    if redirect:
+        return redirect
     body = await request.json()
     
     current_token = body.get("current_token", "")
