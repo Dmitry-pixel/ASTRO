@@ -1,13 +1,15 @@
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field, model_validator
 
+from ...utils.date_utils import validate_calendar_date
+
 class CalculateRequestV2(BaseModel):
     year: int = Field(..., description="Birth year")
-    month: int = Field(..., description="Birth month")
-    day: int = Field(..., description="Birth day")
-    hour: int = Field(..., description="Birth hour")
-    minute: int = Field(..., description="Birth minute")
-    second: int = Field(0, description="Birth second")
+    month: int = Field(..., ge=1, le=12, description="Birth month (1-12)")
+    day: int = Field(..., ge=1, le=31, description="Birth day (1-31, checked against the month)")
+    hour: int = Field(..., ge=0, le=23, description="Birth hour (0-23)")
+    minute: int = Field(..., ge=0, le=59, description="Birth minute (0-59)")
+    second: int = Field(0, ge=0, le=59, description="Birth second (0-59)")
     place: Optional[str] = Field(
         None,
         description="Birth place (city, country) or IANA timezone. Required unless latitude and longitude are both supplied.",
@@ -21,6 +23,11 @@ class CalculateRequestV2(BaseModel):
     def _require_place_or_coordinates(self):
         if self.place is None and (self.latitude is None or self.longitude is None):
             raise ValueError("Provide 'place', or both 'latitude' and 'longitude'.")
+        return self
+
+    @model_validator(mode="after")
+    def _require_existing_date(self):
+        validate_calendar_date(self.year, self.month, self.day)
         return self
     
     include: Optional[List[str]] = Field(None, description="Sections to include (e.g. ['general', 'personality_gates'])", example=["general", "personality_gates"])

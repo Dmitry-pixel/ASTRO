@@ -8,7 +8,11 @@ from .. import hd_constants
 from ..utils import serialization as cj
 from ..services.geolocation import get_latitude_longitude, tf
 from ..dependencies import verify_token
-from ..utils.date_utils import clean_birth_date_to_iso, clean_create_date_to_iso
+from ..utils.date_utils import (
+    clean_birth_date_to_iso,
+    clean_create_date_to_iso,
+    validate_calendar_date,
+)
 from ..schemas.general import HealthResponse
 from ..utils.health_utils import check_swisseph_health
 from datetime import datetime
@@ -61,11 +65,11 @@ def health_check():
 @router.get("/calculate")
 def calculate_hd(
     year: int = Query(..., description="Birth year"),
-    month: int = Query(..., description="Birth month"),
-    day: int = Query(..., description="Birth day"),
-    hour: int = Query(..., description="Birth hour"),
-    minute: int = Query(..., description="Birth minute"),
-    second: int = Query(0, description="Birth second"),
+    month: int = Query(..., ge=1, le=12, description="Birth month (1-12)"),
+    day: int = Query(..., ge=1, le=31, description="Birth day (1-31, checked against the month)"),
+    hour: int = Query(..., ge=0, le=23, description="Birth hour (0-23)"),
+    minute: int = Query(..., ge=0, le=59, description="Birth minute (0-59)"),
+    second: int = Query(0, ge=0, le=59, description="Birth second (0-59)"),
     place: Optional[str] = Query(None, description="Birth place (city, country) or IANA timezone. Required unless latitude and longitude are both supplied."),
     gender: Optional[str] = Query(None, description="Gender"),
     islive: bool = Query(True, description="Whether the person is still alive (True) or deceased (False)"),
@@ -79,6 +83,11 @@ def calculate_hd(
             status_code=422,
             detail="Provide 'place', or both 'latitude' and 'longitude'."
         )
+
+    try:
+        validate_calendar_date(year, month, day)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
 
     birth_time = (year, month, day, hour, minute, second)
 

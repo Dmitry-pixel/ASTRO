@@ -1,4 +1,28 @@
+import calendar
 from datetime import datetime, timedelta
+
+
+def validate_calendar_date(year: int, month: int, day: int) -> None:
+    """Raise ValueError when the day does not exist in the given month.
+
+    Numeric ranges for month, day, hour, minute and second are declared on the
+    request models themselves. This covers the one rule they cannot express:
+    31 April and 29 February of a common year are not dates, and feeding them
+    to the ephemeris silently shifts the chart by a day.
+    """
+    try:
+        max_day = calendar.monthrange(year, month)[1]
+    except calendar.IllegalMonthError:
+        raise ValueError(f"month must be in 1..12, got {month}")
+    except (ValueError, OverflowError) as exc:
+        raise ValueError(f"year {year} is out of range") from exc
+
+    if day > max_day:
+        raise ValueError(
+            f"day {day} is out of range for month {month} of year {year} "
+            f"(max {max_day})"
+        )
+
 
 # Helper to convert HD timestamp (Y,M,D,H,M,S,Offset) to ISO UTC
 def to_iso_utc(ts_tuple):
