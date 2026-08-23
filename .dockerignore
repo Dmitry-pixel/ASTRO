@@ -89,3 +89,6 @@ CLAUDE.md
 #   Dockerfile        — (auto-included by Docker)
 #   README.md
 # ============================================================
+
+# --- Frontend build tooling (не нужен в образе) ---
+tools/

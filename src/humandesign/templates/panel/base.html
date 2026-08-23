@@ -4,22 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Admin{% endblock %} — Astro Gates</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="/static/vendor/tailwind.min.css?v=3.5.1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Prevent FOUC: apply saved theme before paint -->
     <script>
         (function(){var t=localStorage.getItem('ag_theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
-    </script>
-    <script>
-        tailwind.config = {
-            theme: { extend: { fontFamily: {
-                'mono': ['JetBrains Mono', 'monospace'],
-                'sans': ['Outfit', 'sans-serif'],
-            }}}
-        }
     </script>
     <style>
         /* ======================== DARK THEME (default) ======================== */

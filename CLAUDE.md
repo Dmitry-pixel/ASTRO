@@ -3,7 +3,8 @@
 ## Project Overview
 **Astro Gates — Human Design API**
 Server-rendered Python/FastAPI application with vanilla JS frontend.
-No React/Vue/Angular — uses Jinja2 + HTMX + TailwindCSS (CDN).
+No React/Vue/Angular — Jinja2 + vanilla JS. Tailwind is compiled at build
+time and served from `/static/vendor/`; nothing is fetched from a CDN.
 Single-command deploy via `deploy.sh` (Docker + Nginx + SSL).
 SQLite databases: `api_auth.db` (auth/logging), `hd_data.sqlite` (HD reference data).
 Swiss Ephemeris integration for astrological calculations.
@@ -20,7 +21,8 @@ Baked:  /app/hd_data.sqlite (HD reference DB — read-only, in image)
 
 ### Key Design Decisions
 - **SSR over SPA**: Faster development, no build step, no npm
-- **HTMX for interactivity**: Dynamic updates without full page reloads (~14KB)
+- **No HTMX**: it was loaded on every panel page and never used — zero `hx-*`
+  attributes. All panel AJAX is `fetch()`. Removed in 3.5.1.
 - **1 uvicorn worker**: In-memory sessions and ADMIN_TOKEN don't sync across workers
 - **Docker multi-stage build**: gcc/g++ in builder only, slim runtime image
 - **SQLite in production**: Simple, file-based, easy backups
@@ -35,7 +37,7 @@ Baked:  /app/hd_data.sqlite (HD reference DB — read-only, in image)
 | **Reference DB** | SQLite (`hd_data.sqlite`) — gate names, line descriptions, planet info |
 | **Astrology** | Swiss Ephemeris (`pysweph`), `timezonefinder`, `geopy` (Nominatim) |
 | **Data Processing** | `pandas`, `numpy`, `python-dateutil` |
-| **Frontend** | Jinja2 templates, HTMX, TailwindCSS (CDN), Chart.js, Vanilla JS |
+| **Frontend** | Jinja2 templates, TailwindCSS (compiled, self-hosted), Chart.js (self-hosted), Vanilla JS |
 | **Infra** | Docker, Docker Compose, Nginx, Certbot (Let's Encrypt) |
 
 ## Directory Structure
@@ -76,7 +78,7 @@ project-root/
 │   │   └── version.py          # Version detection from pyproject.toml
 │   ├── templates/panel/        # 9 Jinja2 templates (base, login, dashboard, calculator,
 │                               _relational, _relational_js, ...)
-│   └── static/                 # favicon.ico only (CSS/JS from CDN)
+│   └── static/                 # favicon.ico + vendor/ (tailwind.min.css, chart.umd.min.js)
 ├── ephe/                       # Swiss Ephemeris .se1 files (baked into Docker image)
 ├── hd_data.sqlite              # HD reference DB (baked into Docker image, read-only)
 ├── data/                       # PERSISTENT VOLUME (mounted in Docker)

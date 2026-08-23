@@ -102,6 +102,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="/static/vendor/chart.umd.min.js?v=3.5.1"></script>
 <script>
     var dailyData = {{ daily_json | safe }};
     var endpointData = {{ endpoint_json | safe }};
