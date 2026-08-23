@@ -137,24 +137,46 @@ files. Nothing can be ported. The interpretation layer has to be designed as its
 own component, and the natural place for it is the consuming application, which
 already receives everything it needs in the JSON.
 
-## Licensing — needs a decision before commercial use
+## Licensing — provenance established
 
-Not legal advice; verify with a lawyer. Two facts worth putting on the record:
+Not legal advice; verify with a lawyer. The facts, checked against the git
+history of both repositories rather than from memory:
 
-1. `LICENSE` in this repository is the GNU **A**GPL v3 (674 lines), while
-   `pyproject.toml` declares `license = {text = "MIT"}`. Those disagree.
-2. `services/composite.py` as restored from `c4b5d3a` is byte-identical to
-   `dturkuler/humandesign_api`'s file apart from the stripped SPDX header, a
-   `pytz` → `zoneinfo` swap and six added dictionary keys. That project is
-   licensed `AGPL-3.0-or-later OR LicenseRef-DevAIble-Commercial`. Much of the
-   rest of `src/humandesign` matches it too.
+| | |
+|---|---|
+| `LICENSE` in this repository | **GNU GPL v3** — plain GPL, not Affero. Byte-identical to upstream's `LICENSE` as it stood before its v4.0.0 release. |
+| Upstream licence 2024-10-11 → 2026-04-22 | GPL v3 (`dturkuler/humandesign_api`, added in `f02b149`, last carried at `ee4b640`, version 3.4.1). No SPDX headers in source, no licence field in `pyproject.toml`, no licence section in the README — the `LICENSE` file was the whole statement. |
+| Upstream relicensing | `71637f0`, 2026-04-22, "Release version 4.0.0" — replaced `LICENSE` and added `LICENSE-AGPL` + `LICENSE-COMMERCIAL`, i.e. `AGPL-3.0-or-later OR LicenseRef-DevAIble-Commercial`. |
+| This repository's snapshot | Uploaded `6e6edd1` / `a1ca984` (2026-03-25) and `7749361` (2026-03-26), at upstream version 3.4.1 — **about four weeks before the relicensing**. |
 
-AGPL obligations attach to network use, which is the deployment model here. The
-new `relational` package is original work and carries no upstream lineage, but
-it sits inside a tree that does. Worth resolving deliberately — either by
-honouring the AGPL, by obtaining the commercial licence from the upstream
-author, or by establishing that the lineage is not what it appears to be —
-rather than by leaving `pyproject.toml` saying MIT.
+**The AGPL does not reach this code.** Relicensing is prospective: it governs
+what the author publishes afterwards, not the grant already made on a version
+someone received. The snapshot taken in March 2026 came under GPL v3 and stays
+under GPL v3.
+
+**Practical consequence, and it is the important one:** GPL v3 has no
+network-use clause. Running a modified GPL v3 program as a hosted service is not
+*conveying* it, so customers calling this API over HTTP acquire no right to the
+source. Closing that gap is precisely why the AGPL exists — and the AGPL is the
+licence this code is not under. The SaaS model is unaffected.
+
+Obligations that do exist, all triggered only by **conveying** the software
+itself (shipping the image, the source or a tarball to a third party):
+the complete corresponding source, the GPL v3 text, and notices marking the
+modified files. Hosting alone triggers none of them. The original `relational`
+package is this project's own copyright, but as part of a GPL v3 derivative work
+it is licensed under GPL v3 when conveyed.
+
+Two things to keep straight going forward:
+
+1. `pyproject.toml` declared `license = {text = "MIT"}`. Nothing in the chain was
+   ever MIT — upstream simply had no licence field, and its `LICENSE` file was
+   GPL v3. Corrected to `GPL-3.0-only`. Upstream never published an "or later"
+   statement anywhere, so "only" is the conservative reading; if a lawyer prefers
+   `GPL-3.0-or-later`, it is a one-word edit.
+2. **Do not pull code from upstream 4.0.x.** Everything at `ee4b640` and earlier
+   is available under GPL v3; everything from `71637f0` onward is AGPL or
+   commercial. Cherry-picking a later fix would import those terms.
 
 ## Verification
 
