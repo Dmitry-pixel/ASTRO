@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [Unreleased]
+### Fixed
+- **`pyproject.toml` declared the wrong licence.** It said MIT; this repository's
+  `LICENSE` is the GNU **GPL v3** and always has been. The field now says
+  `GPL-3.0-only`. Provenance, with commit hashes and dates on both sides, is
+  recorded in `docs/relational-decision-2026-08-23.md`: the snapshot this project
+  started from was taken on 2026-03-25 at upstream version 3.4.1, four weeks
+  before `dturkuler/humandesign_api` relicensed to AGPL on 2026-04-22. The AGPL
+  does not reach this code, and GPL v3 has no network-use clause.
+
 ## [3.5.0] - 2026-08-23
 ### Added
 - **Relational and group analysis.** Four bearer-protected endpoints over a new
