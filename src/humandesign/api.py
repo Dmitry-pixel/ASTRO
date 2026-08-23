@@ -2,6 +2,7 @@ import time
 import sys
 import importlib.metadata
 import os
+import mimetypes
 
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
@@ -37,6 +38,11 @@ if _cors_origins:
     )
 
 # Static files
+# Python's mimetypes table carries no .woff2, so StaticFiles falls back to
+# text/plain for every font. That is wrong on its face, adds a charset to a
+# binary file, and puts already-compressed woff2 in the path of any gzip layer.
+mimetypes.add_type("font/woff2", ".woff2")
+mimetypes.add_type("font/woff", ".woff")
 _static_dir = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/static", StaticFiles(directory=_static_dir), name="static")
 
@@ -54,6 +60,13 @@ async def security_headers_middleware(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-Frame-Options"] = "SAMEORIGIN"
     response.headers["X-Content-Type-Options"] = "nosniff"
+    # The admin panel is server-rendered and its markup changes on every deploy.
+    # Without this the browser serves the previous release from cache and the
+    # panel appears not to have been deployed at all. /static/* is deliberately
+    # left cacheable — those assets are versioned with a ?v= query.
+    if request.url.path.startswith("/panel"):
+        response.headers["Cache-Control"] = "no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
     return response
 
 
