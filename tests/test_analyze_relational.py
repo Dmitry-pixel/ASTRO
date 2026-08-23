@@ -325,7 +325,17 @@ def test_half_hour_timezone_is_preserved(auth):
     assert data["participants"]["Gita"]["tz"] == "Asia/Kolkata"
 
 
-def test_unresolvable_participant_fails_loudly(auth):
+def test_unresolvable_participant_fails_loudly(auth, monkeypatch):
+    """A participant that cannot be resolved surfaces as 422 naming itself,
+    instead of vanishing from a 200.
+
+    The geocoder is stubbed rather than fed a nonsense place name: Nominatim
+    answers "Nowhere Land 12345" with real coordinates from a CI runner, so the
+    original version of this test passed only where the network was unreachable.
+    """
+    from humandesign.relational import persons
+    monkeypatch.setattr(persons, "get_latitude_longitude", lambda place: (None, None))
+
     broken = dict(PAIR)
     broken["Ghost"] = dict(place="Nowhere Land 12345", year=1990, month=1, day=1,
                            hour=0, minute=0)
@@ -334,6 +344,19 @@ def test_unresolvable_participant_fails_loudly(auth):
     detail = r.json()["detail"]
     assert detail["participant"] == "Ghost"
     assert "geocoding" in detail["error"]
+
+
+def test_unusable_timezone_fails_loudly(auth):
+    """The other resolution failure path, and this one needs no network at all:
+    an IANA-shaped place that is not a real zone."""
+    broken = dict(PAIR)
+    broken["Ghost"] = dict(place="Europe/Nowhere_At_All", year=1990, month=1, day=1,
+                           hour=0, minute=0, latitude=50.0, longitude=10.0)
+    r = client.post("/analyze/maia-penta", json={"participants": broken}, headers=auth)
+    assert r.status_code == 422
+    detail = r.json()["detail"]
+    assert detail["participant"] == "Ghost"
+    assert "timezone" in detail["error"]
 
 
 def test_booleans_stay_booleans(auth):
