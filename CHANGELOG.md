@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [3.5.1] - 2026-08-23
+
+### Changed
+- Frontend assets are self-hosted. Tailwind is compiled from the templates at
+  build time (12.9 KB) instead of the `cdn.tailwindcss.com` JIT runtime (~380 KB
+  evaluated in the browser); Chart.js 4.4.7 is vendored under
+  `static/vendor/` and now loads only on the dashboard, the one page that uses
+  it, instead of on all five panel pages.
+- The admin panel no longer contacts `cdn.tailwindcss.com`, `unpkg.com` or
+  `cdn.jsdelivr.net`. A CDN outage or a blocked egress can no longer affect it.
+
+### Removed
+- HTMX. It was loaded on every panel page and never used: no `hx-*` attribute
+  exists in any template and every panel request goes through `fetch()`.
+
 ## [Unreleased]
 ### Fixed
 - **`pyproject.toml` declared the wrong licence.** It said MIT; this repository's
