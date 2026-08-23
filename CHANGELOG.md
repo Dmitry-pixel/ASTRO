@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [3.5.3] - 2026-08-23
+
+### Fixed
+- **Fonts were served as `text/plain`.** Python's `mimetypes` table has no
+  `.woff2`, so `StaticFiles` fell back to plain text with a charset on a binary
+  file. Registered `font/woff2` and `font/woff` before the mount.
+- **The admin panel was cached across deploys.** `/panel/*` now answers with
+  `Cache-Control: no-store, must-revalidate`. A deployed change to the panel was
+  previously invisible until a hard reload, which already cost an investigation
+  into a panel that had in fact deployed correctly. `/static/*` stays cacheable
+  — those assets carry a `?v=` query.
+
 ## [3.5.2] - 2026-08-23
 
 ### Changed
