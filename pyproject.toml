@@ -1,6 +1,6 @@
 [project]
 name = "humandesign-api"
-version = "3.4.3"
+version = "3.5.0"
 description = "Human Design natal chart calculation API with built-in admin panel"
 authors = [
     {name = "Astro Gates"}

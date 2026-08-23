@@ -47,6 +47,42 @@ class SQLiteRepository:
             return dict(row)
         return {"name": f"Line {line_number}", "description": ""}
 
+    def get_channel(self, gate_a: int, gate_b: int) -> Dict[str, Any]:
+        """Channel reference row. `channel_id` is stored in one gate order only,
+        so both are tried."""
+        conn = self.connect()
+        cursor = conn.cursor()
+        for key in (f"{gate_a}-{gate_b}", f"{gate_b}-{gate_a}"):
+            cursor.execute(
+                "SELECT channel_id, name, type, description, design_purpose "
+                "FROM public_channels WHERE channel_id = ?", (key,)
+            )
+            row = cursor.fetchone()
+            if row:
+                return dict(row)
+        return {}
+
+    def get_channel_gifts(self, channel_id: str) -> Dict[int, str]:
+        """{gate_number: gift} for one channel."""
+        conn = self.connect()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT gate_number, gift FROM public_channel_gates WHERE channel_id = ?",
+            (channel_id,)
+        )
+        return {int(r["gate_number"]): r["gift"] for r in cursor.fetchall()}
+
+    def get_gate_reference(self, gate_number: int) -> Dict[str, Any]:
+        """Fuller gate row than `get_gate_label` — used by the relational engines."""
+        conn = self.connect()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT gate_number, name, summary, circuit, quarter, notes "
+            "FROM public_gates WHERE gate_number = ?", (gate_number,)
+        )
+        row = cursor.fetchone()
+        return dict(row) if row else {"gate_number": gate_number, "name": f"Gate {gate_number}"}
+
     def get_planet_info(self, planet_name: str) -> Dict[str, Any]:
         conn = self.connect()
         cursor = conn.cursor()

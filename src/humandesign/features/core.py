@@ -4,7 +4,7 @@ import pandas as pd
 import itertools
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta
-from datetime import datetime
+from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from multiprocessing import Pool
 from tqdm.contrib.concurrent import process_map
@@ -914,7 +914,7 @@ def get_penta(participants_data, group_type="family"):
             "group_size": group_size,
             "penta_formed": 3 <= group_size <= 5,
             "penta_type": group_type.capitalize(),
-            "analysis_timestamp": "2026-01-19T00:00:00Z"
+            "analysis_timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         },
         "analytical_metrics": {
             "stability_score": stability_score,

@@ -7,6 +7,7 @@ from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from .routers import general
 from .routers.v2 import general as general_v2
+from .routers import analyze as analyze_router
 from .routers import admin as admin_router
 from .routers import panel as panel_router
 from .auth import log_request
@@ -42,6 +43,7 @@ app.mount("/static", StaticFiles(directory=_static_dir), name="static")
 # Include Routers
 app.include_router(general.router)
 app.include_router(general_v2.router)
+app.include_router(analyze_router.router)
 app.include_router(admin_router.router)
 app.include_router(panel_router.router)
 

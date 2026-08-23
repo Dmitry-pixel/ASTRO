@@ -50,12 +50,17 @@ project-root/
 │   ├── routers/
 │   │   ├── general.py          # /health, /calculate (v1)
 │   │   ├── v2/general.py       # POST /v2/calculate (with analytics section)
+│   │   ├── analyze.py          # /analyze/composite, /penta, /wa, /maia-penta
 │   │   ├── admin.py            # /admin/sites CRUD, /admin/stats
 │   │   └── panel.py            # /panel/* web UI + internal JSON API
 │   ├── schemas/                # Pydantic models (HealthResponse, CalculateResponseV2, etc.)
+│   ├── relational/             # Dyad / Penta / WA analysis (3.5.0)
+│   │   ├── semantics.py        # Semantic tables, EN + RU, machine codes
+│   │   ├── persons.py          # One birth-data resolution path for /analyze/*
+│   │   ├── engine.py           # Composite: 4 Maia classes over all 36 channels
+│   │   └── groups.py           # Penta 2.0 wrapper + group-field aggregate
 │   ├── services/
-│   │   ├── composite.py        # Main HD calculation orchestrator
-│   │   ├── enrichment.py       # Gate/line label enrichment from hd_data.sqlite
+│   │   ├── enrichment.py       # Gate/line/channel enrichment from hd_data.sqlite
 │   │   ├── sqlite_repository.py # Read-only access to hd_data.sqlite
 │   │   ├── geolocation.py      # Nominatim geocoding + TimezoneFinder
 │   │   └── masking.py          # Output field filtering (include/exclude)
@@ -69,7 +74,8 @@ project-root/
 │   │   ├── health_utils.py     # check_swisseph_health()
 │   │   ├── serialization.py    # JSON serialization helpers
 │   │   └── version.py          # Version detection from pyproject.toml
-│   ├── templates/panel/        # 7 Jinja2 HTML templates (base, login, dashboard, etc.)
+│   ├── templates/panel/        # 9 Jinja2 templates (base, login, dashboard, calculator,
+│                               _relational, _relational_js, ...)
 │   └── static/                 # favicon.ico only (CSS/JS from CDN)
 ├── ephe/                       # Swiss Ephemeris .se1 files (baked into Docker image)
 ├── hd_data.sqlite              # HD reference DB (baked into Docker image, read-only)
@@ -87,7 +93,7 @@ project-root/
 ├── .dockerignore               # Excludes .env, *.db (except !hd_data.sqlite), tests, etc.
 ├── .gitignore                  # Excludes data/, .env, api_auth.db, __pycache__
 ├── CLAUDE.md                   # This file
-└── tests/                      # 18 test files (pytest + httpx TestClient)
+└── tests/                      # 19 test files (pytest + httpx TestClient)
 ```
 
 ## Environment Variables (.env)
@@ -277,3 +283,24 @@ dev = [
 - Nominatim geocoding has 5s timeout and rate limits (free public service)
 - `pandas` and `numpy` are heavy (~90MB) but deeply integrated in calculations
 - `timezonefinder` loads ~20-30MB into RAM on first query (in_memory=True)
+
+## Relational analysis (3.5.0)
+
+`humandesign.relational` replaces the deleted `services/composite.py`. The engine
+classifies composite channels across the full set of 36 rather than only the
+channels new to the pair, which is what makes Compromise, Dominance and
+Companionship reachable — and role-conflict diagnostics with them. See
+`docs/relational-decision-2026-08-23.md` for why the old file was not restored
+and for the licensing question it surfaced.
+
+Rules to keep:
+- **One resolution path.** `relational/persons.py` is the only place birth data
+  becomes a chart for `/analyze/*`. UTC offsets stay floats; activations are
+  keyed by `(polarity, planet)` so a chart keeps all 26.
+- **Failures raise.** A participant that cannot be resolved returns 422 naming
+  itself. Never swallow one and return a partial 200.
+- **`semantics.py` holds data, not logic.** Every block carries a machine `code`
+  plus `label` / `label_ru`, so the consuming app can interpret in either
+  language.
+- **Do not claim doctrine that is not implemented.** `/analyze/wa` sets
+  `meta.entity.doctrine_implemented = false`.

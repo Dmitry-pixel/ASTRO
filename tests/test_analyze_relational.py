@@ -1,0 +1,383 @@
+"""End-to-end tests for /analyze/*.
+
+Coordinates are supplied explicitly so the suite never reaches Nominatim;
+`timezonefinder` resolves the zone offline.
+"""
+import os
+
+import pytest
+from fastapi.testclient import TestClient
+
+from humandesign.api import app
+from humandesign import auth as auth_module
+
+client = TestClient(app)
+
+CAST = {
+    "Anna":  dict(place="Moscow, Russia",    year=1985, month=3,  day=14, hour=9,  minute=25,
+                  latitude=55.7558,  longitude=37.6173),
+    "Boris": dict(place="Berlin, Germany",   year=1979, month=11, day=2,  hour=17, minute=40,
+                  latitude=52.5200,  longitude=13.4050),
+    "Chen":  dict(place="Singapore",         year=1991, month=7,  day=21, hour=6,  minute=5,
+                  latitude=1.3521,   longitude=103.8198),
+    "Dana":  dict(place="Sao Paulo, Brazil", year=1988, month=1,  day=9,  hour=22, minute=15,
+                  latitude=-23.5505, longitude=-46.6333),
+    "Erik":  dict(place="Sydney, Australia", year=1996, month=5,  day=30, hour=13, minute=50,
+                  latitude=-33.8688, longitude=151.2093),
+    "Farah": dict(place="Cairo, Egypt",      year=1983, month=9,  day=3,  hour=4,  minute=10,
+                  latitude=30.0444,  longitude=31.2357),
+    "Gita":  dict(place="Mumbai, India",     year=1990, month=6,  day=15, hour=8,  minute=0,
+                  latitude=19.0760,  longitude=72.8777),
+    "Hugo":  dict(place="Lisbon, Portugal",  year=1975, month=12, day=28, hour=20, minute=45,
+                  latitude=38.7223,  longitude=-9.1393),
+    "Iris":  dict(place="Toronto, Canada",   year=2000, month=4,  day=7,  hour=11, minute=5,
+                  latitude=43.6532,  longitude=-79.3832),
+    "Jonas": dict(place="Oslo, Norway",      year=1982, month=2,  day=19, hour=23, minute=55,
+                  latitude=59.9139,  longitude=10.7522),
+}
+PAIR = {k: CAST[k] for k in ("Anna", "Boris")}
+FIVE = {k: CAST[k] for k in ("Anna", "Boris", "Chen", "Dana", "Erik")}
+TEN = dict(CAST)
+
+#: sample payloads for manual inspection; gitignored
+OUT_DIR = os.path.join(os.path.dirname(__file__), "_output")
+
+
+TEST_DOMAIN = "relational-tests.local"
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _real_auth():
+    """Other test modules install a global `verify_token` override at import time
+    and never remove it. Drop it for this module so the endpoints are exercised
+    through real bearer-token verification, then put it back."""
+    saved = dict(app.dependency_overrides)
+    app.dependency_overrides.clear()
+    yield
+    app.dependency_overrides.update(saved)
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _token():
+    """A site token so verify_token accepts the requests.
+
+    api_auth.db survives between runs, so reuse the site if it is already there.
+    """
+    conn = auth_module._get_db()
+    try:
+        row = conn.execute("SELECT token FROM sites WHERE domain = ?", (TEST_DOMAIN,)).fetchone()
+    finally:
+        conn.close()
+    yield row["token"] if row else auth_module.add_site(TEST_DOMAIN)["token"]
+
+
+@pytest.fixture()
+def auth(_token):
+    return {"Authorization": f"Bearer {_token}"}
+
+
+def _dump(name, payload):
+    os.makedirs(OUT_DIR, exist_ok=True)
+    import json
+    with open(os.path.join(OUT_DIR, name), "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+
+
+def post(path, body, headers):
+    r = client.post(path, json=body, headers=headers)
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+# --------------------------------------------------------------------------- #
+# Auth
+# --------------------------------------------------------------------------- #
+@pytest.mark.parametrize("path", ["/analyze/composite", "/analyze/penta",
+                                  "/analyze/wa", "/analyze/maia-penta"])
+def test_endpoints_require_a_token(path):
+    r = client.post(path, json={"participants": PAIR})
+    assert r.status_code in (401, 403)
+
+
+# --------------------------------------------------------------------------- #
+# Composite — 2 people
+# --------------------------------------------------------------------------- #
+def test_composite_pair(auth):
+    data = post("/analyze/composite", {"participants": PAIR, "verbosity": "standard"}, auth)
+    _dump("composite_pair.json", data)
+
+    assert data["meta"]["entity"]["code"] == "dyad"
+    assert data["meta"]["verbosity"] == "standard"
+    d = data["dyad"]
+
+    formula = d["composite"]["formula"]
+    assert formula["defined"] + formula["open"] == 9
+    assert formula["code"] == f"{formula['defined']}+{formula['open']}"
+
+    totals = d["connections"]["totals"]
+    assert totals["total"] == sum(totals[k] for k in
+                                  ("electromagnetic", "compromise", "dominance", "companionship"))
+    assert totals["total"] == len(d["connections"]["channels"])
+    assert len(d["composite"]["centre_dynamics"]) == 9
+
+    for ch in d["connections"]["channels"]:
+        assert ch["type"]["code"] in {"electromagnetic", "compromise", "dominance", "companionship"}
+        conditioning = ch["type"]["code"] in ("compromise", "dominance")
+        assert (ch["direction"] is not None) == conditioning
+        holders = ch["holders"]
+        full = [n for n, h in holders.items() if h["holds_full_channel"]]
+        if ch["type"]["code"] == "companionship":
+            assert len(full) == 2
+        elif conditioning:
+            assert len(full) == 1
+        else:
+            assert len(full) == 0
+
+
+def test_all_four_maia_classes_are_reachable(auth):
+    """The defect this engine replaces could only ever emit 'electromagnetic'."""
+    seen = set()
+    for body in ({"participants": PAIR}, {"participants": FIVE}, {"participants": TEN}):
+        data = post("/analyze/maia-penta", body, auth)
+        for dyad in data["dyad_matrix"]:
+            for ch in dyad["connections"]["channels"]:
+                seen.add(ch["type"]["code"])
+    assert seen == {"electromagnetic", "compromise", "dominance", "companionship"}
+
+
+def test_composite_is_order_independent(auth):
+    fwd = post("/analyze/composite", {"participants": PAIR}, auth)["dyad"]
+    rev = post("/analyze/composite",
+               {"participants": {k: CAST[k] for k in ("Boris", "Anna")}}, auth)["dyad"]
+    assert fwd["composite"]["formula"] == rev["composite"]["formula"]
+    assert sorted(fwd["composite"]["defined_centres"]) == sorted(rev["composite"]["defined_centres"])
+    assert fwd["connections"]["totals"] == rev["connections"]["totals"]
+    assert fwd["role_conflicts"]["load"] == rev["role_conflicts"]["load"]
+
+
+def test_role_conflicts_name_a_direction(auth):
+    d = post("/analyze/composite", {"participants": PAIR}, auth)["dyad"]
+    rc = d["role_conflicts"]
+    assert rc["count"] == len(rc["channels"])
+    for item in rc["channels"]:
+        assert item["conditions"] != item["conditioned"]
+        assert item["type"] in ("compromise", "dominance")
+    per_person = rc["load"]
+    assert sum(v["conditions"] for v in per_person.values()) == rc["count"]
+    assert sum(v["conditioned"] for v in per_person.values()) == rc["count"]
+
+
+def test_composite_rejects_three(auth):
+    r = client.post("/analyze/composite", json={"participants": {k: CAST[k]
+                    for k in ("Anna", "Boris", "Chen")}}, headers=auth)
+    assert r.status_code == 422
+
+
+# --------------------------------------------------------------------------- #
+# Penta — 3-5
+# --------------------------------------------------------------------------- #
+def test_penta_five(auth):
+    data = post("/analyze/penta", {"participants": FIVE, "group_type": "business"}, auth)
+    _dump("penta_five.json", data)
+
+    assert data["meta"]["entity"]["code"] == "penta"
+    penta = data["penta"]
+    anatomy = penta["penta_anatomy"]
+    assert set(anatomy["upper_penta"]["channels"]) == {"8-1", "31-7", "33-13"}
+    assert set(anatomy["lower_penta"]["channels"]) == {"15-5", "2-14", "46-29"}
+    for key in ("vision_score", "action_score", "stability_score"):
+        assert 0 <= penta["analytical_metrics"][key] <= 100
+
+
+def test_penta_timestamp_is_not_frozen(auth):
+    data = post("/analyze/penta", {"participants": FIVE}, auth)
+    ts = data["penta"]["meta"]["generated_at"]
+    assert ts != "2026-01-19T00:00:00Z"
+    assert ts.endswith("Z") and len(ts) == 20
+
+
+@pytest.mark.parametrize("names", [("Anna", "Boris"), tuple(CAST)])
+def test_penta_rejects_wrong_sizes(auth, names):
+    r = client.post("/analyze/penta", json={"participants": {k: CAST[k] for k in names}},
+                    headers=auth)
+    assert r.status_code == 422
+
+
+def test_penta_group_type_changes_the_vocabulary(auth):
+    biz = post("/analyze/penta", {"participants": FIVE, "group_type": "business"}, auth)
+    fam = post("/analyze/penta", {"participants": FIVE, "group_type": "family"}, auth)
+    assert biz["penta"]["meta"]["group_type"] == "business"
+    assert fam["penta"]["meta"]["group_type"] == "family"
+    assert (biz["penta"]["penta_anatomy"]["lower_penta"]["channels"]["2-14"]["business_label"]
+            != fam["penta"]["penta_anatomy"]["lower_penta"]["channels"]["2-14"]["business_label"])
+
+
+# --------------------------------------------------------------------------- #
+# WA — 6+
+# --------------------------------------------------------------------------- #
+def test_wa_ten(auth):
+    data = post("/analyze/wa", {"participants": TEN, "group_type": "business"}, auth)
+    _dump("wa_ten.json", data)
+
+    entity = data["meta"]["entity"]
+    assert entity["code"] == "wa" and entity["size"] == 10
+    assert entity["doctrine_implemented"] is False
+
+    field = data["group_field"]
+    cov = field["coverage"]
+    assert cov["channels_total"] == 36 and cov["gates_total"] == 64
+    assert 0 <= cov["channels_defined"] <= 36
+    assert cov["channels_defined"] + field["gaps"]["missing_channel_count"] == 36
+    assert len(field["centres"]["defined"]) + len(field["centres"]["open"]) == 9
+    assert sum(field["type_mix"].values()) == 10
+    assert len(field["contributions"]) == 10
+    assert field["fragility"]["keystone_channel_count"] <= cov["channels_defined"]
+
+
+def test_wa_rejects_five(auth):
+    r = client.post("/analyze/wa", json={"participants": FIVE}, headers=auth)
+    assert r.status_code == 422
+
+
+def test_six_to_nine_is_not_a_wa(auth):
+    seven = {k: CAST[k] for k in list(CAST)[:7]}
+    data = post("/analyze/wa", {"participants": seven}, auth)
+    assert data["meta"]["entity"]["code"] == "aggregate"
+    assert data["meta"]["entity"]["doctrine_implemented"] is False
+
+
+# --------------------------------------------------------------------------- #
+# Hybrid
+# --------------------------------------------------------------------------- #
+def test_hybrid_five_carries_penta(auth):
+    data = post("/analyze/maia-penta", {"participants": FIVE, "group_type": "business"}, auth)
+    _dump("hybrid_five.json", data)
+    assert data["dyad_count"] == 10
+    assert "penta" in data and "group_field" not in data
+    summary = data["matrix_summary"]
+    assert summary["connection_totals"]["total"] == sum(
+        d["connections"]["totals"]["total"] for d in data["dyad_matrix"])
+    assert summary["most_conditioning"] in FIVE
+    assert summary["most_conditioned"] in FIVE
+
+
+def test_hybrid_ten_carries_group_field(auth):
+    data = post("/analyze/maia-penta", {"participants": TEN, "verbosity": "compact"}, auth)
+    _dump("hybrid_ten_compact.json", data)
+    assert data["dyad_count"] == 45
+    assert "group_field" in data and "penta" not in data
+
+
+# --------------------------------------------------------------------------- #
+# verbosity
+# --------------------------------------------------------------------------- #
+def test_verbosity_levels_differ(auth):
+    sizes = {}
+    for level in ("compact", "standard", "full"):
+        r = client.post("/analyze/composite",
+                        json={"participants": PAIR, "verbosity": level}, headers=auth)
+        assert r.status_code == 200
+        sizes[level] = len(r.content)
+        data = r.json()
+        d = data["dyad"]
+        if level == "compact":
+            assert "channels" not in d["connections"]
+            assert "centre_dynamics" not in d["composite"]
+            assert "variables" not in data["participants"]["Anna"]
+        else:
+            assert d["connections"]["channels"]
+            assert d["composite"]["centre_dynamics"]
+    assert sizes["compact"] < sizes["standard"] < sizes["full"]
+
+
+def test_full_verbosity_enriches_channels_and_keeps_all_activations(auth):
+    data = post("/analyze/composite", {"participants": PAIR, "verbosity": "full"}, auth)
+    _dump("composite_pair_full.json", data)
+
+    anna = data["participants"]["Anna"]
+    assert anna["activation_count"] == 26
+    assert len(anna["activations"]) == 26, "design must not overwrite personality"
+    nodes = [a for a in anna["activations"] if a["planet"] == "North_Node"]
+    assert {a["polarity"] for a in nodes} == {"personality", "design"}
+
+    enriched = [c for c in data["dyad"]["connections"]["channels"] if "reference" in c]
+    assert enriched, "hd_data.sqlite reference missing at full verbosity"
+    ref = enriched[0]["reference"]
+    assert ref["name"].startswith("The Channel of")
+    assert ref["description"] and ref["design_purpose"]
+    assert len(ref["gifts"]) == 2
+
+
+def test_legacy_verbosity_aliases_are_accepted(auth):
+    for legacy, modern in (("all", "full"), ("partial", "compact")):
+        data = post("/analyze/composite", {"participants": PAIR, "verbosity": legacy}, auth)
+        assert data["meta"]["verbosity"] == modern
+
+
+# --------------------------------------------------------------------------- #
+# Correctness guards on what the previous engine got wrong
+# --------------------------------------------------------------------------- #
+def test_half_hour_timezone_is_preserved(auth):
+    """Mumbai is +05:30. The deleted engine truncated it to +05:00."""
+    data = post("/analyze/composite",
+                {"participants": {"Gita": CAST["Gita"], "Anna": CAST["Anna"]}}, auth)
+    assert data["participants"]["Gita"]["utc_offset"] == 5.5
+    assert data["participants"]["Gita"]["tz"] == "Asia/Kolkata"
+
+
+def test_unresolvable_participant_fails_loudly(auth, monkeypatch):
+    """A participant that cannot be resolved surfaces as 422 naming itself,
+    instead of vanishing from a 200.
+
+    The geocoder is stubbed rather than fed a nonsense place name: Nominatim
+    answers "Nowhere Land 12345" with real coordinates from a CI runner, so the
+    original version of this test passed only where the network was unreachable.
+    """
+    from humandesign.relational import persons
+    monkeypatch.setattr(persons, "get_latitude_longitude", lambda place: (None, None))
+
+    broken = dict(PAIR)
+    broken["Ghost"] = dict(place="Nowhere Land 12345", year=1990, month=1, day=1,
+                           hour=0, minute=0)
+    r = client.post("/analyze/maia-penta", json={"participants": broken}, headers=auth)
+    assert r.status_code == 422
+    detail = r.json()["detail"]
+    assert detail["participant"] == "Ghost"
+    assert "geocoding" in detail["error"]
+
+
+def test_unusable_timezone_fails_loudly(auth):
+    """The other resolution failure path, and this one needs no network at all:
+    an IANA-shaped place that is not a real zone."""
+    broken = dict(PAIR)
+    broken["Ghost"] = dict(place="Europe/Nowhere_At_All", year=1990, month=1, day=1,
+                           hour=0, minute=0, latitude=50.0, longitude=10.0)
+    r = client.post("/analyze/maia-penta", json={"participants": broken}, headers=auth)
+    assert r.status_code == 422
+    detail = r.json()["detail"]
+    assert detail["participant"] == "Ghost"
+    assert "timezone" in detail["error"]
+
+
+def test_booleans_stay_booleans(auth):
+    data = post("/analyze/wa", {"participants": TEN}, auth)
+    assert isinstance(data["meta"]["entity"]["doctrine_implemented"], bool)
+    d = post("/analyze/composite", {"participants": PAIR}, auth)["dyad"]
+    assert isinstance(d["composite"]["bridges_split"]["bridged"], bool)
+    for ch in d["connections"]["channels"]:
+        assert isinstance(ch["new_in_composite"], bool)
+
+
+def test_variable_synergy_reads_all_four_arrows(auth):
+    d = post("/analyze/composite", {"participants": PAIR}, auth)["dyad"]
+    vs = d["variable_synergy"]
+    assert vs["compared_arrows"] == 4
+    assert {a["arrow"] for a in vs["arrows"]} == {"top_left", "top_right",
+                                                 "bottom_left", "bottom_right"}
+    assert vs["shorthand"] == f"{vs['matched_arrows']}/4"
+
+
+def test_impossible_date_is_rejected(auth):
+    bad = {"A": dict(CAST["Anna"], month=2, day=30), "B": CAST["Boris"]}
+    r = client.post("/analyze/composite", json={"participants": bad}, headers=auth)
+    assert r.status_code == 422

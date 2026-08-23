@@ -7,6 +7,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [3.5.0] - 2026-08-23
+### Added
+- **Relational and group analysis.** Four bearer-protected endpoints over a new
+  `humandesign.relational` package:
+
+  | Endpoint | Size | Returns |
+  |---|---|---|
+  | `POST /analyze/composite` | exactly 2 | the dyad and its composite bodygraph |
+  | `POST /analyze/penta` | 3-5 | the Penta entity, Sovereign Standard |
+  | `POST /analyze/wa` | 6+ | group bodygraph aggregate; WA scale at 10+ |
+  | `POST /analyze/maia-penta` | 2+ | every dyad plus the fitting group layer |
+
+  `features.core.get_penta` has shipped since 3.3.0 with five tests and no way to
+  call it over HTTP. It has one now, unchanged.
+- **All four Maia connection classes.** Composite channels are classified across
+  the full set of 36 channels: Companionship (both hold it whole), Compromise
+  (one holds it whole, the other one gate), Dominance (one holds it whole, the
+  other neither gate) and Electromagnetic (one gate each). Measured on a
+  five-person group: 30 electromagnetic, 28 compromise, 30 dominance,
+  3 companionship. Only the first 30 were reachable before.
+- **Role-conflict diagnostics.** Every compromise and dominance channel names who
+  conditions whom; per person a conditioning load; per pair a balance verdict
+  (mutual or asymmetric); across a group a roll-up naming who conditions most and
+  who is conditioned most.
+- **`verbosity`** on all four endpoints: `compact` (roll-ups only), `standard`
+  (plus per-channel detail) and `full` (plus `hd_data.sqlite` channel reference
+  and all 26 activations per participant). Legacy `partial` and `all` still work.
+  Before this release the parameter was accepted, validated and never read.
+- **`hd_data.sqlite` in relational output.** `EnrichmentService.enrich_channel`
+  plus three repository methods bring channel name, design purpose, description
+  and both gate gifts into the payload at full verbosity.
+- **Variable synergy across all four arrows** — Digestion, Environment,
+  Motivation and Perspective, each with its own reading. The previous
+  implementation read Motivation and reported it as the whole variable analysis.
+- **Group field analysis for 6+ people**: coverage of the 64 gates, 36 channels
+  and 9 centres, circuit balance, per-person contribution with unique gates, and
+  a fragility block naming the channels a single departure would break.
+- **Admin panel**: the Test Calculator gained Композит / Пента / WA / Гибрид
+  modes with a participant table, a ten-person preset, optional coordinates, and
+  result tabs for overview, dyads, group layer, participants and raw JSON.
+- Every semantic block carries a stable machine `code` plus English and Russian
+  labels, so a consuming application can interpret the JSON in either language.
+
+### Fixed
+- **Half-hour timezones were truncated.** The relational path built its timestamp
+  with `int(offset)`; Mumbai's +05:30 became +05:00 and the chart moved half an
+  hour. It is a float now, matching `/calculate` and `/v2/calculate`. Affects
+  India, Iran, Adelaide, Nepal, Newfoundland and Myanmar.
+- **The activation matrix lost half of every chart.** Keying by planet name alone
+  let the design activation overwrite the personality one — 13 of 26 survived.
+  The key is now (polarity, planet).
+- **Participants disappeared silently.** A geocoding or ephemeris failure was
+  caught, printed to stdout and turned into `(None, None)`; the participant
+  vanished from the response and the caller still got a 200. Failures now return
+  422 naming the participant and the reason.
+- **The Penta analysis timestamp was hardcoded** to `2026-01-19T00:00:00Z`.
+- Booleans no longer leave the API as `0` / `1`. The old JSON sanitiser tested
+  `isinstance(x, int)` before `bool`, and `bool` is a subclass of `int`.
+
+### Notes
+- The classical WA gate structure for groups of ten or more is not implemented.
+  `/analyze/wa` returns a full-bodygraph aggregate and says so:
+  `meta.entity.doctrine_implemented` is `false`.
+- `services/composite.py`, deleted in 3.4.1, is not restored. The new engine is
+  written from scratch; see `docs/relational-decision-2026-08-23.md`.
+
 ## [Unreleased]
 ### Added
 - GitHub Actions runs the test suite on every push and pull request to `main`. The required job runs
