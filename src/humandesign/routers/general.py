@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import APIRouter, Query, HTTPException, Depends
+from fastapi import APIRouter, Query, HTTPException, Depends, Response
 from fastapi.responses import JSONResponse
 import json
 
@@ -19,8 +19,24 @@ from datetime import datetime
 
 router = APIRouter(tags=["general"])
 
-@router.api_route("/health", methods=["GET", "HEAD"], response_model=HealthResponse,
-                  openapi_extra={"head": None})
+@router.head("/health", include_in_schema=False)
+def health_check_head() -> Response:
+    """HEAD for uptime monitors, which commonly poll with it by default.
+
+    FastAPI does not derive HEAD from GET the way plain Starlette does. Covering
+    both verbs with one api_route is not the fix either: FastAPI computes one
+    operation_id per route rather than per method — generate_unique_id takes
+    list(route.methods)[0], the first element of a set — so GET and HEAD collide
+    on the same id and the spec stops being valid OpenAPI. Worse, set iteration
+    order over strings depends on PYTHONHASHSEED, so which verb won could change
+    between runs and openapi.yaml would drift with no code change behind it.
+
+    A second route, kept out of the schema, gives each operation its own id.
+    """
+    return Response(status_code=200)
+
+
+@router.get("/health", response_model=HealthResponse)
 def health_check():
     """Operational status and system info."""
     from ..api import __version__
