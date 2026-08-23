@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [3.5.4] - 2026-08-23
+
+### Fixed
+- **`HEAD /health` returned 405.** Starlette derives HEAD from every GET route;
+  FastAPI's `APIRoute` does not, and takes the method list verbatim. Uptime
+  monitors that poll with HEAD — many do by default — saw the API as down while
+  it was serving. `/health` now answers both verbs. No other route is changed.
+
 ## [3.5.3] - 2026-08-23
 
 ### Fixed

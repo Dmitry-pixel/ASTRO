@@ -19,7 +19,8 @@ from datetime import datetime
 
 router = APIRouter(tags=["general"])
 
-@router.get("/health", response_model=HealthResponse)
+@router.api_route("/health", methods=["GET", "HEAD"], response_model=HealthResponse,
+                  openapi_extra={"head": None})
 def health_check():
     """Operational status and system info."""
     from ..api import __version__
