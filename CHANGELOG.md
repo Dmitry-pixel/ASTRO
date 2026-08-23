@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [3.5.2] - 2026-08-23
+
+### Changed
+- Web fonts are self-hosted. JetBrains Mono and Outfit are served from
+  `/static/vendor/fonts/` (32 woff2 files, 652 KB) with a generated
+  `fonts.css`; the Greek and Vietnamese subsets Google ships for JetBrains Mono
+  are dropped, since the panel is Russian and English. `fonts.googleapis.com`
+  and `fonts.gstatic.com` are no longer contacted.
+- With this the admin panel makes no third-party request at all.
+
+### Fixed
+- `CHANGELOG.md` carried two `## [Unreleased]` sections. Neither was unreleased:
+  the licence correction shipped in 3.5.1 and the CI/pytest/compose changes
+  shipped in 3.5.0. Both were folded into the releases that actually contain
+  them; no entry was removed.
+
 ## [3.5.1] - 2026-08-23
 
 ### Changed
@@ -22,9 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - HTMX. It was loaded on every panel page and never used: no `hx-*` attribute
   exists in any template and every panel request goes through `fetch()`.
 
-## [Unreleased]
-### Fixed
-- **`pyproject.toml` declared the wrong licence.** It said MIT; this repository's
+### Fixed- **`pyproject.toml` declared the wrong licence.** It said MIT; this repository's
   `LICENSE` is the GNU **GPL v3** and always has been. The field now says
   `GPL-3.0-only`. Provenance, with commit hashes and dates on both sides, is
   recorded in `docs/relational-decision-2026-08-23.md`: the snapshot this project
@@ -78,6 +92,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   result tabs for overview, dyads, group layer, participants and raw JSON.
 - Every semantic block carries a stable machine `code` plus English and Russian
   labels, so a consuming application can interpret the JSON in either language.
+- GitHub Actions runs the test suite on every push and pull request to `main`. The required job runs
+  `pytest -m "not network"`; a second, non-blocking job runs the three geocoding tests separately, so a
+  rate-limited Nominatim cannot turn the build red and train everyone to ignore it.
+- `[tool.pytest.ini_options]` in pyproject: `pythonpath = ["src"]` and the `network` marker. `pytest` now
+  works from a clean checkout without setting `PYTHONPATH`.
 
 ### Fixed
 - **Half-hour timezones were truncated.** The relational path built its timestamp
@@ -102,16 +121,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `services/composite.py`, deleted in 3.4.1, is not restored. The new engine is
   written from scratch; see `docs/relational-decision-2026-08-23.md`.
 
-## [Unreleased]
-### Added
-- GitHub Actions runs the test suite on every push and pull request to `main`. The required job runs
-  `pytest -m "not network"`; a second, non-blocking job runs the three geocoding tests separately, so a
-  rate-limited Nominatim cannot turn the build red and train everyone to ignore it.
-- `[tool.pytest.ini_options]` in pyproject: `pythonpath = ["src"]` and the `network` marker. `pytest` now
-  works from a clean checkout without setting `PYTHONPATH`.
-
-### Changed
-- Dropped the obsolete `version: '3.8'` key from `docker-compose.yml`; Compose v2 ignores it and warns on
+### Changed- Dropped the obsolete `version: '3.8'` key from `docker-compose.yml`; Compose v2 ignores it and warns on
   every invocation.
 
 ## [3.4.3] - 2026-08-21
