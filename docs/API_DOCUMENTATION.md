@@ -1,6 +1,6 @@
 # Human Design API Documentation
 
-**Version:** 3.4.1
+**Version:** 3.5.0
 **Base URL:** `http://localhost:8000` (or `https://api.humandesign.ai`)
 
 ## Overview
@@ -125,45 +125,125 @@ Calculate the Yearly Theme (Solar Return).
 
 ---
 
-## 3. Relationship & Group Analysis (Professional)
+## 3. Relationship & Group Analysis
 
-### Maia-Penta Hybrid Analysis (Flagship)
-The unified engine for relationship mechanics. Combines **Maia Matrix** (Pairwise Synergy) and **Penta** (Group Dynamics) into a single high-fidelity report.
+Four endpoints, all Bearer-protected, all accepting `verbosity`.
 
-**Endpoint:** `POST /analyze/maia-penta`
+| Endpoint | Participants | Purpose |
+| :--- | :--- | :--- |
+| `POST /analyze/composite` | exactly 2 | Dyad and composite bodygraph |
+| `POST /analyze/penta` | 3-5 | Penta entity, Sovereign Standard |
+| `POST /analyze/wa` | 6+ | Group bodygraph aggregate (WA scale at 10+) |
+| `POST /analyze/maia-penta` | 2+ | Every dyad plus the fitting group layer |
 
-#### Request Body
+### Shared request shape
+
 ```json
 {
   "participants": {
-    "Alice": { "place": "London, UK", "year": 1990, "month": 1, "day": 1, "hour": 12, "minute": 0 },
-    "Bob": { "place": "New York, USA", "year": 1992, "month": 5, "day": 20, "hour": 18, "minute": 30 }
+    "Anna":  { "place": "Moscow, Russia",  "year": 1985, "month": 3,  "day": 14, "hour": 9,  "minute": 25 },
+    "Boris": { "place": "Berlin, Germany", "year": 1979, "month": 11, "day": 2,  "hour": 17, "minute": 40 }
   },
-  "group_type": "family",
-  "verbosity": "all"
+  "group_type": "business",
+  "verbosity": "standard"
 }
 ```
 
-#### Response Features
-*   **Synergy**: Connection Types (Electromagnetic, Dominance, Companionship, Split).
-*   **Planetary Triggers**: Which planet activates which channel (e.g., "Mars activates 59-6").
-*   **Nodal Resonance**: Environmental harmony analysis.
-*   **Penta Dynamics**: Functional roles (if 3+ people).
+| Field | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `participants` | object | Yes | Name → birth data. Names are echoed throughout the response. |
+| `participants[].place` | string | Yes | "City, Country", or an IANA zone such as `Europe/Moscow` |
+| `participants[].year/month/day/hour/minute` | int | Yes | Ranges validated before any calculation |
+| `participants[].latitude/longitude` | float | No | Supply both to skip geocoding |
+| `group_type` | enum | No | `business` (default) or `family`. Ignored by `/analyze/composite`. |
+| `verbosity` | enum | No | `compact`, `standard` (default), `full`. `partial` and `all` are accepted as aliases for `compact` and `full`. |
 
-### Group Penta Analysis (V2)
-Dedicated endpoint for analyzing functional groups (3-5 people).
+### Verbosity
 
-**Endpoint:** `POST /analyze/penta`
+| Level | Contains |
+| :--- | :--- |
+| `compact` | Roll-ups only: formula, connection totals, role-conflict balance, group metrics. No per-channel lists, trimmed participant summaries. |
+| `standard` | Plus every channel with its Maia class, circuit, holders and conditioning direction; centre dynamics; the full gap and fragility lists. |
+| `full` | Plus `hd_data.sqlite` reference text per channel (name, design purpose, description, both gate gifts) and all 26 activations per participant. |
 
-#### Request Body
+### The four Maia connection classes
+
+Every channel the pair forms is classified. This is the core of the composite.
+
+| Class | Mechanics | Reads as |
+| :--- | :--- | :--- |
+| `companionship` | Both hold the whole channel | Complete agreement; nothing needs explaining |
+| `compromise` | One holds it whole, the other holds one gate | Pressure zone — the single-gate side always yields |
+| `dominance` | One holds it whole, the other holds neither gate | Fixed pattern; the other reflects and absorbs it |
+| `electromagnetic` | One gate each | Attraction and the pair's main point of conflict |
+
+`compromise` and `dominance` carry a `direction` object naming who conditions
+whom; they are aggregated into `role_conflicts`.
+
+### Centre formula
+
+`composite.formula.code` is `defined+open` over the nine centres, with a reading:
+`9+0` nowhere to hide, `8+1` room to grow, `7+2` work to do, `6+3` and below not
+enough glue.
+
+### `/analyze/composite` — response outline
+
 ```json
 {
-  "participants": { "A": {...}, "B": {...}, "C": {...} },
-  "group_type": "business" 
+  "meta": { "engine": "relational-1.0", "entity": { "code": "dyad", "size": 2 }, "verbosity": "standard" },
+  "participants": { "Anna": { "energy_type": "Projector", "utc_offset": 3.0, "...": "..." } },
+  "dyad": {
+    "pair": ["Anna", "Boris"],
+    "composite": { "formula": { "code": "8+1", "label": "Room to grow" },
+                   "defined_centres": [], "centre_dynamics": {}, "bridges_split": {} },
+    "genetic_type": { "label": "Union of direction", "task": "..." },
+    "connections": { "totals": { "electromagnetic": 2, "compromise": 5, "dominance": 2,
+                                 "companionship": 0, "total": 9 },
+                     "circuitry": {}, "dominant_circuit": {}, "channels": [] },
+    "role_conflicts": { "balance": {}, "load": {}, "channels": [] },
+    "profile_resonance": {}, "variable_synergy": {}, "environmental_resonance": {},
+    "love_gates": []
+  }
 }
 ```
 
----
+### `/analyze/penta` — response outline
+
+`penta.penta_anatomy` holds the six channels split into `upper_penta`
+(direction and vision) and `lower_penta` (action and generation), each with
+status, contributor breakdown by gate and line, or a gap analysis with severity
+and impact. Alongside it: `analytical_metrics` (vision, action and stability
+scores plus backbone integrity), `functional_roles` and `hiring_logic`.
+
+### `/analyze/wa` — response outline
+
+`group_field` carries `coverage` (gates, channels, centres, and share by circuit
+group), `centres`, `type_mix`, `contributions` (per person, including gates
+nobody else in the group holds), `fragility` (the channels that break if one
+person leaves) and `gaps`.
+
+> [!NOTE]
+> The classical WA gate structure is not implemented.
+> `meta.entity.doctrine_implemented` is `false` and the payload is a
+> full-bodygraph aggregate, not a canonical WA. Groups of 6-9 are labelled
+> `aggregate`; 10 and above, `wa`.
+
+### `/analyze/maia-penta` — response outline
+
+`dyad_matrix` (one entry per pair, same shape as `dyad` above), `dyad_count`,
+`matrix_summary` (connection totals across all pairs, formula distribution,
+conditioning load per person, who conditions most and who is conditioned most,
+and the asymmetric pairs), plus `penta` for 3-5 participants or `group_field`
+for 6 and above.
+
+### Errors
+
+A participant that cannot be resolved returns `422` naming it, rather than
+disappearing from a `200`:
+
+```json
+{ "detail": { "participant": "Ghost", "error": "geocoding failed for 'Nowhere Land'" } }
+```
 
 ## Error Handling
 
@@ -176,4 +256,4 @@ Dedicated endpoint for analyzing functional groups (3-5 people).
 | `500` | Internal Server Error |
 
 ---
-*Documentation updated for v3.4.1*
+*Documentation updated for v3.5.0*
