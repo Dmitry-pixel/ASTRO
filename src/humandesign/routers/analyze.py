@@ -55,13 +55,17 @@ def analyze_penta(request: PentaRequest, authorized: bool = Depends(verify_token
 
 @router.post("/wa", summary="Group field aggregate — WA scale (6+ people)")
 def analyze_wa(request: WaRequest, authorized: bool = Depends(verify_token)):
-    """Group bodygraph over six or more people: coverage of the 64 gates and 36
-    channels, circuit balance, per-person contribution, and the fragility block
-    that names the channels a single departure would break.
+    """Group bodygraph over six or more people.
 
-    Ten or more participants are labelled a WA. The canonical WA gate structure is
-    not implemented — `meta.entity.doctrine_implemented` is `false` and the output
-    is stated as an aggregate rather than a classical WA.
+    The WA is the entity from ten people upward and is built on the whole
+    bodygraph — all 64 gates, 36 channels and 9 centres — where the Penta is
+    scored over twelve gates in six fixed channels. Returns coverage against that
+    full structure, circuit balance, per-person contribution including the gates
+    nobody else carries, and a fragility block naming the channels one departure
+    would break.
+
+    Six to nine participants form neither entity: the same mechanics are applied
+    but `meta.entity` reports `aggregate` with `doctrine_implemented: false`.
     """
     return _run(relational.analyse_wa_group,
                 participants=request.participants, group_type=request.group_type,

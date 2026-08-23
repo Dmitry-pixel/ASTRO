@@ -133,7 +133,7 @@ Four endpoints, all Bearer-protected, all accepting `verbosity`.
 | :--- | :--- | :--- |
 | `POST /analyze/composite` | exactly 2 | Dyad and composite bodygraph |
 | `POST /analyze/penta` | 3-5 | Penta entity, Sovereign Standard |
-| `POST /analyze/wa` | 6+ | Group bodygraph aggregate (WA scale at 10+) |
+| `POST /analyze/wa` | 6+ | WA — the whole-bodygraph group entity (from 10 people) |
 | `POST /analyze/maia-penta` | 2+ | Every dyad plus the fitting group layer |
 
 ### Shared request shape
@@ -217,16 +217,23 @@ scores plus backbone integrity), `functional_roles` and `hiring_logic`.
 
 ### `/analyze/wa` — response outline
 
-`group_field` carries `coverage` (gates, channels, centres, and share by circuit
-group), `centres`, `type_mix`, `contributions` (per person, including gates
-nobody else in the group holds), `fragility` (the channels that break if one
-person leaves) and `gaps`.
+The WA is the entity formed from ten people upward. Where the Penta is scored
+over twelve gates in six fixed channels, the WA is built on the **whole
+bodygraph**, and the payload states that structure explicitly:
+
+```json
+"structure": { "gates": 64, "channels": 36, "centres": 9 }
+```
+
+`group_field` carries that `structure`, then `coverage` against it (gates,
+channels, centres, and share by circuit group), `centres`, `type_mix`,
+`contributions` (per person, including the gates nobody else in the group holds),
+`fragility` (the channels that break if one person leaves) and `gaps`.
 
 > [!NOTE]
-> The classical WA gate structure is not implemented.
-> `meta.entity.doctrine_implemented` is `false` and the payload is a
-> full-bodygraph aggregate, not a canonical WA. Groups of 6-9 are labelled
-> `aggregate`; 10 and above, `wa`.
+> Six to nine people form neither entity. The same mechanics are applied, but
+> `meta.entity` reports `aggregate` with `doctrine_implemented: false`. Ten and
+> above is a `wa` with `doctrine_implemented: true`.
 
 ### `/analyze/maia-penta` — response outline
 

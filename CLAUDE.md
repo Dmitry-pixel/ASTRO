@@ -302,5 +302,6 @@ Rules to keep:
 - **`semantics.py` holds data, not logic.** Every block carries a machine `code`
   plus `label` / `label_ru`, so the consuming app can interpret in either
   language.
-- **Do not claim doctrine that is not implemented.** `/analyze/wa` sets
-  `meta.entity.doctrine_implemented = false`.
+- **Do not claim doctrine that is not implemented.** `meta.entity.doctrine_implemented`
+  is `true` only where the size forms a canonical entity — dyad, Penta (3-5),
+  WA (10+). The 6-9 aggregate sets it `false`.

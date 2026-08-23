@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   |---|---|---|
   | `POST /analyze/composite` | exactly 2 | the dyad and its composite bodygraph |
   | `POST /analyze/penta` | 3-5 | the Penta entity, Sovereign Standard |
-  | `POST /analyze/wa` | 6+ | group bodygraph aggregate; WA scale at 10+ |
+  | `POST /analyze/wa` | 6+ | the WA, the whole-bodygraph group entity (from 10) |
   | `POST /analyze/maia-penta` | 2+ | every dyad plus the fitting group layer |
 
   `features.core.get_penta` has shipped since 3.3.0 with five tests and no way to
@@ -41,9 +41,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Variable synergy across all four arrows** — Digestion, Environment,
   Motivation and Perspective, each with its own reading. The previous
   implementation read Motivation and reported it as the whole variable analysis.
-- **Group field analysis for 6+ people**: coverage of the 64 gates, 36 channels
-  and 9 centres, circuit balance, per-person contribution with unique gates, and
-  a fragility block naming the channels a single departure would break.
+- **WA analysis for groups from ten people.** Where the Penta is scored over
+  twelve gates in six fixed channels, the WA is built on the whole bodygraph:
+  all 64 gates, 36 channels and 9 centres, stated in the payload as
+  `group_field.structure`. Returns coverage against that structure, circuit
+  balance, per-person contribution including the gates nobody else carries, and
+  a fragility block naming the channels a single departure would break. Six to
+  nine people form neither entity and are labelled `aggregate`.
 - **Admin panel**: the Test Calculator gained Композит / Пента / WA / Гибрид
   modes with a participant table, a ten-person preset, optional coordinates, and
   result tabs for overview, dyads, group layer, participants and raw JSON.
@@ -67,9 +71,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `isinstance(x, int)` before `bool`, and `bool` is a subclass of `int`.
 
 ### Notes
-- The classical WA gate structure for groups of ten or more is not implemented.
-  `/analyze/wa` returns a full-bodygraph aggregate and says so:
-  `meta.entity.doctrine_implemented` is `false`.
+- `meta.entity.doctrine_implemented` marks whether the size forms a canonical
+  entity: `true` for a dyad, a Penta (3-5) and a WA (10+), `false` for the 6-9
+  aggregate, which is analysed with the same mechanics but is not a formal entity.
 - `services/composite.py`, deleted in 3.4.1, is not restored. The new engine is
   written from scratch; see `docs/relational-decision-2026-08-23.md`.
 

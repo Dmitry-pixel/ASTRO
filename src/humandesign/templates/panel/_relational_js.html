@@ -347,10 +347,16 @@ function renderPentaOverview(p) {
 }
 
 function renderFieldOverview(f) {
-    var c = f.coverage;
-    var inner = '<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">'
-        + kpi(c.gates_defined + '/64', 'ворота · ' + c.gates_share_pct + '%')
-        + kpi(c.channels_defined + '/36', 'каналы · ' + c.channels_share_pct + '%')
+    var c = f.coverage, st = f.structure;
+    var inner = '';
+    if (st) {
+        inner += '<div class="text-[11px] font-mono mb-3" style="color:var(--c-txt-dim);">'
+            + 'Структура: ' + st.gates + ' ворот · ' + st.channels + ' каналов · ' + st.centres + ' центров'
+            + (st.note_ru ? ' — ' + esc(st.note_ru) : '') + '</div>';
+    }
+    inner += '<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">'
+        + kpi(c.gates_defined + '/' + (st ? st.gates : 64), 'ворота · ' + c.gates_share_pct + '%')
+        + kpi(c.channels_defined + '/' + (st ? st.channels : 36), 'каналы · ' + c.channels_share_pct + '%')
         + kpi(c.centres_defined + '/9', 'центры')
         + kpi(f.fragility.keystone_channel_count, 'каналов на одном человеке') + '</div>';
 
