@@ -25,6 +25,43 @@
     .var-arrow { font-size: 18px; font-weight: 700; }
     .var-arrow.left { color: var(--c-err); }
     .var-arrow.right { color: var(--c-ok); }
+
+    /* --- relational modes --- */
+    .mode-btn { padding: 7px 15px; border-radius: 6px; font-size: 11px; font-family: 'JetBrains Mono', monospace;
+        cursor: pointer; transition: all 0.15s; background: transparent; border: none; color: var(--c-txt-dim); white-space: nowrap; }
+    .mode-btn:hover { color: var(--c-txt); background: var(--c-accent-bg-hover); }
+    .mode-btn.active { color: var(--c-accent-2); background: var(--c-accent-bg); }
+    .rel-mode { display: none; }
+    .rel-mode.active { display: block; }
+    .p-row { display: grid; grid-template-columns: 1fr 1.35fr 72px 56px 56px 56px 56px 88px 88px 30px; gap: 7px; align-items: end; margin-bottom: 8px; }
+    .p-row input[type=number] { padding-left: 8px; padding-right: 4px; }
+    .p-row input { width: 100%; }
+    .p-lbl { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; font-family: 'JetBrains Mono', monospace;
+        color: var(--c-txt-dim); margin-bottom: 3px; display: block; }
+    .p-del { height: 34px; border-radius: 6px; border: 1px solid var(--c-border); background: transparent;
+        color: var(--c-txt-dim); cursor: pointer; font-size: 15px; line-height: 1; transition: all .15s; }
+    .p-del:hover { color: var(--c-err); border-color: var(--c-err); }
+    .chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 4px;
+        font-size: 10px; font-family: 'JetBrains Mono', monospace; letter-spacing: .5px; white-space: nowrap; }
+    .chip-em   { background: var(--c-accent-bg); color: var(--c-accent-2); }
+    .chip-cmp  { background: var(--c-warn-bg);   color: var(--c-warn); }
+    .chip-dom  { background: var(--c-err-bg);    color: var(--c-err); }
+    .chip-comp { background: var(--c-ok-bg);     color: var(--c-ok); }
+    .chip-mut  { background: var(--c-surface-3); color: var(--c-txt-dim); }
+    .kpi { padding: 14px 16px; border-radius: 8px; background: var(--c-surface-2); border: 1px solid var(--c-border); }
+    .kpi-v { font-size: 24px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--c-txt-bright); line-height: 1.1; }
+    .kpi-k { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; font-family: 'JetBrains Mono', monospace;
+        color: var(--c-txt-dim); margin-top: 5px; }
+    .rel-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .rel-table th { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; font-family: 'JetBrains Mono', monospace;
+        color: var(--c-txt-dim); text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--c-border); font-weight: 600; }
+    .rel-table td { padding: 8px 10px; border-bottom: 1px solid var(--c-border); color: var(--c-txt); vertical-align: top; }
+    .rel-table tbody tr:last-child td { border-bottom: none; }
+    .rel-table .mono { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+    .rel-scroll { overflow-x: auto; }
+    .bar-track { height: 6px; border-radius: 3px; background: var(--c-surface-3); overflow: hidden; display: flex; }
+    .dyad-card { border: 1px solid var(--c-border); border-radius: 8px; padding: 14px; background: var(--c-surface-2); }
+    .dyad-card + .dyad-card { margin-top: 10px; }
 </style>
 {% endblock %}
 
@@ -34,7 +71,18 @@
         <h1 class="text-2xl font-bold tracking-tight" style="color:var(--c-txt-bright);">Test Calculator</h1>
         <p class="text-sm mt-1" style="color:var(--c-txt-dim);">Тестовый расчёт Human Design карты через API</p>
     </div>
-    
+
+    <!-- Mode switcher: single chart vs relational analysis -->
+    <div class="flex items-center gap-1 p-1 rounded-lg mb-6 w-fit" style="background:var(--c-surface-2);">
+        <button type="button" class="mode-btn active" data-mode="single" onclick="switchMode('single')">Одиночный</button>
+        <button type="button" class="mode-btn" data-mode="composite" onclick="switchMode('composite')">Композит · 2</button>
+        <button type="button" class="mode-btn" data-mode="penta" onclick="switchMode('penta')">Пента · 3–5</button>
+        <button type="button" class="mode-btn" data-mode="wa" onclick="switchMode('wa')">WA · 6+</button>
+        <button type="button" class="mode-btn" data-mode="hybrid" onclick="switchMode('hybrid')">Гибрид · 2+</button>
+    </div>
+
+    <div id="mode-single">
+
     <!-- Input Form -->
     <div class="card card-glow p-6 mb-6">
         <form id="calc-form" onsubmit="runCalculation(event)">
@@ -244,6 +292,10 @@
             </div>
         </div>
     </div>
+
+    </div><!-- /mode-single -->
+
+{% include "panel/_relational.html" %}
 </div>
 {% endblock %}
 
@@ -558,4 +610,5 @@
         showToast('Файл скачан: '+name, 'ok');
     }
 </script>
+{% include "panel/_relational_js.html" %}
 {% endblock %}

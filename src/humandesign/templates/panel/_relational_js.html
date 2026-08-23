@@ -1,0 +1,544 @@
+<script>
+/* ============================================================
+   Relational modes — composite / penta / WA / hybrid
+   ============================================================ */
+var GROUP_MODES = {
+    composite: { endpoint: '/analyze/composite', min: 2, max: 2,  hint: 'Ровно 2 участника — диада и её композит' },
+    penta:     { endpoint: '/analyze/penta',     min: 3, max: 5,  hint: 'От 3 до 5 участников — сущность Пента' },
+    wa:        { endpoint: '/analyze/wa',        min: 6, max: 64, hint: 'От 6 участников. WA начинается с 10' },
+    hybrid:    { endpoint: '/analyze/maia-penta',min: 2, max: 64, hint: 'От 2 участников — все диады плюс групповой слой' }
+};
+/* name, place, year, month, day, hour, minute, lat, lon
+   Coordinates are prefilled so the preset works without a geocoding round trip. */
+var PRESET = [
+    ['Anna',  'Moscow, Russia',     1985, 3,  14, 9,  25,  55.7558,  37.6173],
+    ['Boris', 'Berlin, Germany',    1979, 11, 2,  17, 40,  52.5200,  13.4050],
+    ['Chen',  'Singapore',          1991, 7,  21, 6,  5,    1.3521, 103.8198],
+    ['Dana',  'Sao Paulo, Brazil',  1988, 1,  9,  22, 15, -23.5505, -46.6333],
+    ['Erik',  'Sydney, Australia',  1996, 5,  30, 13, 50, -33.8688, 151.2093],
+    ['Farah', 'Cairo, Egypt',       1983, 9,  3,  4,  10,  30.0444,  31.2357],
+    ['Gita',  'Mumbai, India',      1990, 6,  15, 8,  0,   19.0760,  72.8777],
+    ['Hugo',  'Lisbon, Portugal',   1975, 12, 28, 20, 45,  38.7223,  -9.1393],
+    ['Iris',  'Toronto, Canada',    2000, 4,  7,  11, 5,   43.6532, -79.3832],
+    ['Jonas', 'Oslo, Norway',       1982, 2,  19, 23, 55,  59.9139,  10.7522]
+];
+var CHIP = { electromagnetic:'chip-em', compromise:'chip-cmp', dominance:'chip-dom', companionship:'chip-comp' };
+var CHIP_RU = { electromagnetic:'Электромагнетизм', compromise:'Компромисс', dominance:'Доминанта', companionship:'Партнёрство' };
+var currentMode = 'single';
+var lastGroupResult = null;
+
+function esc(s) {
+    return String(s === null || s === undefined ? '' : s)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ---------- mode switching ---------- */
+function switchMode(mode) {
+    currentMode = mode;
+    document.querySelectorAll('.mode-btn').forEach(function(b) {
+        b.classList.toggle('active', b.dataset.mode === mode);
+    });
+    var single = mode === 'single';
+    document.getElementById('mode-single').classList.toggle('hidden', !single);
+    document.getElementById('mode-group').classList.toggle('hidden', single);
+    if (single) return;
+
+    var cfg = GROUP_MODES[mode];
+    document.getElementById('g-hint').textContent = cfg.hint;
+    var gtype = document.getElementById('g-type');
+    gtype.disabled = (mode === 'composite');
+    gtype.style.opacity = gtype.disabled ? '0.4' : '';
+    gtype.title = gtype.disabled ? 'Для композита тип группы не используется' : '';
+    ensurePeopleCount(Math.max(cfg.min, personRows().length));
+    document.getElementById('g-result').classList.add('hidden');
+    document.getElementById('g-error').classList.add('hidden');
+    updateCount();
+}
+
+/* ---------- participant rows ---------- */
+function personRows() { return Array.prototype.slice.call(document.querySelectorAll('#g-people .p-row[data-row]')); }
+
+function rowHTML(i, p) {
+    p = p || [];
+    return '<div class="p-row" data-row="' + i + '">'
+        + '<div><label class="p-lbl">Имя</label><input type="text" class="input-field px-3 py-2 rounded-lg text-sm font-mono f-name" value="' + esc(p[0] || ('Участник ' + (i + 1))) + '"></div>'
+        + '<div><label class="p-lbl">Место рождения</label><input type="text" class="input-field px-3 py-2 rounded-lg text-sm font-mono f-place" value="' + esc(p[1] || '') + '" placeholder="City, Country"></div>'
+        + '<div><label class="p-lbl">Год</label><input type="number" class="input-field px-2 py-2 rounded-lg text-sm font-mono f-year" min="1800" max="2100" value="' + (p[2] || 1990) + '"></div>'
+        + '<div><label class="p-lbl">Мес</label><input type="number" class="input-field px-2 py-2 rounded-lg text-sm font-mono f-month" min="1" max="12" value="' + (p[3] || 1) + '"></div>'
+        + '<div><label class="p-lbl">День</label><input type="number" class="input-field px-2 py-2 rounded-lg text-sm font-mono f-day" min="1" max="31" value="' + (p[4] || 1) + '"></div>'
+        + '<div><label class="p-lbl">Час</label><input type="number" class="input-field px-2 py-2 rounded-lg text-sm font-mono f-hour" min="0" max="23" value="' + (p[5] === undefined ? 12 : p[5]) + '"></div>'
+        + '<div><label class="p-lbl">Мин</label><input type="number" class="input-field px-2 py-2 rounded-lg text-sm font-mono f-minute" min="0" max="59" value="' + (p[6] === undefined ? 0 : p[6]) + '"></div>'
+        + '<div><label class="p-lbl" title="Необязательно — заполните, чтобы пропустить геокодинг">Широта</label><input type="number" step="0.0001" class="input-field px-2 py-2 rounded-lg text-sm font-mono f-lat" placeholder="авто" value="' + (p[7] === undefined ? '' : p[7]) + '"></div>'
+        + '<div><label class="p-lbl">Долгота</label><input type="number" step="0.0001" class="input-field px-2 py-2 rounded-lg text-sm font-mono f-lon" placeholder="авто" value="' + (p[8] === undefined ? '' : p[8]) + '"></div>'
+        + '<button type="button" class="p-del" onclick="removePerson(this)" title="Убрать">&times;</button>'
+        + '</div>';
+}
+
+function ensurePeopleCount(n) {
+    var cfg = GROUP_MODES[currentMode] || GROUP_MODES.hybrid;
+    n = Math.min(Math.max(n, cfg.min), cfg.max);
+    var host = document.getElementById('g-people');
+    var rows = personRows();
+    if (!rows.length) {
+        var html = '';
+        for (var i = 0; i < n; i++) html += rowHTML(i, PRESET[i]);
+        host.innerHTML = html;
+        updateCount();
+        return;
+    }
+    while (personRows().length > n) host.removeChild(host.lastElementChild);
+    while (personRows().length < n) host.insertAdjacentHTML('beforeend', rowHTML(personRows().length, PRESET[personRows().length]));
+    updateCount();
+}
+
+function addPerson() {
+    var cfg = GROUP_MODES[currentMode];
+    if (personRows().length >= cfg.max) { showToast('Максимум ' + cfg.max + ' участников для этого режима', 'warn'); return; }
+    document.getElementById('g-people').insertAdjacentHTML('beforeend', rowHTML(personRows().length, PRESET[personRows().length]));
+    updateCount();
+}
+
+function removePerson(btn) {
+    var cfg = GROUP_MODES[currentMode];
+    if (personRows().length <= cfg.min) { showToast('Минимум ' + cfg.min + ' участника для этого режима', 'warn'); return; }
+    btn.parentElement.remove();
+    updateCount();
+}
+
+function fillPreset() {
+    var host = document.getElementById('g-people');
+    var n = personRows().length;
+    var html = '';
+    for (var i = 0; i < n; i++) html += rowHTML(i, PRESET[i % PRESET.length]);
+    host.innerHTML = html;
+    showToast('Пример заполнен', 'ok');
+}
+
+function updateCount() {
+    var cfg = GROUP_MODES[currentMode] || GROUP_MODES.hybrid;
+    var n = personRows().length;
+    var entity = n === 2 ? 'диада' : (n >= 3 && n <= 5 ? 'пента' : (n >= 10 ? 'WA' : 'агрегат'));
+    var dyads = n * (n - 1) / 2;
+    document.getElementById('g-count').textContent = n + ' участник(ов) · ' + entity + ' · ' + dyads + ' диад';
+    document.getElementById('g-add').disabled = n >= cfg.max;
+}
+
+/* ---------- run ---------- */
+function collectParticipants() {
+    var out = {}, seen = {}, err = null;
+    personRows().forEach(function(row, idx) {
+        var q = function(cls) { return row.querySelector('.' + cls); };
+        var name = (q('f-name').value || '').trim() || ('Участник ' + (idx + 1));
+        if (seen[name]) { err = 'Имена участников должны быть уникальны: «' + name + '»'; return; }
+        seen[name] = true;
+        var place = (q('f-place').value || '').trim();
+        if (!place) { err = 'Не заполнено место рождения у «' + name + '»'; return; }
+        var person = {
+            place: place,
+            year: +q('f-year').value, month: +q('f-month').value, day: +q('f-day').value,
+            hour: +q('f-hour').value, minute: +q('f-minute').value
+        };
+        var lat = q('f-lat').value, lon = q('f-lon').value;
+        if (lat !== '' && lon !== '') { person.latitude = +lat; person.longitude = +lon; }
+        out[name] = person;
+    });
+    if (err) throw new Error(err);
+    return out;
+}
+
+async function runGroupCalculation() {
+    var cfg = GROUP_MODES[currentMode];
+    var token = document.getElementById('g-token').value;
+    if (!token) { showToast('Выберите токен сайта', 'warn'); return; }
+
+    var participants;
+    try { participants = collectParticipants(); }
+    catch (e) { showToast(e.message, 'warn'); return; }
+
+    var n = Object.keys(participants).length;
+    if (n < cfg.min || n > cfg.max) {
+        showToast('Для этого режима нужно от ' + cfg.min + ' до ' + cfg.max + ' участников', 'warn');
+        return;
+    }
+
+    var body = { participants: participants, verbosity: document.getElementById('g-verbosity').value };
+    if (currentMode !== 'composite') body.group_type = document.getElementById('g-type').value;
+
+    document.getElementById('g-result').classList.add('hidden');
+    document.getElementById('g-error').classList.add('hidden');
+    document.getElementById('g-loading').classList.remove('hidden');
+
+    var start = performance.now();
+    try {
+        var resp = await fetch(cfg.endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify(body)
+        });
+        var elapsed = Math.round(performance.now() - start);
+        document.getElementById('g-loading').classList.add('hidden');
+        document.getElementById('g-time').textContent = elapsed + ' мс';
+
+        if (!resp.ok) {
+            var e = await resp.json().catch(function() { return {}; });
+            var detail = e.detail;
+            if (detail && detail.participant) detail = detail.participant + ': ' + detail.error;
+            else if (typeof detail !== 'string') detail = JSON.stringify(detail || e);
+            document.getElementById('g-error').querySelector('div').textContent = 'HTTP ' + resp.status + ': ' + detail;
+            document.getElementById('g-error').classList.remove('hidden');
+            return;
+        }
+
+        lastGroupResult = await resp.json();
+        renderGroupResult(lastGroupResult);
+        document.getElementById('g-result').classList.remove('hidden');
+        switchGTab('overview');
+    } catch (err) {
+        document.getElementById('g-loading').classList.add('hidden');
+        document.getElementById('g-error').querySelector('div').textContent = 'Ошибка: ' + err.message;
+        document.getElementById('g-error').classList.remove('hidden');
+    }
+}
+
+function switchGTab(name) {
+    document.querySelectorAll('#g-result .tab-btn').forEach(function(b) { b.classList.toggle('active', b.dataset.gtab === name); });
+    document.querySelectorAll('#g-result .tab-panel').forEach(function(p) { p.classList.remove('active'); });
+    document.getElementById('gtab-' + name).classList.add('active');
+}
+
+/* ---------- render ---------- */
+function card(title, inner, cls) {
+    return '<div class="card card-glow p-5 ' + (cls || '') + '">'
+        + (title ? '<h4 class="text-xs font-mono tracking-wider uppercase mb-4" style="color:var(--c-txt-dim);">' + esc(title) + '</h4>' : '')
+        + inner + '</div>';
+}
+function kpi(value, key) {
+    return '<div class="kpi"><div class="kpi-v">' + esc(value) + '</div><div class="kpi-k">' + esc(key) + '</div></div>';
+}
+function note(text) {
+    return '<p class="text-sm mt-3" style="color:var(--c-txt);line-height:1.6;">' + esc(text) + '</p>';
+}
+function chips(totals) {
+    return ['electromagnetic', 'compromise', 'dominance', 'companionship'].map(function(k) {
+        return '<span class="chip ' + CHIP[k] + '">' + CHIP_RU[k] + ' ' + (totals[k] || 0) + '</span>';
+    }).join(' ');
+}
+
+function renderGroupResult(data) {
+    renderOverview(data);
+    renderDyads(data);
+    renderGroupTab(data);
+    renderPeople(data);
+    document.getElementById('g-json').innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));
+}
+
+function renderOverview(data) {
+    var m = data.meta || {}, e = m.entity || {}, html = '';
+    html += '<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">'
+        + kpi(e.label_ru || e.label || '—', 'сущность')
+        + kpi(e.size || 0, 'участников')
+        + kpi(m.verbosity || '—', 'детализация')
+        + kpi(m.group_type || '—', 'тип группы')
+        + '</div>';
+
+    if (e.doctrine_implemented === false && e.note_ru) {
+        html += '<div class="card p-4 mb-4" style="border-left:3px solid var(--c-warn);">'
+            + '<div class="text-[10px] font-mono uppercase tracking-wider mb-1" style="color:var(--c-warn);">Ограничение модели</div>'
+            + '<div class="text-sm" style="color:var(--c-txt);">' + esc(e.note_ru) + '</div></div>';
+    }
+
+    if (data.dyad) html += renderDyadOverview(data.dyad);
+    if (data.matrix_summary) html += renderMatrixOverview(data.matrix_summary, data.dyad_count);
+    if (data.penta) html += renderPentaOverview(data.penta);
+    if (data.group_field) html += renderFieldOverview(data.group_field);
+
+    document.getElementById('gtab-overview').innerHTML = html;
+}
+
+function renderDyadOverview(d) {
+    var f = d.composite.formula, t = d.connections.totals, rc = d.role_conflicts;
+    var inner = '<div class="flex items-baseline gap-3 mb-2">'
+        + '<span style="font-family:\'JetBrains Mono\',monospace;font-size:32px;font-weight:700;color:var(--c-accent-2);">' + esc(f.code) + '</span>'
+        + '<span class="text-base font-semibold" style="color:var(--c-txt-bright);">' + esc(f.label_ru) + '</span></div>'
+        + note(f.reading_ru)
+        + '<div class="mt-4 text-xs font-mono" style="color:var(--c-txt-dim);">Определены: <span style="color:var(--c-txt);">'
+        + esc(d.composite.defined_centres.join(', ')) + '</span></div>'
+        + (d.composite.open_centres.length ? '<div class="mt-1 text-xs font-mono" style="color:var(--c-txt-dim);">Открыты: <span style="color:var(--c-txt);">'
+        + esc(d.composite.open_centres.join(', ')) + '</span></div>' : '');
+
+    var conn = '<div class="flex flex-wrap gap-2 mb-3">' + chips(t) + '</div>'
+        + '<div class="text-xs font-mono" style="color:var(--c-txt-dim);">Всего связей: <span style="color:var(--c-txt-bright);">' + t.total + '</span>'
+        + (d.connections.dominant_circuit ? ' · доминанта: <span style="color:var(--c-txt-bright);">' + esc(d.connections.dominant_circuit.label_ru || d.connections.dominant_circuit.group) + '</span>' : '')
+        + '</div>'
+        + (d.connections.dominant_circuit && d.connections.dominant_circuit.reading_ru ? note(d.connections.dominant_circuit.reading_ru) : '');
+
+    var gt = d.genetic_type;
+    var roles = '<div class="text-base font-semibold mb-1" style="color:var(--c-txt-bright);">' + esc(rc.balance.label_ru) + '</div>'
+        + note(rc.balance.reading_ru || '')
+        + '<div class="rel-scroll mt-3"><table class="rel-table"><thead><tr><th>Участник</th><th>Обуславливает</th><th>Обуславливается</th></tr></thead><tbody>'
+        + Object.keys(rc.load).map(function(n) {
+            return '<tr><td class="mono">' + esc(n) + '</td><td class="mono">' + rc.load[n].conditions + '</td><td class="mono">' + rc.load[n].conditioned + '</td></tr>';
+        }).join('') + '</tbody></table></div>';
+
+    var extra = '<div class="grid grid-cols-1 gap-3 text-sm">'
+        + '<div><div class="p-lbl">Генетический тип союза</div><div style="color:var(--c-txt-bright);">' + esc(gt.label_ru) + ' — ' + esc(gt.types.join(' + ')) + '</div>' + note(gt.task_ru) + '</div>'
+        + '<div><div class="p-lbl">Профили</div><div style="color:var(--c-txt-bright);">' + esc(d.profile_resonance.label_ru) + '</div>' + note(d.profile_resonance.reading_ru) + '</div>'
+        + '<div><div class="p-lbl">Стрелки</div><div style="color:var(--c-txt-bright);">' + esc(d.variable_synergy.alignment.label_ru) + ' · ' + esc(d.variable_synergy.shorthand || '—') + '</div>' + note(d.variable_synergy.alignment.reading_ru || '') + '</div>'
+        + '<div><div class="p-lbl">Среда (узлы)</div><div style="color:var(--c-txt-bright);">' + esc(d.environmental_resonance.label_ru) + '</div>' + note(d.environmental_resonance.operational_ru) + '</div>'
+        + '</div>';
+
+    return '<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">'
+        + card('Формула центров', inner) + card('Связи', conn) + '</div>'
+        + '<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">'
+        + card('Ролевые конфликты', roles) + card('Слои совместимости', extra) + '</div>';
+}
+
+function renderMatrixOverview(s, dyadCount) {
+    var t = s.connection_totals;
+    var inner = '<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">'
+        + kpi(dyadCount, 'диад') + kpi(t.total, 'связей всего')
+        + kpi(s.most_conditioning || '—', 'больше всех обуславливает')
+        + kpi(s.most_conditioned || '—', 'больше всех обуславливается') + '</div>'
+        + '<div class="flex flex-wrap gap-2 mb-4">' + chips(t) + '</div>'
+        + '<div class="rel-scroll"><table class="rel-table"><thead><tr><th>Участник</th><th>Обуславливает</th><th>Обуславливается</th><th>Баланс</th></tr></thead><tbody>'
+        + Object.keys(s.conditioning_load).sort(function(a, b) {
+            return (s.conditioning_load[b].conditions - s.conditioning_load[b].conditioned)
+                 - (s.conditioning_load[a].conditions - s.conditioning_load[a].conditioned);
+        }).map(function(n) {
+            var l = s.conditioning_load[n], bal = l.conditions - l.conditioned;
+            var col = bal > 0 ? 'var(--c-err)' : (bal < 0 ? 'var(--c-ok)' : 'var(--c-txt-dim)');
+            return '<tr><td class="mono">' + esc(n) + '</td><td class="mono">' + l.conditions + '</td><td class="mono">' + l.conditioned
+                 + '</td><td class="mono" style="color:' + col + ';">' + (bal > 0 ? '+' : '') + bal + '</td></tr>';
+        }).join('') + '</tbody></table></div>'
+        + '<div class="mt-4 text-xs font-mono" style="color:var(--c-txt-dim);">Формулы центров: '
+        + Object.keys(s.formula_distribution).sort().map(function(k) {
+            return '<span class="chip chip-mut">' + esc(k) + ' × ' + s.formula_distribution[k] + '</span>';
+        }).join(' ') + '</div>';
+    return card('Сводка по матрице диад', inner, 'mb-4');
+}
+
+function renderPentaOverview(p) {
+    var m = p.analytical_metrics || {};
+    var inner = '<div class="grid grid-cols-3 gap-3 mb-4">'
+        + kpi(m.vision_score, 'vision') + kpi(m.action_score, 'action') + kpi(m.stability_score, 'stability') + '</div>';
+
+    if (m.backbone_integrity) {
+        inner += '<div class="p-lbl mb-2">Хребет</div><div class="flex flex-wrap gap-2 mb-4">'
+            + Object.keys(m.backbone_integrity).map(function(k) {
+                var ok = m.backbone_integrity[k] !== 'Missing';
+                return '<span class="chip ' + (ok ? 'chip-comp' : 'chip-dom') + '">' + esc(k) + ' ' + esc(m.backbone_integrity[k]) + '</span>';
+            }).join(' ') + '</div>';
+    }
+    if (p.functional_roles && Object.keys(p.functional_roles).length) {
+        inner += '<div class="p-lbl mb-2">Функциональные роли</div><div class="rel-scroll"><table class="rel-table"><tbody>'
+            + Object.keys(p.functional_roles).map(function(r) {
+                return '<tr><td class="mono">' + esc(r) + '</td><td>' + esc(p.functional_roles[r].join(', ')) + '</td></tr>';
+            }).join('') + '</tbody></table></div>';
+    }
+    if (p.hiring_logic) {
+        inner += '<div class="mt-4"><div class="p-lbl mb-1">Наём</div>'
+            + '<div class="text-sm" style="color:var(--c-txt-bright);">' + esc(p.hiring_logic.insight || '') + '</div>'
+            + (p.hiring_logic.urgent_needs && p.hiring_logic.urgent_needs.length
+                ? '<div class="mt-2 flex flex-wrap gap-2">' + p.hiring_logic.urgent_needs.map(function(g) {
+                    return '<span class="chip chip-dom">ворота ' + g + '</span>'; }).join(' ') + '</div>' : '')
+            + '</div>';
+    }
+    return card('Пента 2.0 — Sovereign Standard', inner, 'mb-4');
+}
+
+function renderFieldOverview(f) {
+    var c = f.coverage;
+    var inner = '<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">'
+        + kpi(c.gates_defined + '/64', 'ворота · ' + c.gates_share_pct + '%')
+        + kpi(c.channels_defined + '/36', 'каналы · ' + c.channels_share_pct + '%')
+        + kpi(c.centres_defined + '/9', 'центры')
+        + kpi(f.fragility.keystone_channel_count, 'каналов на одном человеке') + '</div>';
+
+    inner += '<div class="p-lbl mb-2">Покрытие по контурам</div>';
+    Object.keys(c.by_circuit).forEach(function(g) {
+        var v = c.by_circuit[g];
+        inner += '<div class="mb-2"><div class="flex justify-between text-xs font-mono mb-1">'
+            + '<span style="color:var(--c-txt);">' + esc(g) + '</span>'
+            + '<span style="color:var(--c-txt-dim);">' + v.defined + '/' + v.total + ' · ' + v.share_pct + '%</span></div>'
+            + '<div class="bar-track"><div style="width:' + v.share_pct + '%;background:var(--c-accent);"></div></div></div>';
+    });
+    inner += note(f.fragility.reading_ru);
+    if (f.type_mix) {
+        inner += '<div class="mt-4 flex flex-wrap gap-2">' + Object.keys(f.type_mix).map(function(t) {
+            return '<span class="chip chip-mut">' + esc(t) + ' × ' + f.type_mix[t] + '</span>'; }).join(' ') + '</div>';
+    }
+    return card('Групповое поле', inner, 'mb-4');
+}
+
+/* ---------- dyads tab ---------- */
+function renderDyads(data) {
+    var dyads = data.dyad_matrix || (data.dyad ? [data.dyad] : []);
+    var host = document.getElementById('gtab-dyads');
+    if (!dyads.length) {
+        host.innerHTML = card('', '<div class="text-sm" style="color:var(--c-txt-dim);">В этом режиме диады не рассчитываются. Используйте «Композит» или «Гибрид».</div>');
+        return;
+    }
+    var html = '';
+    if (dyads.length > 1) {
+        html += card('Все пары', '<div class="rel-scroll"><table class="rel-table"><thead><tr>'
+            + '<th>Пара</th><th>Формула</th><th>ЭМ</th><th>Комп</th><th>Дом</th><th>Партн</th><th>Всего</th><th>Контур</th><th>Обуславливание</th>'
+            + '</tr></thead><tbody>' + dyads.map(function(d) {
+                var t = d.connections.totals, b = d.role_conflicts.balance;
+                return '<tr><td class="mono" style="color:var(--c-txt-bright);">' + esc(d.pair.join(' – ')) + '</td>'
+                    + '<td class="mono">' + esc(d.composite.formula.code) + '</td>'
+                    + '<td class="mono">' + t.electromagnetic + '</td><td class="mono">' + t.compromise + '</td>'
+                    + '<td class="mono">' + t.dominance + '</td><td class="mono">' + t.companionship + '</td>'
+                    + '<td class="mono" style="color:var(--c-txt-bright);">' + t.total + '</td>'
+                    + '<td class="mono">' + esc(d.connections.dominant_circuit ? d.connections.dominant_circuit.group : '—') + '</td>'
+                    + '<td>' + (b.code === 'asymmetric' ? '<span class="chip chip-dom">' + esc(b.lead) + ' →</span>' : '<span class="chip chip-mut">' + esc(b.label_ru) + '</span>') + '</td></tr>';
+            }).join('') + '</tbody></table></div>', 'mb-4');
+    }
+    dyads.forEach(function(d) { html += renderDyadChannels(d); });
+    host.innerHTML = html;
+}
+
+function renderDyadChannels(d) {
+    var chs = d.connections.channels;
+    if (!chs) {
+        return card(d.pair.join(' – '), '<div class="text-sm" style="color:var(--c-txt-dim);">Детализация каналов доступна при verbosity = standard или full.</div>', 'mb-4');
+    }
+    var body = '<div class="rel-scroll"><table class="rel-table"><thead><tr>'
+        + '<th>Канал</th><th>Тема</th><th>Тип связи</th><th>Контур</th><th>Кто держит</th><th>Направление</th></tr></thead><tbody>'
+        + chs.map(function(c) {
+            var holders = Object.keys(c.holders).map(function(n) {
+                var h = c.holders[n];
+                return esc(n) + ': ' + (h.gates.length ? h.gates.join(',') : '—') + (h.holds_full_channel ? ' ✓' : '');
+            }).join(' | ');
+            return '<tr><td class="mono" style="color:var(--c-txt-bright);">' + esc(c.key) + '</td>'
+                + '<td>' + esc(c.meaning[0] || '') + (c.reference && c.reference.name ? '<div class="text-[10px] mono" style="color:var(--c-txt-dim);">' + esc(c.reference.name) + '</div>' : '') + '</td>'
+                + '<td><span class="chip ' + CHIP[c.type.code] + '">' + esc(c.type.label_ru) + '</span></td>'
+                + '<td class="mono">' + esc(c.circuit.label_ru) + '</td>'
+                + '<td class="mono">' + holders + '</td>'
+                + '<td class="mono">' + (c.direction ? esc(c.direction.conditions) + ' → ' + esc(c.direction.conditioned) : '—') + '</td></tr>';
+        }).join('') + '</tbody></table></div>';
+
+    var dyn = d.composite.centre_dynamics;
+    if (dyn) {
+        body += '<div class="p-lbl mt-5 mb-2">Обуславливание центров</div><div class="flex flex-wrap gap-2">'
+            + Object.keys(dyn).map(function(cn) {
+                var v = dyn[cn], cls = v.code === 'fixed' ? 'chip-comp' : (v.code === 'open' ? 'chip-mut' : 'chip-cmp');
+                var arrow = v.from ? ' ' + esc(v.from) + '→' + esc(v.to) : '';
+                return '<span class="chip ' + cls + '">' + esc(cn) + arrow + '</span>';
+            }).join(' ') + '</div>';
+    }
+    return card(d.pair.join(' – ') + ' · ' + d.composite.formula.code + ' ' + d.composite.formula.label_ru, body, 'mb-4');
+}
+
+/* ---------- group tab ---------- */
+function renderGroupTab(data) {
+    var host = document.getElementById('gtab-group');
+    var html = '';
+    if (data.penta && data.penta.penta_anatomy) html += renderPentaAnatomy(data.penta.penta_anatomy);
+    if (data.group_field) html += renderFieldDetail(data.group_field);
+    if (!html) html = card('', '<div class="text-sm" style="color:var(--c-txt-dim);">Групповой слой в этом режиме не рассчитывается либо скрыт при verbosity = compact.</div>');
+    host.innerHTML = html;
+}
+
+function renderPentaAnatomy(a) {
+    var html = '';
+    ['upper_penta', 'lower_penta'].forEach(function(zone) {
+        var z = a[zone];
+        if (!z) return;
+        var rows = Object.keys(z.channels).map(function(k) {
+            var c = z.channels[k], active = c.status === 'Active';
+            var who = active
+                ? Object.keys(c.contributors || {}).join(', ')
+                : (c.gap_analysis ? 'нет ворот ' + c.gap_analysis.missing_gates.join(', ') : '');
+            var sev = !active && c.gap_analysis ? '<span class="chip ' + (c.gap_analysis.severity === 'CRITICAL' ? 'chip-dom' : 'chip-cmp') + '">' + esc(c.gap_analysis.severity) + '</span>' : '';
+            return '<tr><td class="mono" style="color:var(--c-txt-bright);">' + esc(k) + '</td>'
+                + '<td>' + esc(c.name) + '<div class="text-[10px] mono" style="color:var(--c-txt-dim);">' + esc(c.business_label || '') + '</div></td>'
+                + '<td><span class="chip ' + (active ? 'chip-comp' : 'chip-dom') + '">' + esc(c.status) + '</span> ' + sev + '</td>'
+                + '<td class="mono">' + esc(c.type || '') + '</td>'
+                + '<td>' + esc(who) + (!active && c.gap_analysis ? '<div class="text-[10px]" style="color:var(--c-txt-dim);">' + esc(c.gap_analysis.impact || '') + '</div>' : '') + '</td></tr>';
+        }).join('');
+        html += card('Пента · ' + (z.label || zone),
+            '<div class="rel-scroll"><table class="rel-table"><thead><tr><th>Канал</th><th>Функция</th><th>Статус</th><th>Тип</th><th>Кто / чего нет</th></tr></thead><tbody>'
+            + rows + '</tbody></table></div>', 'mb-4');
+    });
+    return html;
+}
+
+function renderFieldDetail(f) {
+    var html = '';
+    if (f.contributions && f.contributions.length) {
+        html += card('Вклад участников', '<div class="rel-scroll"><table class="rel-table"><thead><tr>'
+            + '<th>Участник</th><th>Тип</th><th>Ворот</th><th>Своих каналов</th><th>Уникальных ворот</th><th>Какие</th></tr></thead><tbody>'
+            + f.contributions.map(function(c) {
+                return '<tr><td class="mono" style="color:var(--c-txt-bright);">' + esc(c.name) + '</td>'
+                    + '<td class="mono">' + esc(c.energy_type) + '</td><td class="mono">' + c.gates + '</td>'
+                    + '<td class="mono">' + c.own_channels + '</td>'
+                    + '<td class="mono" style="color:' + (c.unique_gate_count ? 'var(--c-warn)' : 'var(--c-txt-dim)') + ';">' + c.unique_gate_count + '</td>'
+                    + '<td class="mono">' + esc(c.unique_gates.join(', ') || '—') + '</td></tr>';
+            }).join('') + '</tbody></table></div>', 'mb-4');
+    }
+    if (f.fragility && f.fragility.keystone_channels && f.fragility.keystone_channels.length) {
+        html += card('Точки хрупкости — каналы, зависящие от одного человека',
+            '<div class="rel-scroll"><table class="rel-table"><thead><tr><th>Канал</th><th>Тема</th><th>Контур</th><th>Держит</th></tr></thead><tbody>'
+            + f.fragility.keystone_channels.map(function(k) {
+                return '<tr><td class="mono" style="color:var(--c-txt-bright);">' + esc(k.key) + '</td><td>' + esc(k.theme) + '</td>'
+                    + '<td class="mono">' + esc(k.circuit_group) + '</td>'
+                    + '<td class="mono" style="color:var(--c-warn);">' + esc(k.depends_on.join(', ')) + '</td></tr>';
+            }).join('') + '</tbody></table></div>', 'mb-4');
+    }
+    if (f.gaps && f.gaps.channels && f.gaps.channels.length) {
+        html += card('Провалы — каналы, которых у группы нет (' + f.gaps.missing_channel_count + ')',
+            '<div class="rel-scroll"><table class="rel-table"><thead><tr><th>Канал</th><th>Тема</th><th>Нет ворот</th><th>Контур</th></tr></thead><tbody>'
+            + f.gaps.channels.map(function(g) {
+                return '<tr><td class="mono" style="color:var(--c-txt-bright);">' + esc(g.key) + '</td><td>' + esc(g.theme) + '</td>'
+                    + '<td class="mono" style="color:var(--c-err);">' + esc(g.missing_gates.join(', ') || '—') + '</td>'
+                    + '<td class="mono">' + esc(g.circuit_group) + '</td></tr>';
+            }).join('') + '</tbody></table></div>', 'mb-4');
+    }
+    return html;
+}
+
+/* ---------- people tab ---------- */
+function renderPeople(data) {
+    var p = data.participants || {};
+    var html = '<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">' + Object.keys(p).map(function(name) {
+        var v = p[name];
+        var rows = [
+            ['Тип энергии', v.energy_type], ['Авторитет', v.inner_authority],
+            ['Профиль', v.profile], ['Определение', v.definition],
+            ['Крест', v.incarnation_cross], ['Стратегия', v.strategy],
+            ['Место', v.place], ['Таймзона', v.tz + ' (UTC' + (v.utc_offset >= 0 ? '+' : '') + v.utc_offset + ')'],
+            ['Рождение UTC', v.birth_date_utc], ['Активаций', v.activation_count],
+            ['Стрелки', v.variables ? v.variables.short_code : null], ['Луна', v.lunar_phase]
+        ];
+        return card(name, rows.map(function(r) {
+            if (r[1] === null || r[1] === undefined || r[1] === '') return '';
+            return '<div class="flex justify-between gap-4 py-1.5" style="border-bottom:1px solid var(--c-border);">'
+                + '<span class="text-[10px] font-mono uppercase tracking-wider" style="color:var(--c-txt-dim);">' + esc(r[0]) + '</span>'
+                + '<span class="text-xs font-mono text-right" style="color:var(--c-txt-bright);">' + esc(r[1]) + '</span></div>';
+        }).join('')
+        + '<div class="mt-3"><div class="p-lbl mb-1">Определённые центры</div><div class="flex flex-wrap gap-1.5">'
+        + (v.defined_centres || []).map(function(c) { return '<span class="chip chip-comp">' + esc(c) + '</span>'; }).join('')
+        + '</div></div>');
+    }).join('') + '</div>';
+    document.getElementById('gtab-people').innerHTML = html;
+}
+
+/* ---------- json helpers ---------- */
+function copyGroupJSON() {
+    if (!lastGroupResult) return;
+    navigator.clipboard.writeText(JSON.stringify(lastGroupResult, null, 2)).then(function() { showToast('JSON скопирован', 'ok'); });
+}
+function downloadGroupJSON() {
+    if (!lastGroupResult) return;
+    var blob = new Blob([JSON.stringify(lastGroupResult, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'hd_' + currentMode + '_' + Object.keys(lastGroupResult.participants || {}).length + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Файл скачан: ' + a.download, 'ok');
+}
+
+document.addEventListener('DOMContentLoaded', function() { ensurePeopleCount(2); });
+</script>

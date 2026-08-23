@@ -1,0 +1,95 @@
+{# Relational modes for the Test Calculator: composite, penta, WA, hybrid. #}
+<div id="mode-group" class="hidden">
+
+    <!-- Input form -->
+    <div class="card card-glow p-6 mb-6">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+            <div>
+                <label class="p-lbl">API токен</label>
+                <select id="g-token" class="input-field w-full px-3 py-2 rounded-lg text-sm font-mono">
+                    {% for site in sites %}<option value="{{ site.token }}">{{ site.domain }} ({{ site.token[:8] }}...)</option>{% endfor %}
+                    {% if not sites %}<option value="" disabled>Нет сайтов</option>{% endif %}
+                </select>
+            </div>
+            <div>
+                <label class="p-lbl">Тип группы</label>
+                <select id="g-type" class="input-field w-full px-3 py-2 rounded-lg text-sm font-mono">
+                    <option value="business">business</option>
+                    <option value="family">family</option>
+                </select>
+            </div>
+            <div>
+                <label class="p-lbl">Детализация</label>
+                <select id="g-verbosity" class="input-field w-full px-3 py-2 rounded-lg text-sm font-mono">
+                    <option value="standard">standard</option>
+                    <option value="compact">compact</option>
+                    <option value="full">full</option>
+                </select>
+            </div>
+            <div class="flex items-end">
+                <span id="g-hint" class="text-[11px] font-mono" style="color:var(--c-txt-dim);"></span>
+            </div>
+        </div>
+
+        <div class="rel-scroll mb-3">
+            <div id="g-people" style="min-width:1080px;"></div>
+        </div>
+
+        <div class="flex items-center gap-3 flex-wrap">
+            <button type="button" id="g-run" onclick="runGroupCalculation()" class="btn-primary px-6 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                Рассчитать
+            </button>
+            <button type="button" onclick="addPerson()" id="g-add" class="px-4 py-2.5 rounded-lg text-[12px] font-mono border transition-all" style="color:var(--c-txt-dim); border-color:var(--c-border);">+ участник</button>
+            <button type="button" onclick="fillPreset()" class="px-4 py-2.5 rounded-lg text-[12px] font-mono border transition-all" style="color:var(--c-txt-dim); border-color:var(--c-border);">Заполнить примером</button>
+            <span id="g-count" class="text-[11px] font-mono" style="color:var(--c-txt-dim);"></span>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div id="g-loading" class="hidden card card-glow p-12">
+        <div class="flex flex-col items-center justify-center">
+            <div class="w-8 h-8 border-2 rounded-full animate-spin mb-3" style="border-color:var(--c-accent-bg); border-top-color:var(--c-accent);"></div>
+            <span class="text-sm font-mono" style="color:var(--c-txt-dim);">Расчёт...</span>
+        </div>
+    </div>
+
+    <!-- Error -->
+    <div id="g-error" class="hidden card card-glow p-5">
+        <div class="p-4 rounded-lg text-sm font-mono" style="background:var(--c-err-bg); color:var(--c-err);"></div>
+    </div>
+
+    <!-- Result -->
+    <div id="g-result" class="hidden">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <div class="flex items-center gap-1 p-1 rounded-lg" style="background:var(--c-surface-2);">
+                <button class="tab-btn active" data-gtab="overview" onclick="switchGTab('overview')">Обзор</button>
+                <button class="tab-btn" data-gtab="dyads" onclick="switchGTab('dyads')">Диады</button>
+                <button class="tab-btn" data-gtab="group" onclick="switchGTab('group')">Группа</button>
+                <button class="tab-btn" data-gtab="people" onclick="switchGTab('people')">Участники</button>
+                <button class="tab-btn" data-gtab="gjson" onclick="switchGTab('gjson')">JSON</button>
+            </div>
+            <div class="flex items-center gap-3">
+                <span id="g-time" class="text-[11px] font-mono" style="color:var(--c-txt-dim);"></span>
+                <span id="g-status" class="badge badge-ok">200 OK</span>
+            </div>
+        </div>
+
+        <div id="gtab-overview" class="tab-panel active"></div>
+        <div id="gtab-dyads" class="tab-panel"></div>
+        <div id="gtab-group" class="tab-panel"></div>
+        <div id="gtab-people" class="tab-panel"></div>
+        <div id="gtab-gjson" class="tab-panel">
+            <div class="card card-glow p-5">
+                <div class="flex items-center justify-between mb-4">
+                    <h4 class="text-xs font-mono tracking-wider uppercase" style="color:var(--c-txt-dim);">Raw JSON Response</h4>
+                    <div class="flex items-center gap-2">
+                        <button onclick="copyGroupJSON()" class="px-3 py-1.5 rounded-lg text-[11px] font-mono border transition-all" style="color:var(--c-txt-dim); border-color:var(--c-border);">Копировать</button>
+                        <button onclick="downloadGroupJSON()" class="px-3 py-1.5 rounded-lg text-[11px] font-mono border transition-all" style="color:var(--c-txt-dim); border-color:var(--c-border);">Скачать .json</button>
+                    </div>
+                </div>
+                <div id="g-json" class="json-viewer"></div>
+            </div>
+        </div>
+    </div>
+</div>
