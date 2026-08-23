@@ -12,3 +12,8 @@ venv/
 .coverage
 *.sqlite
 !hd_data.sqlite
+
+# local scratch
+.venv/
+spike/
+tests/_output/

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Human Design API
-  version: 3.4.2
+  version: 3.5.0
 paths:
   /health:
     get:
@@ -39,42 +39,52 @@ paths:
         required: true
         schema:
           type: integer
-          description: Birth month
+          maximum: 12
+          minimum: 1
+          description: Birth month (1-12)
           title: Month
-        description: Birth month
+        description: Birth month (1-12)
       - name: day
         in: query
         required: true
         schema:
           type: integer
-          description: Birth day
+          maximum: 31
+          minimum: 1
+          description: Birth day (1-31, checked against the month)
           title: Day
-        description: Birth day
+        description: Birth day (1-31, checked against the month)
       - name: hour
         in: query
         required: true
         schema:
           type: integer
-          description: Birth hour
+          maximum: 23
+          minimum: 0
+          description: Birth hour (0-23)
           title: Hour
-        description: Birth hour
+        description: Birth hour (0-23)
       - name: minute
         in: query
         required: true
         schema:
           type: integer
-          description: Birth minute
+          maximum: 59
+          minimum: 0
+          description: Birth minute (0-59)
           title: Minute
-        description: Birth minute
+        description: Birth minute (0-59)
       - name: second
         in: query
         required: false
         schema:
           type: integer
-          description: Birth second
+          maximum: 59
+          minimum: 0
+          description: Birth second (0-59)
           default: 0
           title: Second
-        description: Birth second
+        description: Birth second (0-59)
       - name: place
         in: query
         required: false
@@ -157,6 +167,138 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CalculateResponseV2'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /analyze/composite:
+    post:
+      tags:
+      - analyze
+      summary: Dyad and composite bodygraph (2 people)
+      description: 'Composite chart of one auric pair.
+
+
+        Returns the centre formula (9+0 … 5+4), all channels the pair forms classified
+
+        into the four Maia types, the conditioning direction of every centre, the
+
+        genetic type of the union, profile and variable synergy, nodal resonance, and
+
+        a role-conflict block that names who conditions whom and how often.'
+      operationId: analyze_composite_analyze_composite_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompositeRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /analyze/penta:
+    post:
+      tags:
+      - analyze
+      summary: Penta Analysis 2.0, Sovereign Standard (3-5 people)
+      description: 'Penta entity: six channels, functional roles, gap severity, hiring logic and
+
+        the vision / action / stability metrics.'
+      operationId: analyze_penta_analyze_penta_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PentaRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /analyze/wa:
+    post:
+      tags:
+      - analyze
+      summary: Group field aggregate — WA scale (6+ people)
+      description: 'Group bodygraph over six or more people: coverage of the 64 gates and 36
+
+        channels, circuit balance, per-person contribution, and the fragility block
+
+        that names the channels a single departure would break.
+
+
+        Ten or more participants are labelled a WA. The canonical WA gate structure is
+
+        not implemented — `meta.entity.doctrine_implemented` is `false` and the output
+
+        is stated as an aggregate rather than a classical WA.'
+      operationId: analyze_wa_analyze_wa_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WaRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /analyze/maia-penta:
+    post:
+      tags:
+      - analyze
+      summary: Hybrid — every dyad plus the group layer (2+ people)
+      description: 'Every pair in the group analysed as a composite, plus a cross-dyad roll-up
+
+        and whichever group layer fits the size: Penta for 3-5, group field for 6+.'
+      operationId: analyze_maia_penta_analyze_maia_penta_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HybridRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
         '422':
           description: Validation Error
           content:
@@ -641,24 +783,34 @@ components:
           description: Birth year
         month:
           type: integer
+          maximum: 12.0
+          minimum: 1.0
           title: Month
-          description: Birth month
+          description: Birth month (1-12)
         day:
           type: integer
+          maximum: 31.0
+          minimum: 1.0
           title: Day
-          description: Birth day
+          description: Birth day (1-31, checked against the month)
         hour:
           type: integer
+          maximum: 23.0
+          minimum: 0.0
           title: Hour
-          description: Birth hour
+          description: Birth hour (0-23)
         minute:
           type: integer
+          maximum: 59.0
+          minimum: 0.0
           title: Minute
-          description: Birth minute
+          description: Birth minute (0-59)
         second:
           type: integer
+          maximum: 59.0
+          minimum: 0.0
           title: Second
-          description: Birth second
+          description: Birth second (0-59)
           default: 0
         place:
           anyOf:
@@ -699,10 +851,12 @@ components:
             type: array
           - type: 'null'
           title: Include
-          description: Sections to include (e.g. ['general', 'personality_gates'])
+          description: 'Sections to keep in the response. Available: general, centers, channels, gates,
+            variables, analytics, advanced, mechanics. None or [] returns every section; a non-empty list
+            returns only the sections it names. Unknown names are ignored.'
           example:
           - general
-          - personality_gates
+          - centers
         exclude:
           anyOf:
           - items:
@@ -710,7 +864,8 @@ components:
             type: array
           - type: 'null'
           title: Exclude
-          description: Sections to exclude
+          description: Sections to drop from the response, applied after 'include'. Unknown names are
+            ignored.
           example:
           - channels
       type: object
@@ -801,6 +956,54 @@ components:
       type: object
       title: ClassBreakdownV2
       description: Classification result with planet-gate values and share percentage.
+    CompositeRequest:
+      properties:
+        participants:
+          additionalProperties:
+            $ref: '#/components/schemas/ParticipantInput'
+          type: object
+          title: Participants
+        group_type:
+          type: string
+          enum:
+          - business
+          - family
+          title: Group Type
+          description: Switches the semantic vocabulary
+          default: business
+        verbosity:
+          type: string
+          enum:
+          - compact
+          - standard
+          - full
+          title: Verbosity
+          description: compact — roll-ups only; standard — plus per-channel detail; full — plus hd_data.sqlite
+            channel reference and all 26 activations per participant. Legacy values 'all' and 'partial'
+            are accepted.
+          default: standard
+      type: object
+      required:
+      - participants
+      title: CompositeRequest
+      description: Exactly two people — the dyad and its composite bodygraph.
+      examples:
+      - participants:
+          Anna:
+            day: 14
+            hour: 9
+            minute: 25
+            month: 3
+            place: Moscow, Russia
+            year: 1985
+          Boris:
+            day: 2
+            hour: 17
+            minute: 40
+            month: 11
+            place: Berlin, Germany
+            year: 1979
+        verbosity: standard
     ContourV2:
       properties:
         realization:
@@ -1070,6 +1273,37 @@ components:
       - timestamp
       title: HealthResponse
       description: Schema for the health check response.
+    HybridRequest:
+      properties:
+        participants:
+          additionalProperties:
+            $ref: '#/components/schemas/ParticipantInput'
+          type: object
+          title: Participants
+        group_type:
+          type: string
+          enum:
+          - business
+          - family
+          title: Group Type
+          description: Switches the semantic vocabulary
+          default: business
+        verbosity:
+          type: string
+          enum:
+          - compact
+          - standard
+          - full
+          title: Verbosity
+          description: compact — roll-ups only; standard — plus per-channel detail; full — plus hd_data.sqlite
+            channel reference and all 26 activations per participant. Legacy values 'all' and 'partial'
+            are accepted.
+          default: standard
+      type: object
+      required:
+      - participants
+      title: HybridRequest
+      description: Two or more people — every dyad plus whichever group layer fits the size.
     LineCountsV2:
       properties:
         prs:
@@ -1095,6 +1329,132 @@ components:
           title: Total
       type: object
       title: LineCountsV2
+    ParticipantInput:
+      properties:
+        place:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Place
+          description: City, Country — or an IANA zone such as Europe/Moscow
+          examples:
+          - Berlin, Germany
+        year:
+          type: integer
+          maximum: 2100.0
+          minimum: 1800.0
+          title: Year
+          examples:
+          - 1985
+        month:
+          type: integer
+          maximum: 12.0
+          minimum: 1.0
+          title: Month
+          examples:
+          - 6
+        day:
+          type: integer
+          maximum: 31.0
+          minimum: 1.0
+          title: Day
+          examples:
+          - 15
+        hour:
+          type: integer
+          maximum: 23.0
+          minimum: 0.0
+          title: Hour
+          examples:
+          - 14
+        minute:
+          type: integer
+          maximum: 59.0
+          minimum: 0.0
+          title: Minute
+          examples:
+          - 30
+        latitude:
+          anyOf:
+          - type: number
+            maximum: 90.0
+            minimum: -90.0
+          - type: 'null'
+          title: Latitude
+          description: Skips geocoding when supplied together with longitude
+        longitude:
+          anyOf:
+          - type: number
+            maximum: 180.0
+            minimum: -180.0
+          - type: 'null'
+          title: Longitude
+      type: object
+      required:
+      - place
+      - year
+      - month
+      - day
+      - hour
+      - minute
+      title: ParticipantInput
+      description: One person's birth data.
+    PentaRequest:
+      properties:
+        participants:
+          additionalProperties:
+            $ref: '#/components/schemas/ParticipantInput'
+          type: object
+          title: Participants
+        group_type:
+          type: string
+          enum:
+          - business
+          - family
+          title: Group Type
+          description: Switches the semantic vocabulary
+          default: business
+        verbosity:
+          type: string
+          enum:
+          - compact
+          - standard
+          - full
+          title: Verbosity
+          description: compact — roll-ups only; standard — plus per-channel detail; full — plus hd_data.sqlite
+            channel reference and all 26 activations per participant. Legacy values 'all' and 'partial'
+            are accepted.
+          default: standard
+      type: object
+      required:
+      - participants
+      title: PentaRequest
+      description: Three to five people — the Penta entity.
+      examples:
+      - group_type: business
+        participants:
+          Anna:
+            day: 14
+            hour: 9
+            minute: 25
+            month: 3
+            place: Moscow, Russia
+            year: 1985
+          Boris:
+            day: 2
+            hour: 17
+            minute: 40
+            month: 11
+            place: Berlin, Germany
+            year: 1979
+          Chen:
+            day: 21
+            hour: 6
+            minute: 5
+            month: 7
+            place: Singapore
+            year: 1991
+        verbosity: standard
     QuarterV2:
       properties:
         number:
@@ -1244,6 +1604,37 @@ components:
           title: Short Code
       type: object
       title: VariablesV2
+    WaRequest:
+      properties:
+        participants:
+          additionalProperties:
+            $ref: '#/components/schemas/ParticipantInput'
+          type: object
+          title: Participants
+        group_type:
+          type: string
+          enum:
+          - business
+          - family
+          title: Group Type
+          description: Switches the semantic vocabulary
+          default: business
+        verbosity:
+          type: string
+          enum:
+          - compact
+          - standard
+          - full
+          title: Verbosity
+          description: compact — roll-ups only; standard — plus per-channel detail; full — plus hd_data.sqlite
+            channel reference and all 26 activations per participant. Legacy values 'all' and 'partial'
+            are accepted.
+          default: standard
+      type: object
+      required:
+      - participants
+      title: WaRequest
+      description: Six or more people. Ten or more is a WA; six to nine is an aggregate.
     YinYangBalanceV2:
       properties:
         Yang:

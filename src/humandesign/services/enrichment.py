@@ -44,6 +44,30 @@ class EnrichmentService:
             
         return None
 
+    def enrich_channel(self, gate_a: int, gate_b: int) -> Dict[str, Any]:
+        """Reference text for one channel, from hd_data.sqlite.
+
+        This is what turns a relational payload from gate numbers into something a
+        consultant can read: the channel's own name, what it is a design of, the
+        long description, and the gift each gate contributes.
+        """
+        row = self.repo.get_channel(gate_a, gate_b)
+        if not row:
+            return {}
+        gifts = self.repo.get_channel_gifts(row["channel_id"])
+        return {
+            "channel_id": row.get("channel_id"),
+            "name": row.get("name"),
+            "type": row.get("type"),
+            "design_purpose": row.get("design_purpose"),
+            "description": row.get("description"),
+            "gifts": {str(g): gift for g, gift in sorted(gifts.items())},
+        }
+
+    def enrich_gate_reference(self, gate_number: int) -> Dict[str, Any]:
+        """Gate name, summary, circuit and quarter — no line, no fixation."""
+        return self.repo.get_gate_reference(gate_number)
+
     def enrich_response(self, response_data: Any) -> Any:
         """
         Recursively enrich the response structure. Supports both dicts and Pydantic models.
