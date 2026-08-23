@@ -84,17 +84,21 @@ Penta, functional roles, gap severity with impact, hiring logic, and the vision 
 action / stability metrics. The endpoint enforces 3-5 and adds the participant
 layer. Its frozen `analysis_timestamp` is now real.
 
-### WA and the doctrine gap
+### WA
 
-The public sources do not give the WA's gate structure in a form this codebase
-can implement, and the upstream project this code descends from does not
-implement it either — `Wa` appears there exactly once, inside a schema
-description string. Rather than invent doctrine, `/analyze/wa` returns a
-full-bodygraph aggregate and labels itself honestly:
-`meta.entity.doctrine_implemented` is `false`.
+The WA is the entity formed from ten people upward. Where the Penta is scored
+over twelve gates in six fixed channels, the WA is built on the whole bodygraph —
+all 64 gates, 36 channels and 9 centres — and the payload states that structure
+explicitly under `group_field.structure`.
 
-What it does return is defensible mechanics and directly useful for a
-department-scale diagnosis:
+The endpoint shipped in the first cut of 3.5.0 with
+`meta.entity.doctrine_implemented: false`, because the upstream project this code
+descends from does not implement a WA at all (`Wa` appears there once, inside a
+schema description string) and I would not invent doctrine. The structure was
+confirmed by the product owner on the day of release, so the flag is now `true`
+for a WA; it stays `false` for the 6-9 aggregate, which forms no canonical entity.
+
+What the endpoint returns:
 
 - coverage of the 64 gates, 36 channels and 9 centres, plus circuit balance;
 - per-person contribution, including gates nobody else in the group carries;

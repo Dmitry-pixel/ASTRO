@@ -221,11 +221,16 @@ def test_wa_ten(auth):
 
     entity = data["meta"]["entity"]
     assert entity["code"] == "wa" and entity["size"] == 10
-    assert entity["doctrine_implemented"] is False
+    assert entity["doctrine_implemented"] is True
 
     field = data["group_field"]
+    assert field["structure"] == {
+        "gates": 64, "channels": 36, "centres": 9,
+        "note": field["structure"]["note"], "note_ru": field["structure"]["note_ru"],
+    }
     cov = field["coverage"]
-    assert cov["channels_total"] == 36 and cov["gates_total"] == 64
+    assert cov["channels_total"] == field["structure"]["channels"]
+    assert cov["gates_total"] == field["structure"]["gates"]
     assert 0 <= cov["channels_defined"] <= 36
     assert cov["channels_defined"] + field["gaps"]["missing_channel_count"] == 36
     assert len(field["centres"]["defined"]) + len(field["centres"]["open"]) == 9

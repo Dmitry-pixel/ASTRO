@@ -3,15 +3,16 @@
 Penta delegates to `features.core.get_penta` — the Sovereign Standard engine that
 already ships in the product — and only adds the participant layer around it.
 
-WA is new. A note on doctrine, because it matters for how the output should be
-read: the classical WA gate structure for groups of ten or more is not published
-in a form this codebase can implement, and the upstream project this code
-descends from does not implement it either — the word appears once, inside a
-schema description string. What is implemented here is therefore stated for what
-it is: a **full-bodygraph aggregate** over the whole group — every channel the
-group defines collectively, every centre, who is the sole holder of what, and
-where the group is thin. `entity.doctrine_implemented` is False so no consumer
-mistakes it for the canonical WA.
+The WA is the entity formed from ten people upward, and unlike the Penta — which
+is scored over twelve gates in six fixed channels — it is built on the **whole
+bodygraph**: all 64 gates, all 36 channels, all 9 centres. That is what this
+module computes for a group of that size: every channel the group defines
+collectively, every centre, who is the sole holder of what, and where the field
+is thin enough that one departure breaks it.
+
+Six to nine people form neither entity. They are still analysed, with the same
+mechanics, but labelled `aggregate` and flagged `doctrine_implemented: False` so
+no consumer reads them as a WA.
 """
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
@@ -43,13 +44,16 @@ def classify_entity(size: int) -> Dict[str, Any]:
                 "doctrine_implemented": True}
     if size >= WA_MIN:
         return {"code": "wa", "label": "WA", "label_ru": "WA", "size": size,
-                "doctrine_implemented": False,
-                "note_ru": "Каноническая структура ворот WA в этой кодовой базе не реализована. "
-                           "Ниже — полный агрегат бодиграфа группы, а не классический WA."}
+                "doctrine_implemented": True,
+                "note": "The WA spans the whole bodygraph: 64 gates, 36 channels, 9 centres.",
+                "note_ru": "WA — сущность от 10 человек, построенная на полном бодиграфе: "
+                           "64 ворот, 36 каналов, 9 центров."}
     return {"code": "aggregate", "label": "Aggregate", "label_ru": "Агрегат", "size": size,
             "doctrine_implemented": False,
+            "note": "Six to nine people form neither a Penta (3-5) nor a WA (10+). "
+                    "The same mechanics are applied, but this is not a formal entity.",
             "note_ru": "6–9 человек не образуют ни Пенту (3–5), ни WA (10+). "
-                       "Ниже — агрегат бодиграфа без формальной сущности."}
+                       "Механика та же, но формальной сущности здесь нет."}
 
 
 # --------------------------------------------------------------------------- #
@@ -164,10 +168,17 @@ def analyse_group_field(people: Dict[str, Person], group_type: str = "business",
 
     result: Dict[str, Any] = {
         "meta": {
-            "engine": "Group field aggregate v1",
+            "engine": "WA / group field v1",
             "group_type": group_type,
             "entity": classify_entity(size),
             "generated_at": now_iso(),
+        },
+        "structure": {
+            "gates": 64,
+            "channels": len(_CHANNELS),
+            "centres": 9,
+            "note": "The WA is built on the whole bodygraph, unlike the Penta's twelve gates.",
+            "note_ru": "WA строится на полном бодиграфе, в отличие от двенадцати ворот Пенты.",
         },
         "coverage": {
             "gates_defined": len(union_gates),
