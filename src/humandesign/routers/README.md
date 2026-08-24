@@ -1,7 +1,7 @@
 # API Routers
 
 This directory (`src/humandesign/routers`) contains the `FastAPI` router modules that define the
-application's HTTP endpoints. All four routers are registered in `api.py`.
+application's HTTP endpoints. All five routers are registered in `api.py`.
 
 ## Modules
 
@@ -10,6 +10,14 @@ application's HTTP endpoints. All four routers are registered in `api.py`.
     - `GET /calculate`: Full chart calculation. Query parameters, bearer auth. `year`, `month`, `day`, `hour` and `minute` are required, as is `place` unless both `latitude` and `longitude` are given.
 - **[`v2/general.py`](v2/general.py)** — prefix `/v2`, tag `v2`:
     - `POST /v2/calculate`: High-fidelity nested response with recursive `include`/`exclude` masking. Bearer auth.
+- **[`analyze.py`](analyze.py)** — prefix `/analyze`, tag `analyze`, bearer auth on every route:
+    - `POST /analyze/composite`: exactly 2 people — the dyad and the composite bodygraph it forms.
+    - `POST /analyze/penta`: 3-5 people — the Penta entity.
+    - `POST /analyze/wa`: 6+ people — the group field. The WA is the entity from ten people upward;
+      6-9 is reported as an `aggregate` with `doctrine_implemented: false`.
+    - `POST /analyze/maia-penta`: 2+ people — every dyad plus whichever group layer fits the size.
+    - All four honour `verbosity` and, except `composite`, `group_type`. A participant that cannot
+      be resolved returns 422 naming itself; the handler never degrades to a partial 200.
 - **[`admin.py`](admin.py)** — prefix `/admin`, tag `admin`, admin token required:
     - `POST /admin/sites`, `GET /admin/sites`: Register and list API consumer sites.
     - `PUT /admin/sites/{site_id}`, `DELETE /admin/sites/{site_id}`: Update and remove a site.

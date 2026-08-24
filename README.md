@@ -113,12 +113,23 @@ humandesign_api/
 │   │   └── attributes.py      # Profile, cross, quarter, variables, contour
 │   ├── routers/
 │   │   ├── general.py         # /health, /calculate
+│   │   ├── analyze.py         # /analyze/composite, /penta, /wa, /maia-penta
 │   │   ├── admin.py           # /admin/sites, /admin/stats
+│   │   ├── panel.py           # /panel/* operator web panel
 │   │   └── v2/general.py      # /v2/calculate
+│   ├── relational/            # Dyad, Penta and WA analysis
+│   │   ├── semantics.py       # Semantic tables, EN + RU, machine codes
+│   │   ├── persons.py         # One birth-data resolution path for /analyze/*
+│   │   ├── engine.py          # Composite over all 36 channels
+│   │   └── groups.py          # Penta wrapper and the group field
 │   ├── services/
 │   │   ├── geolocation.py     # Nominatim + TimezoneFinder
-│   │   └── composite.py       # Multi-person logic
+│   │   ├── enrichment.py      # Gate/line/channel reference from hd_data.sqlite
+│   │   ├── sqlite_repository.py  # Read-only accessor over hd_data.sqlite
+│   │   └── masking.py         # include/exclude filtering for /v2/calculate
 │   ├── schemas/               # Pydantic models
+│   ├── templates/panel/       # Jinja2 templates for the operator panel
+│   ├── static/vendor/         # Self-hosted Tailwind, Chart.js and web fonts
 │   └── utils/                 # Serialization, dates, astrology
 ├── ephe/                      # Swiss Ephemeris DE431 data files
 ├── Dockerfile

@@ -3,7 +3,7 @@
 ## Что изменено относительно оригинального репозитория
 
 - **pytz заменён на zoneinfo + tzdata** — встроенный модуль Python 3.9+, не требует внешних зависимостей
-- Обновлены файлы: `features/core.py`, `services/composite.py`, `requirements.txt`, `pyproject.toml`
+- Обновлены файлы: `features/core.py`, `requirements.txt`, `pyproject.toml`
 - Добавлен `setup_ubuntu.sh` — скрипт автоматической установки
 - Обновлён `Dockerfile` (healthcheck, локальная сборка)
 - Обновлён `docker-compose.yml` (локальная сборка вместо внешнего образа)
@@ -104,12 +104,18 @@ pytest tests/ -v
 | `src/humandesign/features/mechanics.py` | Тип, авторитет, каналы, определённость |
 | `src/humandesign/features/attributes.py` | Профиль, Крест Инкарнации, переменные |
 | `src/humandesign/hd_constants.py` | Константы HD (ворота, каналы, кресты) |
-| `src/humandesign/routers/general.py` | Эндпоинты /calculate и /bodygraph |
-| `src/humandesign/routers/transits.py` | Эндпоинты транзитов |
-| `src/humandesign/routers/composite.py` | Эндпоинты совместимости |
-| `src/humandesign/services/chart_renderer.py` | Генерация изображений бодиграфа |
+| `src/humandesign/routers/general.py` | Эндпоинты /health и /calculate |
+| `src/humandesign/routers/v2/general.py` | Эндпоинт /v2/calculate |
+| `src/humandesign/routers/analyze.py` | Эндпоинты /analyze/composite, /penta, /wa, /maia-penta |
+| `src/humandesign/routers/admin.py` | Эндпоинты /admin/sites и /admin/stats |
+| `src/humandesign/routers/panel.py` | Веб-панель оператора /panel/* |
+| `src/humandesign/relational/` | Диада, композит, Пента и WA (заменил services/composite.py) |
 | `src/humandesign/services/geolocation.py` | Геокодирование (Nominatim + TimezoneFinder) |
-| `src/humandesign/services/composite.py` | Логика композитных расчётов |
+| `src/humandesign/services/enrichment.py` | Справка по воротам, линиям и каналам из hd_data.sqlite |
+
+Модулей `routers/transits.py`, `routers/composite.py`, `services/composite.py` и
+`services/chart_renderer.py` в проекте нет — они были удалены. Эндпоинтов
+`/transits/*` и `/bodygraph` не существует.
 
 ---
 

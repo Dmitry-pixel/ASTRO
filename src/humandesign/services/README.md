@@ -10,10 +10,13 @@ This directory (`src/humandesign/services`) contains the service layer. It bridg
       `exclude` (blacklist) filtering to the finished response dictionary.
     - Used by `POST /v2/calculate`.
 - **[`enrichment.py`](enrichment.py)** — `EnrichmentService`.
-    - Resolves gate and line codes to human-readable names and descriptions via `sqlite_repository`.
+    - `enrich_gate` resolves a gate, line and planet to names, descriptions and any fixation.
+    - `enrich_channel` and `enrich_gate_reference` (3.5.0) resolve a channel and a standalone gate.
+      Currently reached only by `/analyze/wa` at `verbosity: full`; the dyad and Penta responses do
+      not carry reference text yet.
 - **[`sqlite_repository.py`](sqlite_repository.py)** — `SQLiteRepository`.
-    - Singleton read-only accessor over `hd_data.sqlite`, tables `public_gates` and
-      `public_gate_lines`.
+    - Singleton read-only accessor over `hd_data.sqlite`: `public_gates`, `public_gate_lines`,
+      `public_channels`, `public_channel_gates` and `public_planets`.
     - The database path is resolved from the project root, not the process working directory, so
       the repository works wherever uvicorn or pytest was started. `HD_DATA_PATH` overrides it.
 - **[`geolocation.py`](geolocation.py)** — location resolution.
@@ -23,11 +26,16 @@ This directory (`src/humandesign/services`) contains the service layer. It bridg
   inside the `/v2/calculate` handler.
 - **[`global_cycles.py`](global_cycles.py)** — `GlobalCycleEngine`. Cycle mechanics, loaded lazily
   inside the `/v2/calculate` handler.
-## Removed
 
-The relational service that backed the `/analyze/*` endpoints was deleted along with them. Penta and
-composite-combination logic remains in `features/core.py` — `get_penta`, `hd_composite`,
-`get_composite_combinations` — and is covered by `tests/test_penta.py`.
+## Where the relational logic lives
+
+`services/composite.py` backed the pre-3.5.0 `/analyze/*` endpoints and was deleted with them. The
+endpoints returned in 3.5.0 on `humandesign.relational`, a separate package rather than a service —
+see `../relational/README.md` for why the old file was not restored.
+
+`features/core.py` still holds `get_penta`, `hd_composite` and `get_composite_combinations`;
+`get_penta` is the Penta engine the `/analyze/penta` endpoint delegates to, and is covered by
+`tests/test_penta.py`.
 
 ## Note on visualization
 
