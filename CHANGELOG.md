@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [3.8.0] - 2026-08-24
+
+### Added
+- **`group_field.penta_blocks`** on `POST /analyze/wa` for nine or more
+  participants: the Penta blocks a WA settles into. Grouping is by functional
+  coverage of the Penta's twelve gates across three zones — Planning &
+  Direction (7, 15, 46, 2), Demonstration & Sales (31, 8, 33, 13, 1),
+  Production & Reliability (14, 29, 5). Each block reports which zones it covers,
+  which gates are missing and, for a zone it does not cover at all, what the
+  organisation loses there: a block with no Demonstration zone can produce
+  perfectly and nobody — including the Alpha — will hear about it.
+- The Alpha is placed outside the blocks when exactly one participant holds
+  31-7. When several do, the response says so and partitions everyone, because
+  the mechanics do not choose between them.
+- The partitioner is deterministic: a greedy seed followed by pairwise swaps to
+  a fixpoint, with stable tie-breaks. A consultant re-running the same group
+  gets the same blocks, which matters more here than optimality — exhaustive
+  search over partitions is not tractable past a handful of people.
+
+### Not implemented, on purpose
+- Block heads and the Управляющая Пента. Those are roles, not activations, and
+  no rule for deriving them from a chart exists. `not_computed_ru` states this
+  in the payload so their absence is not read as a defect.
+- Grouping by electromagnetic attraction between people. The doctrine is
+  explicit that a WA overwrites personal chemistry, so channels between
+  participants are not part of the objective function.
+
 ## [3.7.0] - 2026-08-23
 
 ### Added

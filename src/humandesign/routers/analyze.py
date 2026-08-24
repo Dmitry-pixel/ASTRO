@@ -71,6 +71,14 @@ def analyze_wa(request: WaRequest, authorized: bool = Depends(verify_token)):
     evidence for each, since 31-7 is a projected channel and the collective, not
     the chart, appoints an Alpha.
 
+    Alongside it, `group_field.penta_blocks`: the Penta blocks the WA settles
+    into. Grouping is by functional coverage of the Penta's twelve gates across
+    three zones — planning, demonstration, production — not by channels between
+    people, which the WA overwrites. A block missing a zone is named with what
+    the organisation loses there. The Alpha, when one participant holds 31-7
+    alone, is placed outside the blocks. Block heads and the managing Penta are
+    not computed: those are roles, not activations.
+
     Six to eight participants are an extended Penta rather than a WA; the group
     field is still computed, the OC16 layer is not.
     """

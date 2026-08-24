@@ -481,3 +481,82 @@ def test_profile_is_style_not_eligibility(auth):
     order = {"canonical": 0, "partial": 1, "supporting": 2, "none": 3}
     keys = [(order[c["tier"]], -c["evidence_count"], c["name"]) for c in a["candidates"]]
     assert keys == sorted(keys)
+
+
+# --------------------------------------------------------------------------- #
+# Penta blocks inside a WA
+# --------------------------------------------------------------------------- #
+def test_functional_zones_are_the_penta_gates():
+    """The three zones are a different cut of the Penta's twelve gates, not a
+    different set. Gate 13 belongs to zone 2 with its channel partner 33."""
+    from humandesign import hd_constants
+    from humandesign.relational import blocks
+
+    assert set(blocks.FUNCTIONAL_GATES) == set(hd_constants.PENTA_GATES)
+    assert len(blocks.FUNCTIONAL_GATES) == 12
+    assert len(blocks.ZONES) == 3
+    assert blocks.ZONE_OF_GATE[13] == "demonstration"
+    assert blocks.ZONE_OF_GATE[33] == "demonstration"
+    # every gate lands in exactly one zone
+    seen = [g for z in blocks.ZONES for g in z["gates"]]
+    assert len(seen) == len(set(seen)) == 12
+
+
+def test_wa_falls_into_blocks_of_three_to_five(auth):
+    data = post("/analyze/wa", {"participants": TEN}, auth)
+    b = data["group_field"]["penta_blocks"]
+    assert b["block_count"] >= 2
+    seen = []
+    for blk in b["blocks"]:
+        assert blocks_min() <= blk["size"] <= blocks_max()
+        seen.extend(blk["members"])
+    # every participant is placed exactly once, minus the Alpha if one was set aside
+    expected = set(TEN) - ({b["alpha"]} if b["alpha"] else set())
+    assert sorted(seen) == sorted(expected)
+    assert len(seen) == len(set(seen))
+
+
+def blocks_min():
+    from humandesign.relational import blocks
+    return blocks.BLOCK_MIN
+
+
+def blocks_max():
+    from humandesign.relational import blocks
+    return blocks.BLOCK_MAX
+
+
+def test_blocks_are_deterministic(auth):
+    """A consultant must be able to re-run a group and get the same blocks."""
+    a = post("/analyze/wa", {"participants": TEN}, auth)["group_field"]["penta_blocks"]
+    b = post("/analyze/wa", {"participants": TEN}, auth)["group_field"]["penta_blocks"]
+    assert [x["members"] for x in a["blocks"]] == [x["members"] for x in b["blocks"]]
+
+
+def test_blocks_report_zone_gaps_not_just_counts(auth):
+    data = post("/analyze/wa", {"participants": TEN}, auth)
+    b = data["group_field"]["penta_blocks"]
+    for blk in b["blocks"]:
+        assert len(blk["zones"]) == 3
+        for z in blk["zones"]:
+            if z["status"] == "gap":
+                assert z["gap_ru"] and not z["covered_gates"]
+            else:
+                assert z["covered_gates"]
+        assert blk["viable"] == (blk["zones_covered"] == 3)
+
+
+def test_managing_penta_is_not_invented(auth):
+    """Block heads and the managing Penta are roles, not activations. The payload
+    must say so rather than guess."""
+    data = post("/analyze/wa", {"participants": TEN}, auth)
+    b = data["group_field"]["penta_blocks"]
+    assert "not_computed_ru" in b
+    for blk in b["blocks"]:
+        assert "head" not in blk and "lead" not in blk
+
+
+def test_blocks_absent_below_the_wa_threshold(auth):
+    seven = {k: CAST[k] for k in list(CAST)[:7]}
+    data = post("/analyze/wa", {"participants": seven}, auth)
+    assert "penta_blocks" not in data["group_field"]
