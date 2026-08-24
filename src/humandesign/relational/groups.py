@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from .. import features as hd
 from .. import hd_constants
 from . import blocks
+from . import channels
 from . import oc16
 from . import semantics as S
 from .engine import centres_of, normalise_verbosity, _circuit
@@ -143,6 +144,7 @@ def analyse_group_field(people: Dict[str, Person], group_type: str = "business",
                 "depends_on": critical,
                 "circuit_group": _circuit(key)["group"],
                 "theme": hd_constants.CHANNEL_MEANING_DICT[key][0],
+                "label": channels.label(key),
             })
 
     circuit_coverage = {"Individual": {"defined": 0, "total": 0},
@@ -163,6 +165,7 @@ def analyse_group_field(people: Dict[str, Person], group_type: str = "business",
                 "missing_gates": [g for g in key if g not in union_gates],
                 "circuit_group": group,
                 "theme": hd_constants.CHANNEL_MEANING_DICT[key][0],
+                "label": channels.label(key),
             })
     for group, cov in circuit_coverage.items():
         cov["share_pct"] = round(100 * cov["defined"] / cov["total"]) if cov["total"] else 0
@@ -240,6 +243,7 @@ def analyse_group_field(people: Dict[str, Person], group_type: str = "business",
         result["channels"] = [{
             "channel": list(key), "key": f"{key[0]}-{key[1]}",
             "theme": hd_constants.CHANNEL_MEANING_DICT[key][0],
+            "label": channels.label(key),
             "circuit": _circuit(key),
             "centres": centres_of([key]),
             "contributors": holders[key],

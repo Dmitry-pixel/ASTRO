@@ -39,6 +39,10 @@ def analyze_composite(request: CompositeRequest, authorized: bool = Depends(veri
     into the four Maia types, the conditioning direction of every centre, the
     genetic type of the union, profile and variable synergy, nodal resonance, and
     a role-conflict block that names who conditions whom and how often.
+
+    Every channel carries a `label` — its machine key, Russian name and type —
+    so a consumer does not need a reference table of its own. The long English
+    description from `hd_data.sqlite` is only added at `verbosity: full`.
     """
     return _run(relational.analyse_composite,
                 participants=request.participants, verbosity=request.verbosity)

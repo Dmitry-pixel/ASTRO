@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Human Design API
-  version: 3.8.0
+  version: 3.9.0
 paths:
   /health:
     get:
@@ -189,7 +189,14 @@ paths:
 
         genetic type of the union, profile and variable synergy, nodal resonance, and
 
-        a role-conflict block that names who conditions whom and how often.'
+        a role-conflict block that names who conditions whom and how often.
+
+
+        Every channel carries a `label` — its machine key, Russian name and type —
+
+        so a consumer does not need a reference table of its own. The long English
+
+        description from `hd_data.sqlite` is only added at `verbosity: full`.'
       operationId: analyze_composite_analyze_composite_post
       requestBody:
         content:

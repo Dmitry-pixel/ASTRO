@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional
 
 from ..utils.version import get_version
 from . import blocks
+from . import channels
 from . import oc16
 from . import semantics
 from .engine import VERBOSITY_LEVELS, analyse_dyad, normalise_verbosity
@@ -25,7 +26,7 @@ __all__ = [
     "analyse_composite", "analyse_penta_group", "analyse_wa_group", "analyse_hybrid",
     "resolve_all", "Person", "PersonResolutionError", "normalise_verbosity",
     "VERBOSITY_LEVELS", "PENTA_MIN", "PENTA_MAX", "PENTA_EXTENDED_MAX", "WA_MIN",
-    "GROUP_MAX", "semantics", "oc16", "blocks",
+    "GROUP_MAX", "semantics", "oc16", "blocks", "channels",
 ]
 
 
