@@ -311,3 +311,12 @@ Rules to keep:
   strength (21-45, gate 45), then 1-8. Profile and Type describe *style*, never
   eligibility: any profile can be an Alpha. They live in `style` / `context` and
   must never enter the sort key.
+- **A WA splits into Penta blocks by function, not by chemistry.**
+  `relational/blocks.py` groups on coverage of the Penta's twelve gates across
+  three zones; channels between people are deliberately not part of the
+  objective, because the doctrine says the WA overwrites them. The partitioner
+  must stay deterministic — the same group has to give the same blocks on a
+  re-run.
+- **Roles are not activations.** Block heads and the Управляющая Пента are not
+  computed, and `not_computed_ru` says so in the payload. Do not add a rule for
+  them without the product owner supplying one.

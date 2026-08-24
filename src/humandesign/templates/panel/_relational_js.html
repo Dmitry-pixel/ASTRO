@@ -386,7 +386,36 @@ function renderFieldOverview(f) {
     }
     var out = card('Групповое поле', inner, 'mb-4');
     if (f.oc16) out += renderOC16(f.oc16);
+    if (f.penta_blocks) out += renderBlocks(f.penta_blocks);
     return out;
+}
+
+function renderBlocks(b) {
+    var inner = note(b.reading_ru)
+        + '<div class="text-[11px] mt-2 mb-3" style="color:var(--c-txt-dim);">' + esc(b.alpha_note_ru) + '</div>';
+    if (!b.blocks || !b.blocks.length) return card('Пента-блоки', inner, 'mb-4');
+
+    inner += b.blocks.map(function(blk) {
+        var zs = blk.zones.map(function(z) {
+            var ok = z.status === 'covered';
+            return '<span class="chip ' + (ok ? 'chip-comp' : 'chip-dom') + '">'
+                + esc(z.label_ru) + (ok ? ' ' + z.covered_gates.join(',') : ' — нет') + '</span>';
+        }).join(' ');
+        var gap = blk.zones.filter(function(z) { return z.status === 'gap'; })
+            .map(function(z) { return esc(z.gap_ru); }).join(' ');
+        return '<div class="mb-4"><div class="flex items-baseline gap-2 mb-1">'
+            + '<span class="mono" style="color:var(--c-txt-bright);">Блок ' + blk.index + ' · ' + blk.size + '</span>'
+            + '<span class="text-xs" style="color:var(--c-txt);">' + esc(blk.members.join(', ')) + '</span></div>'
+            + '<div class="flex flex-wrap gap-2 mb-1">' + zs + '</div>'
+            + (gap ? '<div class="text-xs" style="color:var(--c-txt-dim);">' + gap + '</div>' : '')
+            + (blk.gates_missing.length ? '<div class="text-[11px] mono" style="color:var(--c-txt-dim);">нет ворот: '
+               + blk.gates_missing.join(', ') + '</div>' : '')
+            + '</div>';
+    }).join('');
+
+    inner += '<div class="text-[11px] mt-2" style="color:var(--c-txt-dim);">' + esc(b.method_ru) + '</div>'
+        + '<div class="text-[11px] mt-1" style="color:var(--c-txt-dim);">' + esc(b.not_computed_ru) + '</div>';
+    return card('Пента-блоки WA', inner, 'mb-4');
 }
 
 function renderOC16(o) {

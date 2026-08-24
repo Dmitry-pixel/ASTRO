@@ -19,6 +19,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from .. import features as hd
 from .. import hd_constants
+from . import blocks
 from . import oc16
 from . import semantics as S
 from .engine import centres_of, normalise_verbosity, _circuit
@@ -232,6 +233,8 @@ def analyse_group_field(people: Dict[str, Person], group_type: str = "business",
 
     if size >= WA_MIN:
         result["oc16"] = oc16.analyse(people, verbosity)
+        result["penta_blocks"] = blocks.analyse(
+            people, result["oc16"]["alpha"], verbosity)
 
     if verbosity == "full":
         result["channels"] = [{
