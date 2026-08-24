@@ -667,11 +667,6 @@ PENTA_DEFINITIONS = {
     }
 }
 
-PENTA_ZONES = {
-    "Upper": {"label": "Direction & Consciousness"},
-    "Lower": {"label": "Generation & Form"}
-}
-
 # Business Maps
 BUSINESS_SKILLS_MAP = {
     2: "Accounting",
