@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [3.9.0] - 2026-08-24
+
+### Added
+- **Every channel now carries a short Russian label** wherever it appears: each
+  composite connection, the role-conflict roll-up, and the WA's keystone and
+  missing-channel blocks. The label is `{key, name_ru, type, type_ru}` — machine
+  key, Russian name, and channel type as Генерируемый / Манифестируемый /
+  Манифестирующего Генератора / Проецируемый. A consuming site no longer needs a
+  channel reference table of its own to render a report line such as
+  «43-23 Канал Структурирования · Проецируемый · Компромисс».
+- The 36 names live in `relational/channels.py` and were confirmed one at a time
+  by the product owner. Six do not follow the literal translation of the English
+  name in `hd_data.sqlite` and would have been wrong if inferred: 2-14 Канал
+  Хранителя Ключей, 16-48 Канал Мастерства, 20-57 Канал Блестящих идей, 26-44
+  Канал Капитуляции, 33-13 Канал Скитальца, 45-21 Материальный канал.
+- The long English `description` is unchanged: it still appears only at
+  `verbosity: full`, where a consumer has asked for everything.
+
+### Fixed
+- **`hd_data.sqlite` spells one channel type with a Cyrillic С.** `Generating
+  Сhannel` (U+0421) on channel 10-34 is byte-different from `Generating Channel`
+  while looking identical, so anything grouping by type produced two buckets that
+  read the same. Normalised on read rather than patched in the database, which is
+  baked read-only into the image.
+
+### Verified
+- The four Maia mechanics were checked line by line against the doctrine the
+  product owner supplied and match it exactly, including the distinction most
+  often confused: Dominance is a full channel against **no** gate, Compromise a
+  full channel against **one** hanging gate. No change was needed.
+
 ## [3.8.0] - 2026-08-24
 
 ### Added

@@ -560,3 +560,63 @@ def test_blocks_absent_below_the_wa_threshold(auth):
     seven = {k: CAST[k] for k in list(CAST)[:7]}
     data = post("/analyze/wa", {"participants": seven}, auth)
     assert "penta_blocks" not in data["group_field"]
+
+
+# --------------------------------------------------------------------------- #
+# Channel labels
+# --------------------------------------------------------------------------- #
+def test_channel_labels_cover_the_engine_exactly():
+    from humandesign import hd_constants
+    from humandesign.relational import channels
+
+    assert set(channels.LABELS_RU) == set(hd_constants.CHANNEL_MEANING_DICT)
+    assert len(channels.LABELS_RU) == 36
+    assert all(v.strip() for v in channels.LABELS_RU.values())
+    # the six that do not follow the literal translation
+    assert channels.LABELS_RU[(2, 14)] == "Канал Хранителя Ключей"
+    assert channels.LABELS_RU[(45, 21)] == "Материальный канал"
+    assert channels.LABELS_RU[(20, 57)] == "Канал Блестящих идей"
+    assert channels.LABELS_RU[(33, 13)] == "Канал Скитальца"
+    assert channels.LABELS_RU[(26, 44)] == "Канал Капитуляции"
+    assert channels.LABELS_RU[(16, 48)] == "Канал Мастерства"
+
+
+def test_cyrillic_c_in_the_channel_type_is_repaired():
+    """hd_data.sqlite spells one generating type with a Cyrillic С. The strings
+    look identical and would group as two buckets."""
+    from humandesign.relational import channels
+
+    assert channels.normalise_type("Generating \u0421hannel") == "Generating Channel"
+    assert channels.normalise_type("Projected Channel") == "Projected Channel"
+    assert channels.normalise_type(None) is None
+    # every type the repair can produce has a Russian label
+    for raw in ("Generating \u0421hannel", "Generating Channel", "Projected Channel",
+                "Manifesting Channel", "Manifesting Generator\u2019s Channel"):
+        fixed = channels.normalise_type(raw)
+        if fixed in channels.TYPE_LABELS_RU:
+            assert channels.TYPE_LABELS_RU[fixed]
+
+
+def test_composite_connections_carry_a_russian_label(auth):
+    data = post("/analyze/composite", {"participants": PAIR}, auth)
+    conns = data["dyad"]["connections"]["channels"]
+    assert conns
+    for c in conns:
+        lbl = c["label"]
+        assert lbl["key"] == c["key"]
+        assert lbl["name_ru"]
+        # no English prose at standard verbosity
+        assert "description" not in lbl and "reference" not in c
+    # the role-conflict roll-up carries the name too, so a report table is
+    # self-sufficient without joining back to the channel list
+    for item in data["dyad"]["role_conflicts"]["channels"]:
+        assert item["name_ru"]
+
+
+def test_wa_channel_blocks_carry_labels(auth):
+    data = post("/analyze/wa", {"participants": TEN}, auth)
+    field = data["group_field"]
+    for entry in field["fragility"]["keystone_channels"] or []:
+        assert entry["label"]["name_ru"]
+    for entry in field["gaps"]["channels"]:
+        assert entry["label"]["name_ru"]

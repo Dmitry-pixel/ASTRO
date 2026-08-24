@@ -18,6 +18,7 @@ could not see.
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from .. import hd_constants
+from . import channels
 from . import semantics as S
 from .persons import Person
 
@@ -121,6 +122,7 @@ def _channel_entry(a: Person, b: Person, key: Tuple[int, int], code: str,
         "holders": {a.name: a_block, b.name: b_block},
         "direction": direction,
         "meaning": list(meaning),
+        "label": channels.label(key),
     }
     if verbosity == "full" and enricher is not None:
         reference = enricher.enrich_channel(key[0], key[1])
@@ -170,6 +172,7 @@ def _role_conflicts(a: Person, b: Person, channels: List[Dict[str, Any]]) -> Dic
             "centres": ch["centres"],
             "circuit_group": ch["circuit"]["group"],
             "theme": (ch["meaning"][0] if ch["meaning"] else ch["key"]),
+            "name_ru": ch["label"]["name_ru"],
         })
 
     diff = load[a.name]["conditions"] - load[b.name]["conditions"]
