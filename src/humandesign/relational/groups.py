@@ -19,6 +19,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from .. import features as hd
 from .. import hd_constants
+from . import oc16
 from . import semantics as S
 from .engine import centres_of, normalise_verbosity, _circuit
 from .persons import Person
@@ -27,7 +28,10 @@ _CHANNELS: Tuple[Tuple[int, int], ...] = tuple(hd_constants.CHANNEL_MEANING_DICT
 _ALL_CENTRES = [hd_constants.CHAKRA_NAMES_MAP[c] for c in hd_constants.CHAKRA_LIST]
 
 PENTA_MIN, PENTA_MAX = 3, 5
-WA_MIN = 10
+# The Penta is canonically 3-5 and is sometimes extended to 8. The WA begins at
+# 9, with its full mechanics structured from 9 to 16.
+PENTA_EXTENDED_MAX = 8
+WA_MIN = 9
 GROUP_MAX = 64
 
 
@@ -42,18 +46,22 @@ def classify_entity(size: int) -> Dict[str, Any]:
     if PENTA_MIN <= size <= PENTA_MAX:
         return {"code": "penta", "label": "Penta", "label_ru": "Пента", "size": size,
                 "doctrine_implemented": True}
-    if size >= WA_MIN:
-        return {"code": "wa", "label": "WA", "label_ru": "WA", "size": size,
+    if PENTA_MAX < size <= PENTA_EXTENDED_MAX:
+        return {"code": "extended_penta", "label": "Extended Penta",
+                "label_ru": "Расширенная Пента", "size": size,
                 "doctrine_implemented": True,
-                "note": "The WA spans the whole bodygraph: 64 gates, 36 channels, 9 centres.",
-                "note_ru": "WA — сущность от 10 человек, построенная на полном бодиграфе: "
-                           "64 ворот, 36 каналов, 9 центров."}
-    return {"code": "aggregate", "label": "Aggregate", "label_ru": "Агрегат", "size": size,
-            "doctrine_implemented": False,
-            "note": "Six to nine people form neither a Penta (3-5) nor a WA (10+). "
-                    "The same mechanics are applied, but this is not a formal entity.",
-            "note_ru": "6–9 человек не образуют ни Пенту (3–5), ни WA (10+). "
-                       "Механика та же, но формальной сущности здесь нет."}
+                "note": f"The Penta is canonically {PENTA_MIN}-{PENTA_MAX} and extends to "
+                        f"{PENTA_EXTENDED_MAX}. Below the WA threshold of {WA_MIN}.",
+                "note_ru": f"Пента канонически {PENTA_MIN}–{PENTA_MAX} и расширяется до "
+                           f"{PENTA_EXTENDED_MAX}. До порога WA в {WA_MIN} человек."}
+    return {"code": "wa", "label": "WA", "label_ru": "WA", "size": size,
+            "doctrine_implemented": True,
+            "note": "The WA is built on the whole bodygraph but operates through OC16: "
+                    "six departmental channels carrying twelve gates, plus four bridging "
+                    "gates. Full mechanics are structured from 9 to 16 people.",
+            "note_ru": f"WA — сущность от {WA_MIN} человек. Строится на полном бодиграфе, "
+                       "но оперирует через OC16: шесть каналов-департаментов (12 ворот) "
+                       "плюс четыре связующих ворот. Полная механика — от 9 до 16."}
 
 
 # --------------------------------------------------------------------------- #
@@ -64,11 +72,21 @@ def analyse_penta(people: Dict[str, Person], group_type: str = "business",
     verbosity = normalise_verbosity(verbosity)
     penta = hd.get_penta({n: p.penta_input() for n, p in people.items()}, group_type=group_type)
 
+    size = len(people)
     result: Dict[str, Any] = {
         "meta": {
             "engine": "Penta 2.0 (Sovereign Standard)",
             "group_type": group_type,
-            "entity": classify_entity(len(people)),
+            "entity": classify_entity(size),
+            "scale": {
+                "canonical_range": [PENTA_MIN, PENTA_MAX],
+                "extended_max": PENTA_EXTENDED_MAX,
+                "extended": size > PENTA_MAX,
+                "note_ru": ("Группа больше канонической Пенты, но ещё не WA: механика "
+                            "Пенты применена к расширенному составу."
+                            if size > PENTA_MAX else
+                            "Каноническая Пента."),
+            },
             "generated_at": now_iso(),
         },
         "analytical_metrics": penta.get("analytical_metrics"),
@@ -177,8 +195,10 @@ def analyse_group_field(people: Dict[str, Person], group_type: str = "business",
             "gates": 64,
             "channels": len(_CHANNELS),
             "centres": 9,
-            "note": "The WA is built on the whole bodygraph, unlike the Penta's twelve gates.",
-            "note_ru": "WA строится на полном бодиграфе, в отличие от двенадцати ворот Пенты.",
+            "note": "The substrate is the whole bodygraph. What the WA operates through is "
+                    "OC16, reported separately under `oc16`.",
+            "note_ru": "Субстрат — полный бодиграф. То, через что WA оперирует, — OC16, "
+                       "он отдаётся отдельным блоком `oc16`.",
         },
         "coverage": {
             "gates_defined": len(union_gates),
@@ -209,6 +229,9 @@ def analyse_group_field(people: Dict[str, Person], group_type: str = "business",
             "channels": missing if verbosity != "compact" else missing[:5],
         },
     }
+
+    if size >= WA_MIN:
+        result["oc16"] = oc16.analyse(people, verbosity)
 
     if verbosity == "full":
         result["channels"] = [{

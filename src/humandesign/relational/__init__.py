@@ -3,18 +3,19 @@
 Public surface:
 
     analyse_composite(participants, verbosity)          -> exactly 2 people
-    analyse_penta_group(participants, group_type, ...)  -> 3-5 people
-    analyse_wa_group(participants, group_type, ...)     -> 6+ people
+    analyse_penta_group(participants, group_type, ...)  -> 3-8 people
+    analyse_wa_group(participants, group_type, ...)     -> 6+ people; OC16 from 9
     analyse_hybrid(participants, group_type, ...)       -> 2+ people, dyads + group
 """
 import itertools
 from typing import Any, Dict, List, Optional
 
 from ..utils.version import get_version
+from . import oc16
 from . import semantics
 from .engine import VERBOSITY_LEVELS, analyse_dyad, normalise_verbosity
-from .groups import (GROUP_MAX, PENTA_MAX, PENTA_MIN, WA_MIN, analyse_group_field,
-                     analyse_penta, classify_entity, now_iso)
+from .groups import (GROUP_MAX, PENTA_EXTENDED_MAX, PENTA_MAX, PENTA_MIN, WA_MIN,
+                     analyse_group_field, analyse_penta, classify_entity, now_iso)
 from .persons import Person, PersonResolutionError, resolve_all
 
 ENGINE_VERSION = "relational-1.0"
@@ -22,7 +23,8 @@ ENGINE_VERSION = "relational-1.0"
 __all__ = [
     "analyse_composite", "analyse_penta_group", "analyse_wa_group", "analyse_hybrid",
     "resolve_all", "Person", "PersonResolutionError", "normalise_verbosity",
-    "VERBOSITY_LEVELS", "PENTA_MIN", "PENTA_MAX", "WA_MIN", "GROUP_MAX", "semantics",
+    "VERBOSITY_LEVELS", "PENTA_MIN", "PENTA_MAX", "PENTA_EXTENDED_MAX", "WA_MIN",
+    "GROUP_MAX", "semantics", "oc16",
 ]
 
 
@@ -85,8 +87,10 @@ def analyse_penta_group(participants: Dict[str, Any], group_type: str = "busines
     verbosity = normalise_verbosity(verbosity)
     people = resolve_all(participants)
     size = len(people)
-    if not (PENTA_MIN <= size <= PENTA_MAX):
-        raise ValueError(f"Penta analysis takes {PENTA_MIN}-{PENTA_MAX} participants, got {size}")
+    if not (PENTA_MIN <= size <= PENTA_EXTENDED_MAX):
+        raise ValueError(f"Penta analysis takes {PENTA_MIN}-{PENTA_EXTENDED_MAX} participants "
+                         f"({PENTA_MIN}-{PENTA_MAX} canonical, extended to "
+                         f"{PENTA_EXTENDED_MAX}), got {size}")
 
     return {
         "meta": _meta("penta", size, group_type, verbosity),
@@ -101,8 +105,9 @@ def analyse_wa_group(participants: Dict[str, Any], group_type: str = "business",
     people = resolve_all(participants)
     size = len(people)
     if size < PENTA_MAX + 1:
-        raise ValueError(f"WA analysis takes more than {PENTA_MAX} participants, got {size}. "
-                         f"Use /analyze/penta for {PENTA_MIN}-{PENTA_MAX}.")
+        raise ValueError(f"Group-field analysis takes more than {PENTA_MAX} participants, "
+                         f"got {size}. Use /analyze/penta for {PENTA_MIN}-{PENTA_MAX}. "
+                         f"A WA proper — and the OC16 layer — begins at {WA_MIN}.")
     if size > GROUP_MAX:
         raise ValueError(f"At most {GROUP_MAX} participants, got {size}")
 
@@ -138,9 +143,9 @@ def analyse_hybrid(participants: Dict[str, Any], group_type: str = "business",
         "matrix_summary": _matrix_summary(dyads),
     }
 
-    if PENTA_MIN <= size <= PENTA_MAX:
+    if PENTA_MIN <= size <= PENTA_EXTENDED_MAX:
         result["penta"] = analyse_penta(people, group_type, verbosity)
-    elif size > PENTA_MAX:
+    elif size > PENTA_EXTENDED_MAX:
         result["group_field"] = analyse_group_field(people, group_type, verbosity, enricher)
     return result
 

@@ -4,8 +4,8 @@
    ============================================================ */
 var GROUP_MODES = {
     composite: { endpoint: '/analyze/composite', min: 2, max: 2,  hint: 'Ровно 2 участника — диада и её композит' },
-    penta:     { endpoint: '/analyze/penta',     min: 3, max: 5,  hint: 'От 3 до 5 участников — сущность Пента' },
-    wa:        { endpoint: '/analyze/wa',        min: 6, max: 64, hint: 'От 6 участников. WA начинается с 10' },
+    penta:     { endpoint: '/analyze/penta',     min: 3, max: 8,  hint: 'От 3 до 8 участников. Каноническая Пента — 3–5' },
+    wa:        { endpoint: '/analyze/wa',        min: 6, max: 64, hint: 'От 6 участников. WA и слой OC16 — с 9' },
     hybrid:    { endpoint: '/analyze/maia-penta',min: 2, max: 64, hint: 'От 2 участников — все диады плюс групповой слой' }
 };
 /* name, place, year, month, day, hour, minute, lat, lon
@@ -384,7 +384,62 @@ function renderFieldOverview(f) {
         inner += '<div class="mt-4 flex flex-wrap gap-2">' + Object.keys(f.type_mix).map(function(t) {
             return '<span class="chip chip-mut">' + esc(t) + ' × ' + f.type_mix[t] + '</span>'; }).join(' ') + '</div>';
     }
-    return card('Групповое поле', inner, 'mb-4');
+    var out = card('Групповое поле', inner, 'mb-4');
+    if (f.oc16) out += renderOC16(f.oc16);
+    return out;
+}
+
+function renderOC16(o) {
+    var c = o.coverage, st = o.structure;
+    var inner = '<div class="text-[11px] font-mono mb-3" style="color:var(--c-txt-dim);">'
+        + 'OC16: ' + st.gates + ' ворот · ' + st.channels + ' каналов-департаментов · '
+        + st.bridge_gates.length + ' связующих ворот</div>'
+        + '<div class="grid grid-cols-2 gap-3 mb-4">'
+        + kpi(c.departments_defined + '/' + c.departments_total, 'департаменты · ' + c.departments_share_pct + '%')
+        + kpi(c.gates_defined + '/' + c.gates_total, 'ворота OC16') + '</div>';
+
+    inner += '<div class="p-lbl mb-2">Департаменты</div><div class="rel-scroll"><table class="rel-table"><thead><tr>'
+        + '<th>Канал</th><th>Департамент</th><th>Статус</th><th>Держат</th></tr></thead><tbody>'
+        + o.departments.map(function(d) {
+            var ok = d.status === 'defined';
+            var who = Object.keys(d.gates).map(function(g) {
+                var gg = d.gates[g];
+                return g + ': ' + (gg.held_by.length ? esc(gg.held_by.join(', ')) : '—');
+            }).join(' · ');
+            return '<tr><td class="mono" style="color:var(--c-txt-bright);">' + esc(d.key) + '</td>'
+                + '<td>' + esc(d.label_ru) + '</td>'
+                + '<td><span class="chip ' + (ok ? 'chip-comp' : 'chip-dom') + '">'
+                + (ok ? 'определён' : 'западает') + '</span></td>'
+                + '<td class="mono text-xs">' + who + '</td></tr>'
+                + (ok ? '' : '<tr><td colspan="4" class="text-xs" style="color:var(--c-txt-dim);">'
+                   + esc(d.gap_ru) + '</td></tr>');
+        }).join('') + '</tbody></table></div>';
+
+    inner += '<div class="p-lbl mt-4 mb-2">Связующие ворота</div><div class="flex flex-wrap gap-2 mb-2">'
+        + Object.keys(o.bridge_gates).map(function(g) {
+            var b = o.bridge_gates[g], held = b.held_by.length;
+            return '<span class="chip ' + (held ? 'chip-comp' : 'chip-dom') + '">' + esc(g) + ' '
+                + esc(b.name_ru) + (held ? ' — ' + esc(b.held_by.join(', ')) : ' — нет') + '</span>';
+        }).join(' ') + '</div>' + note(st.bridge_note_ru);
+
+    var a = o.alpha;
+    inner += '<div class="p-lbl mt-4 mb-2">Альфа · канал ' + esc(a.channel_key) + '</div>'
+        + note(a.reading_ru)
+        + '<div class="rel-scroll mt-2"><table class="rel-table"><thead><tr>'
+        + '<th>Участник</th><th>Уровень</th><th>Тип</th><th>Профиль</th><th>Активации</th>'
+        + '</tr></thead><tbody>' + a.candidates.map(function(r) {
+            var cls = r.tier === 'canonical' ? 'chip-comp' : (r.tier === 'partial' ? 'chip-cmp' : 'chip-mut');
+            return '<tr><td class="mono" style="color:var(--c-txt-bright);">' + esc(r.name) + '</td>'
+                + '<td><span class="chip ' + cls + '">' + esc(r.tier) + '</span></td>'
+                + '<td class="text-xs">' + esc(r.energy_type || '') + '</td>'
+                + '<td class="text-xs">' + esc(r.profile || '') + '</td>'
+                + '<td class="text-xs">' + (r.evidence.length
+                    ? r.evidence.map(function(e) { return esc(e.label_ru); }).join('; ') : '—')
+                + '</td></tr>';
+        }).join('') + '</tbody></table></div>'
+        + '<div class="text-[11px] mt-2" style="color:var(--c-txt-dim);">' + esc(a.note_ru) + '</div>';
+
+    return card('OC16 — функциональный слой WA', inner, 'mb-4');
 }
 
 /* ---------- dyads tab ---------- */

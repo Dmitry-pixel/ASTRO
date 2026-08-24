@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [3.7.0] - 2026-08-23
+
+### Added
+- **OC16 — the layer the WA actually operates through.** 3.5.0 modelled the WA as
+  "the whole bodygraph from ten people up". That is the substrate, not the
+  mechanism. `POST /analyze/wa` now returns `group_field.oc16` for nine or more
+  participants: six departmental channels carrying twelve gates — 21-45
+  Management, 25-51 Competitiveness, 2-14 Direction, 27-50 Laws, 6-59
+  Communication, 3-60 Innovation — plus the four bridging gates 1, 8, 7 and 31.
+  Each department reports who holds which gate and, when it is missing, what the
+  organisation loses.
+- **Alpha candidates.** Ranked on mechanics alone, in the order doctrine gives
+  them: channel 31-7, then Ego-centre strength (21-45, gate 45), then 1-8.
+  `ranked_by` and `not_ranked_by` ship in the response so the rule is visible
+  rather than implied. Profile and Type are reported as `style` and `context` —
+  they describe how someone leads, never whether they can. 31-7 is a projected
+  channel, so the response names candidates and states that the collective, not
+  the chart, appoints an Alpha.
+- Two structural facts are pinned by tests rather than left as coincidence: the
+  four bridging gates are exactly the gates of the two upper-Penta channels, and
+  31-7 is the channel `hd_constants` already calls "The Alpha".
+
+### Changed — BREAKING
+- **Thresholds.** The Penta is 3-5 and extends to 8; the WA begins at 9, not 10.
+  `POST /analyze/penta` accepts 3-8 and reports `extended_penta` above five, with
+  `penta.meta.scale`. `meta.entity` code `aggregate` no longer exists: at a WA
+  threshold of nine there is no gap between an extended Penta and a WA.
+
 ## [3.6.0] - 2026-08-23
 
 ### Changed — BREAKING, `POST /analyze/penta` response

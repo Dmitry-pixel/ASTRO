@@ -244,13 +244,6 @@ def test_wa_rejects_five(auth):
     assert r.status_code == 422
 
 
-def test_six_to_nine_is_not_a_wa(auth):
-    seven = {k: CAST[k] for k in list(CAST)[:7]}
-    data = post("/analyze/wa", {"participants": seven}, auth)
-    assert data["meta"]["entity"]["code"] == "aggregate"
-    assert data["meta"]["entity"]["doctrine_implemented"] is False
-
-
 # --------------------------------------------------------------------------- #
 # Hybrid
 # --------------------------------------------------------------------------- #
@@ -386,3 +379,105 @@ def test_impossible_date_is_rejected(auth):
     bad = {"A": dict(CAST["Anna"], month=2, day=30), "B": CAST["Boris"]}
     r = client.post("/analyze/composite", json={"participants": bad}, headers=auth)
     assert r.status_code == 422
+
+# --------------------------------------------------------------------------- #
+# Thresholds and OC16 (WA doctrine)
+# --------------------------------------------------------------------------- #
+def test_penta_accepts_seven_as_extended(auth):
+    seven = {k: CAST[k] for k in list(CAST)[:7]}
+    data = post("/analyze/penta", {"participants": seven}, auth)
+    assert data["meta"]["entity"]["code"] == "extended_penta"
+    assert data["meta"]["entity"]["doctrine_implemented"] is True
+    scale = data["penta"]["meta"]["scale"]
+    assert scale["canonical_range"] == [3, 5] and scale["extended"] is True
+
+
+def test_penta_rejects_nine(auth):
+    nine = {k: CAST[k] for k in list(CAST)[:9]}
+    r = client.post("/analyze/penta", json={"participants": nine}, headers=auth)
+    assert r.status_code == 422
+
+
+def test_seven_is_an_extended_penta_not_a_wa(auth):
+    seven = {k: CAST[k] for k in list(CAST)[:7]}
+    data = post("/analyze/wa", {"participants": seven}, auth)
+    assert data["meta"]["entity"]["code"] == "extended_penta"
+    assert "oc16" not in data["group_field"]
+
+
+def test_nine_is_a_wa_and_carries_oc16(auth):
+    nine = {k: CAST[k] for k in list(CAST)[:9]}
+    data = post("/analyze/wa", {"participants": nine}, auth)
+    assert data["meta"]["entity"]["code"] == "wa"
+    oc = data["group_field"]["oc16"]
+    assert oc["structure"]["gates"] == 16
+    assert oc["structure"]["channels"] == 6
+    assert len(oc["departments"]) == 6
+    assert len(oc["bridge_gates"]) == 4
+    cov = oc["coverage"]
+    assert cov["departments_defined"] + len(
+        [d for d in oc["departments"] if d["status"] == "missing"]) == 6
+    assert cov["gates_defined"] + len(cov["gates_missing"]) == 16
+
+
+def test_oc16_tables_match_the_engine_constants():
+    from humandesign import hd_constants
+    from humandesign.relational import oc16
+
+    assert len(oc16.OC16_GATES) == 16
+    assert len(oc16.DEPARTMENTS) == 6
+    for d in oc16.DEPARTMENTS:
+        assert d["channel"] in hd_constants.CHANNEL_MEANING_DICT
+        assert set(d["channel"]) == set(d["gates"])
+    assert oc16.ALPHA_CHANNEL in hd_constants.CHANNEL_MEANING_DICT
+    # the engine names 31-7 itself; the doctrine did not invent the term
+    assert "alpha" in hd_constants.CHANNEL_MEANING_DICT[oc16.ALPHA_CHANNEL][0].lower()
+
+
+def test_bridge_gates_are_exactly_the_upper_penta():
+    """Doctrine says the WA binds Pentas. Mechanically the binding is the upper
+    Penta: gates 1, 8, 7, 31 are channels 8-1 Implementation and 31-7 Planning."""
+    from humandesign import hd_constants
+    from humandesign.relational import oc16
+
+    upper = hd_constants.PENTA_DEFINITIONS["upper_penta"]["channels"]
+    upper_gates = {g for ch in upper.values() for g in ch["gates"]}
+    assert set(oc16.BRIDGE_GATES) == upper_gates - {13, 33}
+    assert set(oc16.BRIDGE_GATES) == {1, 7, 8, 31}
+
+
+def test_alpha_reports_evidence_not_a_verdict(auth):
+    data = post("/analyze/wa", {"participants": TEN}, auth)
+    a = data["group_field"]["oc16"]["alpha"]
+    assert a["channel_key"] == "31-7"
+    assert "признал" in a["note_ru"]          # recognition is required, not derived
+    tiers = [c["tier"] for c in a["candidates"]]
+    order = {"canonical": 0, "partial": 1, "supporting": 2, "none": 3}
+    assert tiers == sorted(tiers, key=lambda t: order[t])
+    for c in a["candidates"]:
+        if c["tier"] == "canonical":
+            assert any(e["code"] == "channel_31_7" for e in c["evidence"])
+    assert a["canonical_holders"] == [c["name"] for c in a["candidates"]
+                                      if c["tier"] == "canonical"]
+
+
+def test_profile_is_style_not_eligibility(auth):
+    """Any profile can hold the Alpha position. The profile describes how someone
+    would lead and how the field reads them — it must never move a candidate up
+    the ranking, which is the misconception the doctrine explicitly corrects."""
+    data = post("/analyze/wa", {"participants": TEN}, auth)
+    a = data["group_field"]["oc16"]["alpha"]
+
+    assert "profile" in a["not_ranked_by"] and "energy_type" in a["not_ranked_by"]
+    assert a["ranked_by"] == ["channel_31_7", "channel_21_45", "gate_45", "channel_1_8"]
+
+    for c in a["candidates"]:
+        codes = {e["code"] for e in c["evidence"]}
+        assert not any(code.startswith("profile") for code in codes)
+        assert "type" not in codes
+        assert c["evidence_count"] == len(c["evidence"])
+        assert len(c["style"]) == len([l for l in c["profile_lines"] if 1 <= l <= 6])
+
+    order = {"canonical": 0, "partial": 1, "supporting": 2, "none": 3}
+    keys = [(order[c["tier"]], -c["evidence_count"], c["name"]) for c in a["candidates"]]
+    assert keys == sorted(keys)
