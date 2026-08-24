@@ -210,10 +210,25 @@ enough glue.
 ### `/analyze/penta` — response outline
 
 `penta.penta_anatomy` holds the six channels split into `upper_penta`
-(direction and vision) and `lower_penta` (action and generation), each with
-status, contributor breakdown by gate and line, or a gap analysis with severity
-and impact. Alongside it: `analytical_metrics` (vision, action and stability
-scores plus backbone integrity), `functional_roles` and `hiring_logic`.
+("Direction & Consciousness") and `lower_penta` ("Generation & Form"), each with
+status, contributor breakdown by gate and line, or a gap analysis. Gap severity
+is `CRITICAL` for the two channels doctrine marks required — `8-1`
+Implementation and `2-14` Resources — and `MODERATE` for the rest.
+
+`analytical_metrics` carries three scores that measure three different things:
+
+- `vision_score` — active upper-Penta channels out of three.
+- `action_score` — active lower-Penta channels out of three.
+- `stability_score` — of the Penta channels the group actually forms, the share
+  that survive the departure of any single member. `stability_basis` gives the
+  counts and names each fragile channel with the people it depends on. Before
+  3.6.0 this field scored the same three channels as `action_score` and carried
+  no independent information.
+
+`required_channels` reports `8-1` and `2-14` as `Active` or `Missing`. It
+replaces `backbone_integrity`, removed in 3.6.0.
+
+Alongside them: `functional_roles` and `hiring_logic`.
 
 ### `/analyze/wa` — response outline
 
