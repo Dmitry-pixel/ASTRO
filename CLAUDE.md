@@ -304,6 +304,10 @@ Rules to keep:
 - **`semantics.py` holds data, not logic.** Every block carries a machine `code`
   plus `label` / `label_ru`, so the consuming app can interpret in either
   language.
-- **Do not claim doctrine that is not implemented.** `meta.entity.doctrine_implemented`
-  is `true` only where the size forms a canonical entity — dyad, Penta (3-5),
-  WA (10+). The 6-9 aggregate sets it `false`.
+- **Thresholds come from the product owner, not from the code.** Dyad 2; Penta
+  3-5, extended to 8; WA from 9. `relational/oc16.py` carries the sixteen gates
+  the WA operates through and the Alpha markers.
+- **The Alpha is ranked on mechanics only** — channel 31-7, then Ego-centre
+  strength (21-45, gate 45), then 1-8. Profile and Type describe *style*, never
+  eligibility: any profile can be an Alpha. They live in `style` / `context` and
+  must never enter the sort key.

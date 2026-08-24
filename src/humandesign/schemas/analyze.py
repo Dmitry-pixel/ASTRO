@@ -87,7 +87,7 @@ class CompositeRequest(_GroupRequest):
 
 
 class PentaRequest(_GroupRequest):
-    """Three to five people — the Penta entity."""
+    """Three to eight people — the Penta entity, canonically 3-5 and extended to 8."""
 
     model_config = {"json_schema_extra": {"examples": [{
         "group_type": "business", "verbosity": "standard",
@@ -103,21 +103,25 @@ class PentaRequest(_GroupRequest):
 
     @field_validator("participants")
     @classmethod
-    def _three_to_five(cls, v):
-        if not (3 <= len(v) <= 5):
-            raise ValueError(f"penta analysis takes 3-5 participants, got {len(v)}")
+    def _three_to_eight(cls, v):
+        if not (3 <= len(v) <= 8):
+            raise ValueError(f"penta analysis takes 3-8 participants (3-5 canonical, "
+                             f"extended to 8), got {len(v)}. A WA begins at 9 — "
+                             f"use /analyze/wa.")
         return v
 
 
 class WaRequest(_GroupRequest):
-    """Six or more people. Ten or more is a WA; six to nine is an aggregate."""
+    """Six or more people. Nine or more is a WA and carries the OC16 layer;
+    six to eight is an extended Penta seen through the group-field mechanics."""
 
     @field_validator("participants")
     @classmethod
     def _six_or_more(cls, v):
         if len(v) < 6:
             raise ValueError(f"group-field analysis takes 6 or more participants, got {len(v)}. "
-                             f"Use /analyze/composite for 2 or /analyze/penta for 3-5.")
+                             f"Use /analyze/composite for 2 or /analyze/penta for 3-8. "
+                             f"A WA proper begins at 9.")
         if len(v) > 64:
             raise ValueError(f"at most 64 participants, got {len(v)}")
         return v

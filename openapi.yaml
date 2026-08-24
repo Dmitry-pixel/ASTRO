@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Human Design API
-  version: 3.6.0
+  version: 3.7.0
 paths:
   /health:
     get:
@@ -215,10 +215,15 @@ paths:
     post:
       tags:
       - analyze
-      summary: Penta Analysis 2.0, Sovereign Standard (3-5 people)
+      summary: Penta Analysis 2.0, Sovereign Standard (3-8 people)
       description: 'Penta entity: six channels, functional roles, gap severity, hiring logic and
 
-        the vision / action / stability metrics.'
+        the vision / action / stability metrics.
+
+
+        Canonically 3-5; 6-8 is accepted as an extended Penta and reported as such in
+
+        `meta.entity` and `penta.meta.scale`.'
       operationId: analyze_penta_analyze_penta_post
       requestBody:
         content:
@@ -248,22 +253,29 @@ paths:
       description: 'Group bodygraph over six or more people.
 
 
-        The WA is the entity from ten people upward and is built on the whole
+        The substrate is the whole bodygraph — all 64 gates, 36 channels and 9 centres.
 
-        bodygraph — all 64 gates, 36 channels and 9 centres — where the Penta is
+        Returns coverage against it, circuit balance, per-person contribution including
 
-        scored over twelve gates in six fixed channels. Returns coverage against that
+        the gates nobody else carries, and a fragility block naming the channels one
 
-        full structure, circuit balance, per-person contribution including the gates
-
-        nobody else carries, and a fragility block naming the channels one departure
-
-        would break.
+        departure would break.
 
 
-        Six to nine participants form neither entity: the same mechanics are applied
+        From nine people the response also carries `group_field.oc16`: the six
 
-        but `meta.entity` reports `aggregate` with `doctrine_implemented: false`.'
+        departmental channels the WA operates through, the four bridging gates, and
+
+        the Alpha candidates ranked by the activations doctrine names — with the
+
+        evidence for each, since 31-7 is a projected channel and the collective, not
+
+        the chart, appoints an Alpha.
+
+
+        Six to eight participants are an extended Penta rather than a WA; the group
+
+        field is still computed, the OC16 layer is not.'
       operationId: analyze_wa_analyze_wa_post
       requestBody:
         content:
@@ -1436,7 +1448,7 @@ components:
       required:
       - participants
       title: PentaRequest
-      description: Three to five people — the Penta entity.
+      description: Three to eight people — the Penta entity, canonically 3-5 and extended to 8.
       examples:
       - group_type: business
         participants:
@@ -1641,7 +1653,9 @@ components:
       required:
       - participants
       title: WaRequest
-      description: Six or more people. Ten or more is a WA; six to nine is an aggregate.
+      description: 'Six or more people. Nine or more is a WA and carries the OC16 layer;
+
+        six to eight is an extended Penta seen through the group-field mechanics.'
     YinYangBalanceV2:
       properties:
         Yang:
