@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [3.9.1] - 2026-08-24
+
+### Fixed — admin panel
+- **A seven-person WA run showed the group field and silently dropped OC16 and
+  the Penta blocks.** The engine was right — nine is the WA threshold and both
+  layers belong to a WA — but the panel gave no reason, so the sections read as
+  a broken feature. Three causes, all in the frontend:
+  - The counter under the form still used the pre-3.7.0 thresholds and labelled a
+    seven-person group `агрегат`, a category the API stopped returning in 3.7.0.
+    It now reads диада / пента / расширенная пента / WA, and in WA mode below
+    nine it adds what is not being computed.
+  - WA mode seeded the form with the endpoint minimum of six, so the mode opened
+    in a state where the OC16 layer could never appear. Modes now carry a `seed`
+    — the size the mode is actually interesting at — and WA seeds at nine.
+  - The `meta.entity.note_ru` explanation was rendered only when
+    `doctrine_implemented` was false. `extended_penta` sets it true, being a
+    canonical entity that simply is not a WA, so the one sentence that explained
+    the situation was never shown. It is now always rendered, in warning colours
+    only when the doctrine does not cover the entity.
+- An absent OC16 or block section is now stated explicitly with the threshold
+  behind it, rather than leaving a gap where a card used to be.
+
 ## [3.9.0] - 2026-08-24
 
 ### Added

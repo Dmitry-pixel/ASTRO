@@ -5,7 +5,8 @@
 var GROUP_MODES = {
     composite: { endpoint: '/analyze/composite', min: 2, max: 2,  hint: 'Ровно 2 участника — диада и её композит' },
     penta:     { endpoint: '/analyze/penta',     min: 3, max: 8,  hint: 'От 3 до 8 участников. Каноническая Пента — 3–5' },
-    wa:        { endpoint: '/analyze/wa',        min: 6, max: 64, hint: 'От 6 участников. WA и слой OC16 — с 9' },
+    wa:        { endpoint: '/analyze/wa',        min: 6, max: 64, seed: 9,
+                 hint: 'От 6 участников, но WA — с 9. Ниже девяти это расширенная Пента: OC16 и Пента-блоки не считаются' },
     hybrid:    { endpoint: '/analyze/maia-penta',min: 2, max: 64, hint: 'От 2 участников — все диады плюс групповой слой' }
 };
 /* name, place, year, month, day, hour, minute, lat, lon
@@ -49,7 +50,7 @@ function switchMode(mode) {
     gtype.disabled = (mode === 'composite');
     gtype.style.opacity = gtype.disabled ? '0.4' : '';
     gtype.title = gtype.disabled ? 'Для композита тип группы не используется' : '';
-    ensurePeopleCount(Math.max(cfg.min, personRows().length));
+    ensurePeopleCount(Math.max(cfg.seed || cfg.min, personRows().length));
     document.getElementById('g-result').classList.add('hidden');
     document.getElementById('g-error').classList.add('hidden');
     updateCount();
@@ -117,9 +118,14 @@ function fillPreset() {
 function updateCount() {
     var cfg = GROUP_MODES[currentMode] || GROUP_MODES.hybrid;
     var n = personRows().length;
-    var entity = n === 2 ? 'диада' : (n >= 3 && n <= 5 ? 'пента' : (n >= 10 ? 'WA' : 'агрегат'));
+    var entity = n === 2 ? 'диада'
+        : (n >= 3 && n <= 5 ? 'пента'
+        : (n >= 6 && n <= 8 ? 'расширенная пента'
+        : (n >= 9 ? 'WA' : '—')));
     var dyads = n * (n - 1) / 2;
-    document.getElementById('g-count').textContent = n + ' участник(ов) · ' + entity + ' · ' + dyads + ' диад';
+    var extra = (currentMode === 'wa' && n < 9) ? ' · OC16 и блоки — с 9' : '';
+    document.getElementById('g-count').textContent =
+        n + ' участник(ов) · ' + entity + ' · ' + dyads + ' диад' + extra;
     document.getElementById('g-add').disabled = n >= cfg.max;
 }
 
@@ -241,9 +247,12 @@ function renderOverview(data) {
         + kpi(m.group_type || '—', 'тип группы')
         + '</div>';
 
-    if (e.doctrine_implemented === false && e.note_ru) {
-        html += '<div class="card p-4 mb-4" style="border-left:3px solid var(--c-warn);">'
-            + '<div class="text-[10px] font-mono uppercase tracking-wider mb-1" style="color:var(--c-warn);">Ограничение модели</div>'
+    if (e.note_ru) {
+        var warn = e.doctrine_implemented === false;
+        var accent = warn ? 'var(--c-warn)' : 'var(--c-accent)';
+        html += '<div class="card p-4 mb-4" style="border-left:3px solid ' + accent + ';">'
+            + '<div class="text-[10px] font-mono uppercase tracking-wider mb-1" style="color:' + accent + ';">'
+            + (warn ? 'Ограничение модели' : 'Что это за сущность') + '</div>'
             + '<div class="text-sm" style="color:var(--c-txt);">' + esc(e.note_ru) + '</div></div>';
     }
 
@@ -387,6 +396,16 @@ function renderFieldOverview(f) {
     var out = card('Групповое поле', inner, 'mb-4');
     if (f.oc16) out += renderOC16(f.oc16);
     if (f.penta_blocks) out += renderBlocks(f.penta_blocks);
+    if (!f.oc16 || !f.penta_blocks) {
+        var absent = [];
+        if (!f.oc16) absent.push('OC16 — шесть департаментов и Альфа');
+        if (!f.penta_blocks) absent.push('разбиение на Пента-блоки');
+        out += card('Не рассчитано для этого размера',
+            '<div class="text-sm" style="color:var(--c-txt);">Не считается: ' + esc(absent.join('; '))
+            + '.</div><div class="text-xs mt-2" style="color:var(--c-txt-dim);">'
+            + 'WA начинается с 9 участников. Ниже девяти группа образует расширенную Пенту, '
+            + 'у которой этих слоёв нет по доктрине — это не пропуск в расчёте.</div>', 'mb-4');
+    }
     return out;
 }
 
