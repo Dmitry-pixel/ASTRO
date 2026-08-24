@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [3.6.0] - 2026-08-23
+
+### Changed — BREAKING, `POST /analyze/penta` response
+- **`stability_score` measured the same thing as `action_score`.** The "backbone"
+  it scored — `15-5`, `2-14`, `46-29` — was exactly the three lower-Penta
+  channels, so stability was a rescaling of action and `backbone_integrity` a
+  third copy of the same variable. Three reported metrics carried two.
+  Stability now answers a question none of them did: of the Penta channels this
+  group forms, how many survive the departure of any single member? A Penta with
+  every channel defined but each resting on one person is not stable, and the old
+  formula scored it 100. The supporting counts and the fragile channels, with the
+  people they depend on, ship under `analytical_metrics.stability_basis`.
+- **`backbone_integrity` is removed.** `analytical_metrics.required_channels`
+  replaces it and reports the two channels doctrine actually marks required.
+- **Zone labels changed.** They existed twice — in `PENTA_DEFINITIONS` and again,
+  with different words, in `core.py` — and only the second copy reached a client.
+  `PENTA_DEFINITIONS` is now the only source, so `penta_anatomy` reports
+  "Direction & Consciousness" and "Generation & Form".
+
+### Fixed
+- **Gap severity ignored the doctrine it was supposed to encode.**
+  `PENTA_DEFINITIONS` marks `8-1` Implementation and `2-14` Resources as
+  required; nothing read the field. Severity used the backbone list instead, so a
+  missing required channel could be reported MODERATE while three non-required
+  ones were CRITICAL. Severity now follows `required`.
+- **`hiring_logic.insight` announced "Action dominates" when both scores were 0.**
+  A group defining no channel of action was told action was its strength. Ties
+  and the all-zero case are now stated as what they are.
+
+### Removed
+- `PENTA_ZONES`. It duplicated the zone labels, disagreed with them, and no
+  production code ever read it — only a test asserting it existed.
+
 ## [3.5.4] - 2026-08-23
 
 ### Fixed

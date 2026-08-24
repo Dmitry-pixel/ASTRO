@@ -1,10 +1,13 @@
 import pytest
 from humandesign.features.core import get_penta
-from humandesign.hd_constants import PENTA_GATES, PENTA_ZONES, PENTA_DEFINITIONS
+from humandesign.hd_constants import PENTA_GATES, PENTA_DEFINITIONS
 
 def test_penta_constants_exist():
     """Verify that constants are correctly imported and structured."""
-    assert "Upper" in PENTA_ZONES
+    # PENTA_ZONES is gone: it duplicated the zone labels in PENTA_DEFINITIONS,
+    # disagreed with them, and no production code ever read it.
+    assert not hasattr(__import__("humandesign.hd_constants", fromlist=["x"]),
+                       "PENTA_ZONES")
     assert "upper_penta" in PENTA_DEFINITIONS
 
 @pytest.fixture
@@ -58,7 +61,11 @@ def test_get_penta_v2_gold_standard(mock_rich_input):
     metrics = result["analytical_metrics"]
     assert "vision_score" in metrics
     assert "action_score" in metrics
-    assert metrics["stability_score"] == 10 # 0/3 backbone (2-14, 15-5, 46-29 missing)
+    # Stability is resilience now, not definition: of the channels this group
+    # forms, how many survive one departure. It no longer restates action_score.
+    assert 0 <= metrics["stability_score"] <= 100
+    assert metrics["stability_basis"]["resilient_channels"] <= \
+           metrics["stability_basis"]["active_channels"]
     
     # 5. Gap Analysis
     # Channel 15-5 (Lower Penta) is Void
@@ -67,7 +74,9 @@ def test_get_penta_v2_gold_standard(mock_rich_input):
     gap = ch_15_5["gap_analysis"]
     assert gap is not None
     assert 15 in gap["missing_gates"]
-    assert gap["severity"] == "CRITICAL" # 15-5 is backbone
+    # Severity follows `required` in PENTA_DEFINITIONS. 15-5 Flow is not
+    # required; only 8-1 Implementation and 2-14 Resources are.
+    assert gap["severity"] == "MODERATE"
     
     # 6. Hiring
     hiring = result["hiring_logic"]

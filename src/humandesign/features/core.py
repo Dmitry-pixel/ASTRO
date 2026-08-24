@@ -746,9 +746,11 @@ def get_penta(participants_data, group_type="family"):
                     gate_ownership[g].append({"id": person_id, "polarity": pol, "line": ln})
 
     # 3. Build Analysis
+    # Labels come from PENTA_DEFINITIONS. They used to be written out a second
+    # time here, with different words, and only this copy ever reached a client.
     penta_anatomy = {
-        "upper_penta": {"label": "Direction & Vision", "channels": {}},
-        "lower_penta": {"label": "Action & Generation", "channels": {}}
+        zk: {"label": zd["label"], "channels": {}}
+        for zk, zd in hd_constants.PENTA_DEFINITIONS.items()
     }
     
     metrics = {
@@ -757,11 +759,20 @@ def get_penta(participants_data, group_type="family"):
         "lower_active": 0,
         "bottlenecks": set(),
         "missing_gates_freq": {g: 0 for g in hd_constants.PENTA_GATES},
-        "backbone_status": {}
     }
 
-    score_channels_backbone = ["15-5", "2-14", "46-29"]
-    active_backbone_count = 0
+    # Doctrine lives in PENTA_DEFINITIONS: a channel marked `required` is one the
+    # entity cannot do without. It drives gap severity. It deliberately does not
+    # drive the score — see stability below, which asks a different question.
+    required_channels = {
+        ck: cd["name"]
+        for zd in hd_constants.PENTA_DEFINITIONS.values()
+        for ck, cd in zd["channels"].items()
+        if cd.get("required")
+    }
+    required_status = {}
+    active_channels = []
+    fragile_channels = []
     functional_roles = {}
     
     # Diamond Standard: Context Swtiching
@@ -814,9 +825,25 @@ def get_penta(participants_data, group_type="family"):
                 if zone_key == "lower_penta":
                     metrics["lower_active"] += 1
                 
-                if ch_key in score_channels_backbone:
-                    active_backbone_count += 1
-                    metrics["backbone_status"][ch_key] = "Strong"
+                if ch_key in required_channels:
+                    required_status[ch_key] = "Active"
+
+                active_channels.append(ch_key)
+                # One person may hold a gate twice (personality and design), so
+                # count distinct people, not activations.
+                sole = sorted({
+                    next(iter(owners))
+                    for owners in ({o["id"] for o in owners_g1},
+                                   {o["id"] for o in owners_g2})
+                    if len(owners) == 1
+                })
+                if sole:
+                    fragile_channels.append({
+                        "channel": ch_key,
+                        "name": ch_name,
+                        "zone": zone_key,
+                        "depends_on": sole,
+                    })
                 
                 # Build Contributors & Functional Roles
                 all_participant_ids = set()
@@ -864,8 +891,8 @@ def get_penta(participants_data, group_type="family"):
 
             else:
                 # Inactive
-                if ch_key in score_channels_backbone:
-                    metrics["backbone_status"][ch_key] = "Missing"
+                if ch_key in required_channels:
+                    required_status[ch_key] = "Missing"
                 
                 missing_gates = []
                 missing_skills = []
@@ -887,16 +914,23 @@ def get_penta(participants_data, group_type="family"):
                     "missing_gates": missing_gates,
                     "missing_skills": missing_skills,
                     "shadow_themes": shadow_themes,
-                    "severity": "CRITICAL" if ch_key in score_channels_backbone else "MODERATE",
+                    "severity": "CRITICAL" if ch_def.get("required") else "MODERATE",
                     "impact": ch_def.get("gap_msg", "Inactive")
                 }
 
             penta_anatomy[zone_key]["channels"][ch_key] = channel_node
     
     # 4. Metrics & Scores
-    # Stability: 3/3 = 100, 2/3 = 70, 1/3 = 40, 0 = 10
-    score_map = {3: 100, 2: 70, 1: 40, 0: 10}
-    stability_score = score_map.get(active_backbone_count, 10)
+    # Stability is resilience, not definition. It used to be a rescaling of
+    # action_score: the "backbone" was exactly the three lower-Penta channels, so
+    # the two numbers moved together and carried one variable between them. The
+    # question worth answering is a different one — of the channels this group
+    # actually forms, how many survive the departure of any single member? A
+    # Penta with every channel defined but each resting on one person is not
+    # stable, and the old formula scored it 100.
+    active_count = len(active_channels)
+    resilient_count = active_count - len(fragile_channels)
+    stability_score = round(100 * resilient_count / active_count) if active_count else 0
     
     # Vision Score (Upper Active / 3 * 100)
     vision_score = round((metrics["upper_active"] / 3) * 100)
@@ -909,6 +943,14 @@ def get_penta(participants_data, group_type="family"):
     # Simple sort by ID for stability, or could use frequency
     needs.sort(key=lambda x: metrics["missing_gates_freq"][x], reverse=True)
 
+    if vision_score == action_score:
+        dominance = ("Vision and Action are balanced" if vision_score
+                     else "neither Vision nor Action is defined")
+    else:
+        dominance = f"{'Vision' if vision_score > action_score else 'Action'} dominates"
+    missing_required = [ck for ck in required_channels
+                        if required_status.get(ck) != "Active"]
+
     response = {
         "meta": {
             "group_size": group_size,
@@ -920,14 +962,32 @@ def get_penta(participants_data, group_type="family"):
             "stability_score": stability_score,
             "vision_score": vision_score,
             "action_score": action_score,
+            "stability_basis": {
+                "active_channels": active_count,
+                "resilient_channels": resilient_count,
+                "fragile_channels": fragile_channels,
+                "definition": "Share of the Penta channels this group forms that "
+                              "survive the departure of any single member.",
+                "definition_ru": "Доля образованных группой каналов Пенты, которые "
+                                 "переживут уход любого одного участника.",
+            },
+            "required_channels": {
+                ck: {"name": name, "status": required_status.get(ck, "Missing")}
+                for ck, name in required_channels.items()
+            },
             "bottlenecks": list(metrics["bottlenecks"]),
-            "backbone_integrity": metrics["backbone_status"]
         },
         "functional_roles": functional_roles, # Diamond Feature
         "penta_anatomy": penta_anatomy,
         "hiring_logic": {
             "urgent_needs": needs[:3],
-            "insight": f"Group has {active_backbone_count}/3 Backbone channels. {'Vision' if vision_score > action_score else 'Action'} dominates."
+            "insight": (
+                f"Group forms {active_count}/6 Penta channels; "
+                f"{resilient_count} {'survives' if resilient_count == 1 else 'survive'} one departure. "
+                + (f"Required channels missing: {', '.join(missing_required)}. "
+                   if missing_required else "Both required channels are held. ")
+                + f"{dominance}."
+            )
         }
     }
     

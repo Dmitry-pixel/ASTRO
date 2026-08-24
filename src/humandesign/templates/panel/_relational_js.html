@@ -322,12 +322,23 @@ function renderPentaOverview(p) {
     var inner = '<div class="grid grid-cols-3 gap-3 mb-4">'
         + kpi(m.vision_score, 'vision') + kpi(m.action_score, 'action') + kpi(m.stability_score, 'stability') + '</div>';
 
-    if (m.backbone_integrity) {
-        inner += '<div class="p-lbl mb-2">Хребет</div><div class="flex flex-wrap gap-2 mb-4">'
-            + Object.keys(m.backbone_integrity).map(function(k) {
-                var ok = m.backbone_integrity[k] !== 'Missing';
-                return '<span class="chip ' + (ok ? 'chip-comp' : 'chip-dom') + '">' + esc(k) + ' ' + esc(m.backbone_integrity[k]) + '</span>';
+    if (m.required_channels) {
+        inner += '<div class="p-lbl mb-2">Обязательные каналы</div><div class="flex flex-wrap gap-2 mb-4">'
+            + Object.keys(m.required_channels).map(function(k) {
+                var rc = m.required_channels[k], ok = rc.status === 'Active';
+                return '<span class="chip ' + (ok ? 'chip-comp' : 'chip-dom') + '">' + esc(k) + ' ' + esc(rc.name) + ' — ' + esc(rc.status) + '</span>';
             }).join(' ') + '</div>';
+    }
+    if (m.stability_basis) {
+        var sb = m.stability_basis;
+        inner += '<div class="p-lbl mb-2">Устойчивость</div><div class="mb-4">'
+            + esc(sb.resilient_channels) + ' из ' + esc(sb.active_channels)
+            + ' образованных каналов переживут уход любого одного участника.</div>';
+        if (sb.fragile_channels && sb.fragile_channels.length) {
+            inner += '<div class="flex flex-wrap gap-2 mb-4">' + sb.fragile_channels.map(function(f) {
+                return '<span class="chip chip-cmp">' + esc(f.channel) + ' ' + esc(f.name) + ' — держится на ' + esc(f.depends_on.join(', ')) + '</span>';
+            }).join(' ') + '</div>';
+        }
     }
     if (p.functional_roles && Object.keys(p.functional_roles).length) {
         inner += '<div class="p-lbl mb-2">Функциональные роли</div><div class="rel-scroll"><table class="rel-table"><tbody>'
