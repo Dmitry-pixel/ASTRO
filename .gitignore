@@ -5,6 +5,8 @@ __pycache__/
 dist/
 build/
 .env
+.env.backup*
+.env.bak*
 api_auth.db
 data/
 venv/
