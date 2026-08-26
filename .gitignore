@@ -9,6 +9,8 @@ build/
 .env.bak*
 api_auth.db
 data/
+# исключение: это пакет с кодом, а не рантайм-каталог
+!src/humandesign/data/
 venv/
 .venv/
 .coverage
