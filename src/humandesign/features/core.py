@@ -53,14 +53,13 @@ if _ephe_path:
     swe.set_ephe_path(_ephe_path)
     _log.info("Swiss Ephemeris data directory: %s", _ephe_path)
 else:
-    _EPHE_MISSING = (
-        "Swiss Ephemeris data files were not found. Set SE_EPHE_PATH, or place the "
-        ".se1 files in the bundled ephe/ directory. Without them the engine falls "
-        "back to the Moshier analytical model, which is less precise than JPL DE431."
+    raise RuntimeError(
+        "Swiss Ephemeris data files were not found. Set SE_EPHE_PATH, "
+        "or place the .se1 files in the bundled ephe/ directory. "
+        "Moshier mode is disabled: the oscillating true node drifts up "
+        "to 15.5 arcsec, which flips a Variable arrow on roughly one "
+        "chart in ten."
     )
-    if os.environ.get("ENVIRONMENT", "").strip().lower() == "production":
-        raise RuntimeError(_EPHE_MISSING)
-    _log.warning("%s Continuing in Moshier mode because ENVIRONMENT is not 'production'.", _EPHE_MISSING)
 
 
 def ensure_ephe_path():
@@ -78,6 +77,8 @@ def ensure_ephe_path():
     """
     if _ephe_path:
         swe.set_ephe_path(_ephe_path)
+    from .ephemeris_guard import assert_ephemeris
+    assert_ephemeris(strict=True)
 
 def get_utc_offset_from_tz(timestamp,zone):
     """
@@ -217,12 +218,20 @@ class hd_features:
                                  "line",
                                  "color",
                                  "tone",
-                                 "base"]
+                                 "base",
+                                 "speed"]
                       }
 
         for idx,(planet,planet_code) in enumerate(self.SWE_PLANET_DICT.items()):
-            xx = swe.calc_ut(jdut,planet_code)
-            long = xx[0][0]
+            _res = swe.calc_ut(jdut, planet_code,
+                               swe.FLG_SWIEPH | swe.FLG_SPEED)
+            xx, _retflag = _res[0], _res[1]
+            if not (_retflag & swe.FLG_SWIEPH):
+                raise RuntimeError(
+                    "Swiss Ephemeris fell back to Moshier for %s (retflag=%d). "
+                    "Ephemeris files are required." % (planet, _retflag))
+            long = xx[0]
+            speed = xx[3]
             
             #sun position is base of earth position
             if planet =="Earth": 
@@ -250,6 +259,7 @@ class hd_features:
             result_dict["color"].append(color)
             result_dict["tone"].append(tone)
             result_dict["base"].append(base)
+            result_dict["speed"].append(speed)
             
         return result_dict
 
