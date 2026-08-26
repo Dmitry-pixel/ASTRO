@@ -46,5 +46,5 @@ def test_hd_features_snapshot():
     
     # Check Gates structure
     assert isinstance(gates, dict)
-    expected_gate_keys = ['label', 'planets', 'lon', 'gate', 'line', 'color', 'tone', 'base', 'ch_gate']
+    expected_gate_keys = ['label', 'planets', 'lon', 'gate', 'line', 'color', 'tone', 'base', 'speed', 'ch_gate']
     assert list(gates.keys()) == expected_gate_keys
