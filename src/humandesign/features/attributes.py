@@ -1,4 +1,5 @@
 from .. import hd_constants
+from . import boundary
 
 def get_inc_cross(date_to_gate_dict):
     ''' 
@@ -83,53 +84,59 @@ def get_profile(date_to_gate_dict):
     
     return profile
 
-def get_variables(date_to_gate_dict):
-    '''
-    variables are calculated based on tones of sun(birth,design) and 
-    Nodes(birth,design), respectively
-    If tone 1,2,3-> left arrow, else right arrow
-    Args:
-        date_to_gate_dict(dict):output of hd_feature class 
-                                    keys->[planets,label,longitude,gate,line,color,tone,base]
-    Return:
-        variables(dict): keys-> ["top_right","bottom_right","top_left","bottom_left"]
-    '''
+def get_variables(date_to_gate_dict, time_uncertainty_min=1.0):
+    """Стрелки Variable по тонам Солнца и Узла (рождение и дизайн).
+
+    Тон 1-3 -> левая стрелка, 4-6 -> правая. Стрелка выводится всегда.
+    Рядом считается запас до границы тона: ширина тона 93.75", а расхождение
+    осциллирующего истинного узла между версиями файлов эфемерид доходит
+    до 5". При нехватке запаса стрелка помечается confidence="low".
+    """
     df = date_to_gate_dict
-    idx = int(len(df["tone"])/2) #start idx of design values 
-    tones = (
-            (df["tone"][0]),#sun at birth
-            (df["tone"][3]),#Node at birth
-            (df["tone"][idx]),#sun at design
-            (df["tone"][idx+3]),#node at design
-                ) 
-    keys = ["top_right","bottom_right","top_left","bottom_left"] #arrows,variables
-    
+    idx = int(len(df["tone"]) / 2)
+    picks = (0, 3, idx, idx + 3)
+    tones = tuple(df["tone"][i] for i in picks)
+    lons = tuple(df["lon"][i] for i in picks)
+    bodies = tuple(df["planets"][i] for i in picks)
+    speeds = tuple(df["speed"][i] for i in picks) if "speed" in df else (None,) * 4
+
+    keys = ["top_right", "bottom_right", "top_left", "bottom_left"]
     variables = {}
+    low_confidence = []
     for i, key in enumerate(keys):
         tone = tones[i]
         val = "left" if tone <= 3 else "right"
-        
-        # Get metadata from constants
         meta = hd_constants.VARIABLES_METADATA.get(key, {})
         def_type = meta.get("definitions", {}).get(val, {}).get("type", "Unknown")
-        
+        st = boundary.arrow_with_stability(
+            tone=tone, longitude=lons[i], body=bodies[i],
+            time_uncertainty_min=time_uncertainty_min,
+            speed_deg_per_day=speeds[i])
+        if not st["stable"]:
+            low_confidence.append(key)
         variables[key] = {
             "value": val,
             "name": meta.get("name", "Unknown"),
             "aspect": meta.get("aspect", "Unknown"),
-            "def_type": def_type
+            "def_type": def_type,
+            "lon": lons[i],
+            "tone": tone,
+            "speed": speeds[i],
+            "confidence": st["confidence"],
+            "margin_arcsec": st["margin_arcsec"],
+            "required_arcsec": st["required_arcsec"],
+            "limiting_factor": st["limiting_factor"],
         }
 
-    # Calculate Standard Shorthand (e.g., "PRL DRR")
-    # Tones: 0:Motivation(P-Top), 1:Perspective(P-Bottom), 2:Digestion(D-Top), 3:Environment(D-Bottom)
     p_top = "R" if tones[0] > 3 else "L"
     p_bot = "R" if tones[1] > 3 else "L"
     d_top = "R" if tones[2] > 3 else "L"
     d_bot = "R" if tones[3] > 3 else "L"
-    
     variables["short_code"] = f"P{p_top}{p_bot} D{d_top}{d_bot}"
+    variables["low_confidence_arrows"] = low_confidence
+    variables["all_arrows_confident"] = not low_confidence
+    return variables
 
-    return variables 
 
 def get_line_counts(date_to_gate_dict):
     '''
