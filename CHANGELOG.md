@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [3.9.2] - 2026-09-09
+
+### Fixed - Swiss Ephemeris strictness
+
+- **Four Sun calls ran without an explicit ephemeris flag and without checking
+  what the library actually used.** `calc_create_date` (design date) and
+  `calc_solar_return_jd` (solar return) called `calc_ut` on default flags, and
+  both `solcross_ut` calls did the same. pyswisseph defaults to `SEFLG_SWIEPH`,
+  so results were correct while the `.se1` files were present - but with the
+  files gone `date_to_gate` would raise while these four fell back to Moshier
+  silently, splitting one response between two ephemerides. All four now pass
+  `FLG_SWIEPH`; the two `calc_ut` calls go through `_sun_lon_strict`, which
+  refuses a `retflag` without the `SEFLG_SWIEPH` bit. `solcross_ut` returns no
+  `retflag`, so the flag there is explicitness only.
+- **`/health` decided the ephemeris source by searching the library's
+  diagnostic string for the word "Moshier".** The message is not a contract;
+  `retflag` is. The probe now reads `ephemeris_status()` and can report
+  `degraded (moseph)` instead of claiming `ready (DE431)` while running on the
+  analytical model - the exact false report seen in August.
+- `openapi.yaml` regenerated: it still declared 3.9.0.
+
+Behaviour on a healthy deployment is unchanged: reference chart Sam
+(1966-12-09 17:00, UTC+6) still yields `PLL DLR`, `low_confidence_arrows =
+['bottom_left']`, margins 4.072 / 11.002 / 22.822 / 5.033.
+
 ## [3.9.1] - 2026-08-24
 
 ### Fixed — admin panel
