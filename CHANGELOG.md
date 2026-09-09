@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [3.10.0] - 2026-09-09
+
+### Added - birth-time precision reaches the engine
+- **`time_precision_min` on `GET /calculate` and `POST /v2/calculate`**
+  (float, 0-1440, default 1.0). It says how precisely the birth time is known
+  and drives the confidence flag on each Variable arrow. It never changes an
+  arrow, only the reliability reported beside it. Until now the threshold was
+  always computed as if the time were known to the minute, which for real
+  clients is almost never true: a solar arrow shifts 2.46" per minute of doubt
+  against a tone 93.75" wide.
+  Suggested mapping on the calling site: minutes entered -> 1; hour known but
+  not the minute -> 30; time unknown and noon substituted -> 720.
+- **`variables.time_precision_min`** echoed in the response, so the
+  interpretation layer can say *why* an arrow is unconfirmed instead of showing
+  an unexplained flag.
+- **`v2` now carries the reliability payload it had been discarding.**
+  `VariableItemV2` gained `lon`, `tone`, `speed`, `confidence`,
+  `margin_arcsec`, `required_arcsec`, `limiting_factor`; `VariablesV2` gained
+  `low_confidence_arrows`, `all_arrows_confident` and `time_precision_min`.
+  The engine had produced all of this since 3.9.0, and the v2 response model
+  silently dropped every field of it. Additive change; nothing was removed.
+
+### Note on behaviour at 720
+Not all four arrows go low when the time is unknown, and that is correct. The
+oscillating true node moves so little in twelve hours that a node arrow with
+enough margin stays confident. The two solar arrows - Motivation and Digestion -
+cannot survive it and are always flagged. Measured on the reference chart
+(Sam, 1966-12-09 17:00 UTC+6): at 30 minutes three arrows go low, at 720 the
+same three, with Perspective clearing its threshold by 0.2 arcsec.
+
 ## [3.9.3] - 2026-09-09
 
 ### Added

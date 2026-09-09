@@ -386,7 +386,8 @@ class hd_features:
         return sr_utc_date_tuple    
 
     
-def calc_single_hd_features(timestamp,report=False,channel_meaning=False,day_chart_only=False):
+def calc_single_hd_features(timestamp,report=False,channel_meaning=False,day_chart_only=False,
+                            time_uncertainty_min=1.0):
     '''
     from given timestamp calc basic additional hd_features
     print report if requested
@@ -431,7 +432,7 @@ def calc_single_hd_features(timestamp,report=False,channel_meaning=False,day_cha
             inc_cross_typ = inc_cross[-3:]
             profile = get_profile(date_to_gate_dict)
             definition = get_definition(active_channels_dict,active_chakras)
-            variables = get_variables(date_to_gate_dict)
+            variables = get_variables(date_to_gate_dict, time_uncertainty_min)
             quarter = get_quarter(date_to_gate_dict)
             cross_name = get_cross_name(date_to_gate_dict)
             line_counts = get_line_counts(date_to_gate_dict)

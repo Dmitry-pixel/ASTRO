@@ -48,7 +48,8 @@ def calculate_hd_v2(
 
     # 4. Calculate Human Design Features
     try:
-        single_result = hd.calc_single_hd_features(timestamp, report=False, channel_meaning=False, day_chart_only=False)
+        single_result = hd.calc_single_hd_features(timestamp, report=False, channel_meaning=False, day_chart_only=False,
+                                                   time_uncertainty_min=request.time_precision_min)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error calculating Human Design features: {str(e)}")
 

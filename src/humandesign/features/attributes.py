@@ -135,6 +135,7 @@ def get_variables(date_to_gate_dict, time_uncertainty_min=1.0):
     variables["short_code"] = f"P{p_top}{p_bot} D{d_top}{d_bot}"
     variables["low_confidence_arrows"] = low_confidence
     variables["all_arrows_confident"] = not low_confidence
+    variables["time_precision_min"] = float(time_uncertainty_min)
     return variables
 
 

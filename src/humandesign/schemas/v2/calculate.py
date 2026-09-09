@@ -18,6 +18,15 @@ class CalculateRequestV2(BaseModel):
     islive: Optional[bool] = Field(True, description="Whether alive")
     latitude: Optional[float] = Field(None, description="Latitude; bypasses geocoding when given with longitude")
     longitude: Optional[float] = Field(None, description="Longitude; bypasses geocoding when given with latitude")
+    time_precision_min: float = Field(
+        1.0, ge=0.0, le=1440.0,
+        description=(
+            "How precisely the birth time is known, in minutes. "
+            "1 = to the minute, 30 = the hour is known but not the minute, "
+            "720 = time unknown and noon was substituted. Drives the confidence "
+            "flag on each Variable arrow; it does not change the arrow itself."
+        ),
+    )
 
     @model_validator(mode="after")
     def _require_place_or_coordinates(self):
@@ -55,6 +64,16 @@ class VariableItemV2(BaseModel):
     name: Optional[str] = None
     aspect: Optional[str] = None
     def_type: Optional[str] = None
+    # Reliability of the arrow. The arrow is always returned; these fields
+    # say how far the underlying tone sits from its cell boundary and what
+    # limits it - the ephemeris files or the stated precision of the time.
+    lon: Optional[float] = None
+    tone: Optional[int] = None
+    speed: Optional[float] = None
+    confidence: Optional[str] = None
+    margin_arcsec: Optional[float] = None
+    required_arcsec: Optional[float] = None
+    limiting_factor: Optional[str] = None
 
 class VariablesV2(BaseModel):
     top_right: Optional[VariableItemV2] = None
@@ -62,6 +81,9 @@ class VariablesV2(BaseModel):
     top_left: Optional[VariableItemV2] = None
     bottom_left: Optional[VariableItemV2] = None
     short_code: Optional[str] = None
+    low_confidence_arrows: Optional[List[str]] = None
+    all_arrows_confident: Optional[bool] = None
+    time_precision_min: Optional[float] = None
 
 class CentersV2(BaseModel):
     defined: Optional[List[str]] = None

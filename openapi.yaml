@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Human Design API
-  version: 3.9.3
+  version: 3.10.0
 paths:
   /health:
     get:
@@ -136,6 +136,21 @@ paths:
           description: Longitude for the birth place; bypasses geocoding when given with latitude
           title: Longitude
         description: Longitude for the birth place; bypasses geocoding when given with latitude
+      - name: time_precision_min
+        in: query
+        required: false
+        schema:
+          type: number
+          maximum: 1440.0
+          minimum: 0.0
+          description: How precisely the birth time is known, in minutes. 1 = to the minute, 30 = the
+            hour is known but not the minute, 720 = time unknown and noon was substituted. Drives the
+            confidence flag on each Variable arrow; it does not change the arrow itself.
+          default: 1.0
+          title: Time Precision Min
+        description: How precisely the birth time is known, in minutes. 1 = to the minute, 30 = the hour
+          is known but not the minute, 720 = time unknown and noon was substituted. Drives the confidence
+          flag on each Variable arrow; it does not change the arrow itself.
       responses:
         '200':
           description: Successful Response
@@ -885,6 +900,15 @@ components:
           - type: 'null'
           title: Longitude
           description: Longitude; bypasses geocoding when given with latitude
+        time_precision_min:
+          type: number
+          maximum: 1440.0
+          minimum: 0.0
+          title: Time Precision Min
+          description: How precisely the birth time is known, in minutes. 1 = to the minute, 30 = the
+            hour is known but not the minute, 720 = time unknown and noon was substituted. Drives the
+            confidence flag on each Variable arrow; it does not change the arrow itself.
+          default: 1.0
         include:
           anyOf:
           - items:
@@ -1618,6 +1642,41 @@ components:
           - type: string
           - type: 'null'
           title: Def Type
+        lon:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Lon
+        tone:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Tone
+        speed:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Speed
+        confidence:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Confidence
+        margin_arcsec:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Margin Arcsec
+        required_arcsec:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Required Arcsec
+        limiting_factor:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Limiting Factor
       type: object
       title: VariableItemV2
     VariablesV2:
@@ -1643,6 +1702,23 @@ components:
           - type: string
           - type: 'null'
           title: Short Code
+        low_confidence_arrows:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Low Confidence Arrows
+        all_arrows_confident:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: All Arrows Confident
+        time_precision_min:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Time Precision Min
       type: object
       title: VariablesV2
     WaRequest:
