@@ -80,6 +80,24 @@ def ensure_ephe_path():
     from .ephemeris_guard import assert_ephemeris
     assert_ephemeris(strict=True)
 
+
+def _sun_lon_strict(jdut):
+    """Долгота Солнца строго по файлам эфемерид.
+
+    Без файлов .se1 swisseph молча считает по Moshier: исключения нет, флаг
+    SEFLG_SWIEPH принимается, retflag возвращает SEFLG_MOSEPH. date_to_gate это
+    уже проверяет; здесь та же проверка для даты дизайна и солнечного
+    возвращения, чтобы отказ был явным и одинаковым во всём ответе.
+    """
+    _res = swe.calc_ut(jdut, swe.SUN, swe.FLG_SWIEPH)
+    _retflag = _res[1]
+    if not (_retflag & swe.FLG_SWIEPH):
+        raise RuntimeError(
+            "Swiss Ephemeris fell back to Moshier for Sun (retflag=%d). "
+            "Ephemeris files are required." % _retflag)
+    return _res[0][0]
+
+
 def get_utc_offset_from_tz(timestamp,zone):
     """
     get utc offset from given time_zone. 
@@ -184,10 +202,10 @@ class hd_features:
             creation date (float): timestamp in julian day format
         '''
         design_pos = 88 
-        sun_long =  swe.calc_ut(jdut, swe.SUN)[0][0]
+        sun_long = _sun_lon_strict(jdut)
         long = swe.degnorm(sun_long - design_pos) 
         tstart = jdut - 100 #aproximation is start -100°
-        res = swe.solcross_ut(long, tstart)
+        res = swe.solcross_ut(long, tstart, swe.FLG_SWIEPH)
         create_date = swe.revjul(res)
         create_julday = swe.julday(*create_date)
         
@@ -336,14 +354,14 @@ class hd_features:
         )
 
         # 3. Calculate Natal Sun Longitude
-        # Use FLG_SWIEPH (default) or whatever flag is appropriate.
+        # Строго FLG_SWIEPH с проверкой retflag: см. _sun_lon_strict.
         # swe.SUN is 0
-        natal_sun_res = swe.calc_ut(jdut, swe.SUN)
-        natal_sun_lon = natal_sun_res[0][0]
+        natal_sun_lon = _sun_lon_strict(jdut)
 
         # 4. Use swe.solcross_ut to find when Sun returns to this longitude
         # It searches forward from target_year_start_jd
-        sr_jdut = swe.solcross_ut(natal_sun_lon, target_year_start_jd)
+        sr_jdut = swe.solcross_ut(natal_sun_lon, target_year_start_jd,
+                                  swe.FLG_SWIEPH)
         
         return sr_jdut
 
