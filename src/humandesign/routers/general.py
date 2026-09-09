@@ -92,6 +92,15 @@ def calculate_hd(
     islive: bool = Query(True, description="Whether the person is still alive (True) or deceased (False)"),
     latitude: Optional[float] = Query(None, description="Latitude for the birth place; bypasses geocoding when given with longitude"),
     longitude: Optional[float] = Query(None, description="Longitude for the birth place; bypasses geocoding when given with latitude"),
+    time_precision_min: float = Query(
+        1.0, ge=0.0, le=1440.0,
+        description=(
+            "How precisely the birth time is known, in minutes. "
+            "1 = to the minute, 30 = the hour is known but not the minute, "
+            "720 = time unknown and noon was substituted. Drives the "
+            "confidence flag on each Variable arrow; it does not change the "
+            "arrow itself."
+        )),
     authorized: bool = Depends(verify_token)
 ):
     # 1. Validate and collect input
@@ -131,7 +140,8 @@ def calculate_hd(
 
     # 4. Calculate Human Design Features
     try:
-        single_result = hd.calc_single_hd_features(timestamp, report=False, channel_meaning=False, day_chart_only=False)
+        single_result = hd.calc_single_hd_features(timestamp, report=False, channel_meaning=False, day_chart_only=False,
+                                                   time_uncertainty_min=time_precision_min)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error calculating Human Design features: {str(e)}")
 
