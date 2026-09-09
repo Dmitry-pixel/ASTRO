@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [3.9.3] - 2026-09-09
+
+### Added
+- **CI now fails when `openapi.yaml` no longer matches the application.**
+  The spec drifted twice without anyone noticing: it declared 3.9.0 while the
+  API served 3.9.1, and production reported 3.9.1 while `main` was on 3.9.2.
+  `tests/test_openapi_sync.py` regenerates the spec through the generator own
+  `render()` and compares it byte for byte, so the generator and the check can
+  never disagree on formatting. A second test compares the declared version
+  against `pyproject.toml`.
+- `PyYAML` added to `requirements-dev.txt`. Its absence is why
+  `scripts/gen_openapi.py` was easy to skip: the runtime image has never
+  carried it, and neither did the dev set.
+
+### Changed
+- `scripts/gen_openapi.py` split into `build_spec()` and `render()` so the
+  guard can reuse them. Output is byte-identical.
+
 ## [3.9.2] - 2026-09-09
 
 ### Fixed - Swiss Ephemeris strictness

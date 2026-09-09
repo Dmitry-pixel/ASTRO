@@ -34,14 +34,35 @@ class _Dumper(yaml.SafeDumper):
 _Dumper.add_representer(dict, lambda d, data: d.represent_dict(data.items()))
 
 
+def build_spec() -> dict:
+    """The specification as the live application describes itself."""
+    from humandesign.api import app
+
+    return app.openapi()
+
+
+def render(spec: dict) -> str:
+    """Serialise a specification exactly the way openapi.yaml is stored.
+
+    The test that guards openapi.yaml against drift calls this same function,
+    so the generator and the check can never disagree on formatting.
+    """
+    return yaml.dump(
+        spec,
+        Dumper=_Dumper,
+        sort_keys=False,
+        allow_unicode=True,
+        default_flow_style=False,
+        width=100,
+    )
+
+
 def main() -> int:
     try:
-        from humandesign.api import app
+        spec = build_spec()
     except Exception as exc:  # noqa: BLE001 - report any import failure verbatim
         print(f"error: could not import humandesign.api: {exc}", file=sys.stderr)
         return 1
-
-    spec = app.openapi()
 
     paths = len(spec.get("paths", {}))
     operations = sum(len(v) for v in spec.get("paths", {}).values())
@@ -51,15 +72,7 @@ def main() -> int:
         print("error: generated specification contains no paths", file=sys.stderr)
         return 1
 
-    text = yaml.dump(
-        spec,
-        Dumper=_Dumper,
-        sort_keys=False,
-        allow_unicode=True,
-        default_flow_style=False,
-        width=100,
-    )
-    OUTPUT.write_text(text, encoding="utf-8")
+    OUTPUT.write_text(render(spec), encoding="utf-8")
 
     print(f"wrote {OUTPUT.relative_to(ROOT)}")
     print(f"  version:    {spec['info'].get('version')}")
