@@ -1,8 +1,9 @@
 """time_precision_min: how precisely the birth time is known.
 
 The parameter never changes an arrow, only the confidence flag beside it.
-A solar arrow moves 2.46" per minute of uncertainty against a tone 93.75" wide,
-so half an hour of doubt is already wider than the cell.
+A solar arrow moves 2.46" per minute of uncertainty. The arrow itself only
+changes every three tones (281.25"), so what matters is the distance to the
+nearest tone 3|4 or 6|1 boundary, not to the nearest tone boundary.
 
 The reference chart is Sam, 1966-12-09 17:00, UTC+6 - the same one used to
 verify the ephemeris work, so a regression here shows up against known numbers.
@@ -39,11 +40,13 @@ def _v2(**extra):
 
 
 def test_default_is_one_minute_and_is_echoed_back():
-    """Omitting the parameter must not change the existing behaviour."""
+    """Sam's Environment sits 5" from a tone 5|6 boundary but 88.7" from the
+    nearest boundary that turns the arrow. Until 3.10.1 it was flagged low."""
     v = _v1()
     assert v["time_precision_min"] == 1.0
     assert v["short_code"] == "PLL DLR"
-    assert v["low_confidence_arrows"] == ["bottom_left"]
+    assert v["low_confidence_arrows"] == []
+    assert v["bottom_left"]["margin_arcsec"] == pytest.approx(88.717, abs=0.01)
 
 
 def test_arrows_never_move_with_precision():
@@ -60,12 +63,17 @@ def test_required_margin_grows_with_uncertainty():
     assert need[0] < need[1] < need[2], need
 
 
-def test_solar_arrows_lose_confidence_at_half_an_hour():
-    v = _v1(time_precision_min=30)
+def test_solar_arrow_loses_confidence_when_doubt_exceeds_its_margin():
+    """Motivation has 4" of room: half an hour of doubt is too much.
+    Digestion has 116.6" (~47 minutes at 2.46"/min): 30 is fine, 60 is not."""
+    v30 = _v1(time_precision_min=30)
+    assert v30["top_right"]["confidence"] == "low"
+    assert v30["top_right"]["limiting_factor"] == "time"
+    assert v30["top_left"]["confidence"] == "high"
+    assert v30["all_arrows_confident"] is False
+    v60 = _v1(time_precision_min=60)
     for key in SOLAR:
-        assert v[key]["confidence"] == "low", (key, v[key])
-        assert v[key]["limiting_factor"] == "time"
-    assert v["all_arrows_confident"] is False
+        assert v60[key]["confidence"] == "low", (key, v60[key])
 
 
 def test_unknown_time_flags_every_solar_arrow():

@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [3.10.1] - 2026-09-10
+
+### Fixed - arrow confidence measured against the wrong boundary
+- **`confidence` on each Variable arrow now uses the boundary where the arrow
+  actually turns.** The arrow is left for tones 1-3 and right for 4-6, so it
+  changes only at the tone 3|4 and 6|1 boundaries - every 281.25", not at every
+  tone boundary (93.75"). `margin_arcsec` used to be the distance to the nearest
+  tone boundary, so an arrow sitting next to a 1|2 or 4|5 boundary was flagged
+  `low` although nothing could turn it. Measured on 3 000 random charts against
+  a brute-force time shift:
+
+  | `time_precision_min` | solar arrows `low` before | after | arrow actually turns |
+  |---|---|---|---|
+  | 1   | ~5%   | ~2%   | ~1.7% |
+  | 15  | ~79%  | ~26%  | ~27% |
+  | 30  | 100%  | ~53%  | ~53% |
+
+  Node arrows at the default precision: ~12% -> ~4%. Charts with all four arrows
+  confident at the default: 69.6% -> 89.2%. The old flag erred towards
+  caution only: the new margin is never smaller than the old one. The one
+  exception is the design-side scaling below (at most +5% to the requirement).
+- **Design-side arrows account for how the design moment moves.** The design
+  moment is fixed by an 88-degree solar arc, so one minute of birth-time doubt
+  moves it by v_sun(birth)/v_sun(design) = 0.95-1.05 minutes. The requirement
+  for Digestion and Environment is scaled by that ratio; without it 5 of 877
+  `high` verdicts at +-15 min were wrong.
+- Reference chart (Sam, 1966-12-09 17:00 UTC+6): `low_confidence_arrows` at the
+  default precision is now `[]`. Environment is 5" from a tone 5|6 boundary and
+  88.7" from the nearest boundary that turns it; the earlier `bottom_left` flag
+  was a false positive.
+
+### Changed
+- `margin_arcsec` in each arrow now means distance to the nearest
+  arrow-turning boundary. Shape of the response is unchanged. `boundary.evaluate`
+  gained an `arrow` level; `required_margin_arcsec`, `evaluate` and
+  `arrow_with_stability` accept `time_scale` (default 1.0).
+
+### Added
+- `tests/test_arrow_confidence_empirical.py`: every arrow reported `high` at
+  +-15 and +-30 minutes keeps its direction when the engine is re-run at t-u and
+  t+u.
+
 ## [3.10.0] - 2026-09-09
 
 ### Added - birth-time precision reaches the engine
