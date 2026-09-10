@@ -4,15 +4,17 @@
     POST /analyze/penta        3-8 people — the Penta entity (Sovereign Standard)
     POST /analyze/wa           6+ people — group field; OC16 and the Alpha from 9
     POST /analyze/maia-penta   2+ people — every dyad plus the fitting group layer
+    POST /analyze/team-dynamics 2+ people — four operational axes and the team matrix
 
-All four are bearer-token protected and all four honour `verbosity`.
+All are bearer-token protected; the first four honour `verbosity`.
 """
 from fastapi import APIRouter, Depends, HTTPException
 
 from .. import relational
 from ..dependencies import verify_token
 from ..relational.persons import PersonResolutionError
-from ..schemas.analyze import CompositeRequest, HybridRequest, PentaRequest, WaRequest
+from ..schemas.analyze import (CompositeRequest, HybridRequest, PentaRequest,
+                               TeamDynamicsRequest, WaRequest)
 
 router = APIRouter(prefix="/analyze", tags=["analyze"])
 
@@ -98,3 +100,21 @@ def analyze_maia_penta(request: HybridRequest, authorized: bool = Depends(verify
     return _run(relational.analyse_hybrid,
                 participants=request.participants, group_type=request.group_type,
                 verbosity=request.verbosity)
+
+
+@router.post("/team-dynamics", summary="Team dynamics — four operational axes and the team matrix (2+ people)")
+def analyze_team_dynamics(request: TeamDynamicsRequest, authorized: bool = Depends(verify_token)):
+    """Every participant is described on four operational axes — Transfer,
+    Processing, Decision, Execution — plus Integration, the same block that
+    `/calculate` and `/v2/calculate` return as `team_dynamics`.
+
+    `team_matrix` adds what only a group has: the people × axes matrix, the
+    composition per axis, over-representation of modes and poles against a
+    random draw from the population (exact binomial, p < 0.0025 for a client
+    statement), absence of a mode (evaluated only from 8 participants),
+    descriptive polarisation and bridging — who closes whose split in
+    co-located work.
+
+    Not a psychological diagnosis and not grounds for hiring decisions.
+    """
+    return _run(relational.analyse_team_dynamics, participants=request.participants)

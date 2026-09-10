@@ -29,6 +29,10 @@ class ParticipantInput(BaseModel):
     latitude: Optional[Annotated[float, Field(ge=-90, le=90)]] = Field(
         None, description="Skips geocoding when supplied together with longitude")
     longitude: Optional[Annotated[float, Field(ge=-180, le=180)]] = None
+    time_precision_min: Optional[Annotated[float, Field(ge=0, le=1440)]] = Field(
+        None, description="How precisely the birth time is known, in minutes. Read by "
+                          "/analyze/team-dynamics only: from 5 minutes up it adds a "
+                          "time-uncertainty scan of the four axes for this participant.")
 
     @model_validator(mode="after")
     def _check_calendar(self):
@@ -137,4 +141,33 @@ class HybridRequest(_GroupRequest):
             raise ValueError(f"hybrid analysis takes 2 or more participants, got {len(v)}")
         if len(v) > 64:
             raise ValueError(f"at most 64 participants, got {len(v)}")
+        return v
+
+
+class TeamDynamicsRequest(BaseModel):
+    """Two or more people — the four operational axes and the team matrix."""
+
+    participants: Dict[str, ParticipantInput]
+
+    model_config = {"json_schema_extra": {"examples": [{
+        "participants": {
+            "Anna": {"place": "Moscow, Russia", "year": 1985, "month": 3, "day": 14,
+                     "hour": 9, "minute": 25, "time_precision_min": 30},
+            "Boris": {"place": "Berlin, Germany", "year": 1979, "month": 11, "day": 2,
+                      "hour": 17, "minute": 40},
+            "Chen": {"place": "Singapore", "year": 1991, "month": 7, "day": 21,
+                     "hour": 6, "minute": 5},
+        },
+    }]}}
+
+    @field_validator("participants")
+    @classmethod
+    def _two_to_64(cls, v):
+        if len(v) < 2:
+            raise ValueError(f"team dynamics takes 2 or more participants, got {len(v)}")
+        if len(v) > 64:
+            raise ValueError(f"at most 64 participants, got {len(v)}")
+        for name in v:
+            if not name.strip():
+                raise ValueError("participant names must not be blank")
         return v

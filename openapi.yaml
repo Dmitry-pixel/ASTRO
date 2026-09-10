@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Human Design API
-  version: 3.10.1
+  version: 3.11.0
 paths:
   /health:
     get:
@@ -145,12 +145,14 @@ paths:
           minimum: 0.0
           description: How precisely the birth time is known, in minutes. 1 = to the minute, 30 = the
             hour is known but not the minute, 720 = time unknown and noon was substituted. Drives the
-            confidence flag on each Variable arrow; it does not change the arrow itself.
+            confidence flag on each Variable arrow and, from 5 minutes up, the team_dynamics.time_stability
+            scan; it changes neither the arrows nor the axes themselves.
           default: 1.0
           title: Time Precision Min
         description: How precisely the birth time is known, in minutes. 1 = to the minute, 30 = the hour
           is known but not the minute, 720 = time unknown and noon was substituted. Drives the confidence
-          flag on each Variable arrow; it does not change the arrow itself.
+          flag on each Variable arrow and, from 5 minutes up, the team_dynamics.time_stability scan; it
+          changes neither the arrows nor the axes themselves.
       responses:
         '200':
           description: Successful Response
@@ -348,6 +350,53 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/HybridRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /analyze/team-dynamics:
+    post:
+      tags:
+      - analyze
+      summary: Team dynamics — four operational axes and the team matrix (2+ people)
+      description: 'Every participant is described on four operational axes — Transfer,
+
+        Processing, Decision, Execution — plus Integration, the same block that
+
+        `/calculate` and `/v2/calculate` return as `team_dynamics`.
+
+
+        `team_matrix` adds what only a group has: the people × axes matrix, the
+
+        composition per axis, over-representation of modes and poles against a
+
+        random draw from the population (exact binomial, p < 0.0025 for a client
+
+        statement), absence of a mode (evaluated only from 8 participants),
+
+        descriptive polarisation and bridging — who closes whose split in
+
+        co-located work.
+
+
+        Not a psychological diagnosis and not grounds for hiring decisions.'
+      operationId: analyze_team_dynamics_analyze_team_dynamics_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeamDynamicsRequest'
         required: true
       responses:
         '200':
@@ -907,7 +956,8 @@ components:
           title: Time Precision Min
           description: How precisely the birth time is known, in minutes. 1 = to the minute, 30 = the
             hour is known but not the minute, 720 = time unknown and noon was substituted. Drives the
-            confidence flag on each Variable arrow; it does not change the arrow itself.
+            confidence flag on each Variable arrow and, from 5 minutes up, the team_dynamics.time_stability
+            scan; it changes neither the arrows nor the axes themselves.
           default: 1.0
         include:
           anyOf:
@@ -917,8 +967,9 @@ components:
           - type: 'null'
           title: Include
           description: 'Sections to keep in the response. Available: general, centers, channels, gates,
-            variables, analytics, advanced, mechanics. None or [] returns every section; a non-empty list
-            returns only the sections it names. Unknown names are ignored.'
+            variables, analytics, advanced, mechanics, team_dynamics. Dot paths narrow further, e.g. ''team_dynamics.axes''.
+            None or [] returns every section; a non-empty list returns only the sections it names. Unknown
+            names are ignored.'
           example:
           - general
           - centers
@@ -978,6 +1029,10 @@ components:
         advanced:
           anyOf:
           - $ref: '#/components/schemas/AdvancedSectionV2'
+          - type: 'null'
+        team_dynamics:
+          anyOf:
+          - $ref: '#/components/schemas/TeamDynamicsV2'
           - type: 'null'
       type: object
       title: CalculateResponseV2
@@ -1454,6 +1509,15 @@ components:
             minimum: -180.0
           - type: 'null'
           title: Longitude
+        time_precision_min:
+          anyOf:
+          - type: number
+            maximum: 1440.0
+            minimum: 0.0
+          - type: 'null'
+          title: Time Precision Min
+          description: 'How precisely the birth time is known, in minutes. Read by /analyze/team-dynamics
+            only: from 5 minutes up it adds a time-uncertainty scan of the four axes for this participant.'
       type: object
       required:
       - place
@@ -1599,6 +1663,525 @@ components:
           - type: 'null'
       type: object
       title: SunRolesV2
+    TeamAxesSetV2:
+      properties:
+        transfer:
+          anyOf:
+          - $ref: '#/components/schemas/TeamAxisV2'
+          - type: 'null'
+        processing:
+          anyOf:
+          - $ref: '#/components/schemas/TeamAxisV2'
+          - type: 'null'
+        decision:
+          anyOf:
+          - $ref: '#/components/schemas/TeamAxisV2'
+          - type: 'null'
+        execution:
+          anyOf:
+          - $ref: '#/components/schemas/TeamAxisV2'
+          - type: 'null'
+      type: object
+      title: TeamAxesSetV2
+    TeamAxisFieldV2:
+      properties:
+        basis:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Basis
+        defined:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Defined
+        stability:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Stability
+          description: stable | conditioned
+        energy_type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Energy Type
+        entry_condition:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Entry Condition
+          description: response | invitation | inform | lunar_cycle
+        entry_condition_ru:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Entry Condition Ru
+      type: object
+      title: TeamAxisFieldV2
+    TeamAxisV2:
+      properties:
+        name_ru:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Name Ru
+        poles:
+          anyOf:
+          - $ref: '#/components/schemas/TeamPolesV2'
+          - type: 'null'
+        index:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Index
+          description: 0 — first pole, 100 — second; 100*(B+1)/(A+B+2)
+        evidence_a:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Evidence A
+        evidence_b:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Evidence B
+        confidence:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Confidence
+          description: (A+B)/(A+B+2)
+        band:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Band
+          description: strong_a | moderate_a | mixed | moderate_b | strong_b | insufficient
+        band_ru:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Band Ru
+        side:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Side
+          description: a | b | null
+        pole:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Pole
+          description: structured/emergent, consistent/contextual, internal/relational, planned/adaptive
+        letter:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Letter
+          description: S/F, D/R, C/H, P/A
+        pole_label_ru:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Pole Label Ru
+        pole_meaning_ru:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Pole Meaning Ru
+        hypothesis_share:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Hypothesis Share
+        evidence:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/TeamEvidenceV2'
+            type: array
+          - type: 'null'
+          title: Evidence
+        population:
+          anyOf:
+          - $ref: '#/components/schemas/TeamPopulationV2'
+          - type: 'null'
+        field:
+          anyOf:
+          - $ref: '#/components/schemas/TeamAxisFieldV2'
+          - type: 'null'
+        mode:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Mode
+          description: 'Decision: response | instant | will | articulated | delayed | external | lunar'
+        mode_ru:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Mode Ru
+        authority:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authority
+        integration_reading:
+          anyOf:
+          - $ref: '#/components/schemas/TeamIntegrationReadingV2'
+          - type: 'null'
+        basis:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Basis
+          description: 'Execution: channels | perspective_only | none'
+        perspective:
+          anyOf:
+          - $ref: '#/components/schemas/TeamPerspectiveV2'
+          - type: 'null'
+      type: object
+      title: TeamAxisV2
+    TeamDynamicsRequest:
+      properties:
+        participants:
+          additionalProperties:
+            $ref: '#/components/schemas/ParticipantInput'
+          type: object
+          title: Participants
+      type: object
+      required:
+      - participants
+      title: TeamDynamicsRequest
+      description: Two or more people — the four operational axes and the team matrix.
+      examples:
+      - participants:
+          Anna:
+            day: 14
+            hour: 9
+            minute: 25
+            month: 3
+            place: Moscow, Russia
+            time_precision_min: 30
+            year: 1985
+          Boris:
+            day: 2
+            hour: 17
+            minute: 40
+            month: 11
+            place: Berlin, Germany
+            year: 1979
+          Chen:
+            day: 21
+            hour: 6
+            minute: 5
+            month: 7
+            place: Singapore
+            year: 1991
+    TeamDynamicsV2:
+      properties:
+        model:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Model
+        model_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Model Version
+        code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Code
+          description: Transfer·Processing·Decision·Execution·Integration, e.g. F·R·H·A·I2
+        code_legend_ru:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Code Legend Ru
+        index_legend_ru:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Index Legend Ru
+        axes:
+          anyOf:
+          - $ref: '#/components/schemas/TeamAxesSetV2'
+          - type: 'null'
+        integration:
+          anyOf:
+          - $ref: '#/components/schemas/TeamIntegrationV2'
+          - type: 'null'
+        flags:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/TeamFlagV2'
+            type: array
+          - type: 'null'
+          title: Flags
+        time_stability:
+          anyOf:
+          - $ref: '#/components/schemas/TeamTimeStabilityV2'
+          - type: 'null'
+        disclaimer_ru:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Disclaimer Ru
+      type: object
+      title: TeamDynamicsV2
+      description: 'Four operational characteristics of team dynamics, model v1.1. Not a
+
+        psychological diagnosis — see disclaimer_ru.'
+    TeamEvidenceV2:
+      properties:
+        kind:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Kind
+          description: centre_defined | centre_open | channel | dangling_gate | authority | variable
+        key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Key
+          description: '''TT определён'', ''31-7'', ''ворота 4'', ''SP'', ''perspective_left'''
+        side:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Side
+          description: a — first pole, b — second pole
+        weight:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Weight
+        status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+          description: core | supporting | hypothesis
+        note_ru:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Note Ru
+      type: object
+      title: TeamEvidenceV2
+    TeamFlagV2:
+      properties:
+        axis:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Axis
+        code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Code
+        text_ru:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Text Ru
+      type: object
+      title: TeamFlagV2
+    TeamIntegrationReadingV2:
+      properties:
+        code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Code
+          description: internal_closed | internal_bridged | relational_closed | relational_bridged
+        integration:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Integration
+        text_ru:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Text Ru
+      type: object
+      title: TeamIntegrationReadingV2
+    TeamIntegrationV2:
+      properties:
+        code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Code
+          description: I1…I4, or R for a Reflector
+        components:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Components
+        closed:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Closed
+        text_ru:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Text Ru
+      type: object
+      title: TeamIntegrationV2
+    TeamPerspectiveV2:
+      properties:
+        value:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Value
+        confidence:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Confidence
+      type: object
+      title: TeamPerspectiveV2
+    TeamPoleV2:
+      properties:
+        code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Code
+        letter:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Letter
+        label_ru:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Label Ru
+        meaning_ru:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Meaning Ru
+      type: object
+      title: TeamPoleV2
+    TeamPolesV2:
+      properties:
+        a:
+          anyOf:
+          - $ref: '#/components/schemas/TeamPoleV2'
+          - type: 'null'
+        b:
+          anyOf:
+          - $ref: '#/components/schemas/TeamPoleV2'
+          - type: 'null'
+      type: object
+      title: TeamPolesV2
+    TeamPopulationV2:
+      properties:
+        index_percentile:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Index Percentile
+          description: Share of the population with an index at or below this one, %
+        pole_pct:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Pole Pct
+          description: Share of the population carrying this pole, %
+      type: object
+      title: TeamPopulationV2
+    TeamTimeAxisV2:
+      properties:
+        poles:
+          anyOf:
+          - additionalProperties:
+              type: number
+            type: object
+          - type: 'null'
+          title: Poles
+        index_min:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Index Min
+        index_max:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Index Max
+        pole_stable:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Pole Stable
+        base_pole_share:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Base Pole Share
+      type: object
+      title: TeamTimeAxisV2
+    TeamTimeStabilityV2:
+      properties:
+        precision_min:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Precision Min
+        samples:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Samples
+        offsets_min:
+          anyOf:
+          - items:
+              type: number
+            type: array
+          - type: 'null'
+          title: Offsets Min
+        axes:
+          anyOf:
+          - additionalProperties:
+              $ref: '#/components/schemas/TeamTimeAxisV2'
+            type: object
+          - type: 'null'
+          title: Axes
+        integration:
+          anyOf:
+          - additionalProperties:
+              type: number
+            type: object
+          - type: 'null'
+          title: Integration
+        unstable_axes:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Unstable Axes
+        summary_ru:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Summary Ru
+      type: object
+      title: TeamTimeStabilityV2
     ValidationError:
       properties:
         loc:

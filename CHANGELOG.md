@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [3.11.0] - 2026-09-10
+
+### Added - team dynamics: four operational characteristics (model v1.1)
+- **`team_dynamics` in `GET /calculate` and `POST /v2/calculate`.** Four
+  characteristics of how a person takes part in a team's information and work
+  process, each as an index 0-100 with its evidence:
+  Transfer (Структурированная S ↔ Неформальная F), Processing (Фиксированная D ↔
+  Относительная R), Decision (Компетентный C ↔ Гармоничный H), Execution
+  (Целенаправленное P ↔ Импульсивное A), plus Integration (I1-I4, R).
+  `index = 100*(B+1)/(A+B+2)`; a band and a pole are assigned from A+B >= 2.
+  Every axis lists the rules that fired, their weight and status, the
+  population share of the pole and the index percentile. Weights are the
+  methodology table agreed on 2026-09-10; see `docs/team-dynamics.md`.
+  `v2` supports include/exclude on it, dot paths included.
+- **`team_dynamics.time_stability`** from `time_precision_min >= 5`: the chart is
+  recomputed across the stated uncertainty and each pole is reported as stable
+  or not. About a millisecond per point, at most 49 points.
+- **`POST /analyze/team-dynamics`** (2-64 participants): the people × axes
+  matrix, mean index and spread per axis, one-sidedness as risk hypotheses,
+  over-representation of poles and Decision modes against the population
+  (exact binomial, client statement only at p < 0.0025), absence from 8
+  participants, descriptive polarisation, bridging of Integration splits.
+  Optional `time_precision_min` per participant.
+- **Test Calculator**: a «Команда» tab for a single chart and a «Команда · 2+»
+  mode with the matrix; birth-time precision selector on the single form.
+- `scripts/gen_team_axes_baseline.py` regenerates the population baseline
+  (20 000 charts, deterministic).
+
+### Decisions recorded with the methodology
+- Open centres and Root/Sacral definition do not enter any index.
+- Section 7 of the methodology overrides its tables: 43-23 and 17-62 are
+  Processing channels (×0.5 in Transfer), 11-56 is Transfer (×0.5 in
+  Processing), 20-34 and 20-57 are Execution (×0.5 in Transfer).
+- Perspective enters Execution only, weight 1, Hypothesis status. Measured:
+  in three axes it decided the side for 30-41% of people and raised the
+  correlation between axes to 0.58; in one axis it adds nothing to the others.
+- Definition stays a separate field, read against Decision as a 2×2
+  (`integration_reading`); inside the Decision index it would re-count
+  Authority (emotional share 44% at I1 → 98% at I4).
+
 ## [3.10.1] - 2026-09-10
 
 ### Fixed - arrow confidence measured against the wrong boundary
