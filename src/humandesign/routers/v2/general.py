@@ -10,8 +10,10 @@ from ...utils.date_utils import clean_birth_date_to_iso, clean_create_date_to_is
 from ...schemas.v2.calculate import (
     CalculateRequestV2, CalculateResponseV2, GeneralSectionV2, GateV2,
     CentersV2, GatesV2, AnalyticsSectionV2, QuarterV2, SunRolesV2,
-    SunRoleItemV2, LineCountsV2, YinYangBalanceV2, ContourV2, ClassBreakdownV2
+    SunRoleItemV2, LineCountsV2, YinYangBalanceV2, ContourV2, ClassBreakdownV2,
+    TeamDynamicsV2
 )
+from ...features import team_axes
 from ...services.masking import OutputMaskingService
 
 router = APIRouter(prefix="/v2", tags=["v2"])
@@ -219,6 +221,11 @@ def calculate_hd_v2(
             ) if contour_raw else None,
         )
 
+        # Team dynamics: four operational axes + time-uncertainty scan
+        team_dynamics_raw = team_axes.compute_from_result(single_result)
+        team_dynamics_raw["time_stability"] = team_axes.time_stability(
+            timestamp, request.time_precision_min, baseline=team_dynamics_raw)
+
         # Construct Full Response (Unmasked)
         full_response = CalculateResponseV2(
             general=GeneralSectionV2(**general_data),
@@ -228,7 +235,8 @@ def calculate_hd_v2(
             gates=GatesV2(personality=pers_gates, design=dest_gates),
             mechanics=None,
             analytics=analytics_section,
-            advanced=None
+            advanced=None,
+            team_dynamics=TeamDynamicsV2(**team_dynamics_raw),
         )
         
         # Apply Enrichment

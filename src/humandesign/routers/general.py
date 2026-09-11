@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 import json
 
 from .. import features as hd
+from ..features import team_axes
 from .. import hd_constants
 from ..utils import serialization as cj
 from ..services.geolocation import get_latitude_longitude, tf
@@ -98,8 +99,9 @@ def calculate_hd(
             "How precisely the birth time is known, in minutes. "
             "1 = to the minute, 30 = the hour is known but not the minute, "
             "720 = time unknown and noon was substituted. Drives the "
-            "confidence flag on each Variable arrow; it does not change the "
-            "arrow itself."
+            "confidence flag on each Variable arrow and, from 5 minutes up, "
+            "the team_dynamics.time_stability scan; it changes neither the "
+            "arrows nor the axes themselves."
         )),
     authorized: bool = Depends(verify_token)
 ):
@@ -189,10 +191,15 @@ def calculate_hd(
         gates_output = json.loads(gates_json_str)
         channels_output = json.loads(channels_json_str)
         
+        team = team_axes.compute_from_result(single_result)
+        team["time_stability"] = team_axes.time_stability(
+            timestamp, time_precision_min, baseline=team)
+
         final_result = {
             "general": general_output,
             "channels": channels_output,
-            "gates": gates_output
+            "gates": gates_output,
+            "team_dynamics": team,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing results: {str(e)}")

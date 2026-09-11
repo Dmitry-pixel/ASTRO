@@ -62,6 +62,44 @@
     .bar-track { height: 6px; border-radius: 3px; background: var(--c-surface-3); overflow: hidden; display: flex; }
     .dyad-card { border: 1px solid var(--c-border); border-radius: 8px; padding: 14px; background: var(--c-surface-2); }
     .dyad-card + .dyad-card { margin-top: 10px; }
+
+    /* --- team dynamics: pole A (S D C P) violet, pole B (F R H A) teal; neither is "better" --- */
+    .team-pole { display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 26px;
+        padding: 0 7px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; }
+    .team-pole-a { background: var(--c-accent-bg); color: var(--c-accent-2); }
+    .team-pole-b { background: var(--c-ok-bg); color: var(--c-ok); }
+    .team-pole-none { background: var(--c-surface-3); color: var(--c-txt-dim); }
+    .team-code { display: flex; flex-wrap: wrap; gap: 14px; }
+    .team-code-cell { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .team-code-letter { display: flex; align-items: center; justify-content: center; width: 64px; height: 64px;
+        border-radius: 12px; font-family: 'JetBrains Mono', monospace; font-size: 30px; font-weight: 700; }
+    .team-code-axis { font-size: 11px; color: var(--c-txt-dim); }
+    .team-code-idx { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--c-txt); }
+    .team-scale { margin-top: 2px; }
+    .team-scale-track { position: relative; height: 8px; border-radius: 4px;
+        background: linear-gradient(90deg, var(--c-accent-bg), var(--c-surface-3) 45%, var(--c-surface-3) 55%, var(--c-ok-bg)); }
+    .team-scale-mid { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--c-border-2); }
+    .team-scale-mark { position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%;
+        border: 2px solid var(--c-surface); }
+    .team-mark-a { background: var(--c-accent-2); }
+    .team-mark-b { background: var(--c-ok); }
+    .team-mark-none { background: var(--c-txt-dim); }
+    .team-scale-labels { display: flex; justify-content: space-between; margin-top: 6px; font-size: 10px;
+        font-family: 'JetBrains Mono', monospace; color: var(--c-txt-dim); }
+    .team-scale-sm .team-scale-track { height: 5px; width: 72px; }
+    .team-scale-sm .team-scale-mark { width: 8px; height: 8px; margin: -4px 0 0 -4px; border-width: 1px; }
+    .team-cell-body { display: flex; flex-direction: column; gap: 4px; }
+    .team-kv { display: grid; grid-template-columns: 132px 1fr; gap: 10px; padding: 5px 0;
+        border-bottom: 1px solid var(--c-border); font-size: 12px; }
+    .team-kv > span:first-child { color: var(--c-txt-dim); }
+    .team-kv > span:last-child { color: var(--c-txt); }
+    .team-rel-h { color: var(--c-warn); }
+    .team-rel-hh { color: var(--c-warn); font-weight: 600; }
+    .team-rel-dim { color: var(--c-txt-dim); }
+    .team-cell { display: flex; align-items: center; gap: 7px; white-space: nowrap; }
+    .team-cell-mode { font-size: 11px; color: var(--c-txt-dim); }
+    .team-foot td { border-top: 2px solid var(--c-border-2); }
+    @media (max-width: 640px) { .team-code-letter { width: 48px; height: 48px; font-size: 22px; } .team-kv { grid-template-columns: 1fr; gap: 2px; } }
 </style>
 {% endblock %}
 
@@ -79,6 +117,7 @@
         <button type="button" class="mode-btn" data-mode="penta" onclick="switchMode('penta')">Пента · 3–8</button>
         <button type="button" class="mode-btn" data-mode="wa" onclick="switchMode('wa')">WA · 6+ · OC16 с 9</button>
         <button type="button" class="mode-btn" data-mode="hybrid" onclick="switchMode('hybrid')">Гибрид · 2+</button>
+        <button type="button" class="mode-btn" data-mode="team" onclick="switchMode('team')">Команда · 2+</button>
     </div>
 
     <div id="mode-single">
@@ -110,6 +149,22 @@
                 <div><label class="block text-[10px] font-mono mb-1 tracking-wider uppercase" style="color:var(--c-txt-dim);">Час</label><input type="number" id="f-hour" value="12" min="0" max="23" class="input-field w-full px-3 py-2 rounded-lg text-sm font-mono"></div>
                 <div><label class="block text-[10px] font-mono mb-1 tracking-wider uppercase" style="color:var(--c-txt-dim);">Минута</label><input type="number" id="f-minute" value="30" min="0" max="59" class="input-field w-full px-3 py-2 rounded-lg text-sm font-mono"></div>
                 <div><label class="block text-[10px] font-mono mb-1 tracking-wider uppercase" style="color:var(--c-txt-dim);">Секунда</label><input type="number" id="f-second" value="0" min="0" max="59" class="input-field w-full px-3 py-2 rounded-lg text-sm font-mono"></div>
+            </div>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <div>
+                    <label class="block text-[10px] font-mono mb-1 tracking-wider uppercase" style="color:var(--c-txt-dim);">Точность времени</label>
+                    <select id="f-precision" class="input-field w-full px-3 py-2 rounded-lg text-sm font-mono">
+                        <option value="1">до минуты</option>
+                        <option value="15">± 15 минут</option>
+                        <option value="30">± 30 минут</option>
+                        <option value="60">± 1 час</option>
+                        <option value="120">± 2 часа</option>
+                        <option value="720">время неизвестно</option>
+                    </select>
+                </div>
+                <div class="lg:col-span-2 flex items-end">
+                    <span class="text-[11px] font-mono" style="color:var(--c-txt-dim);">От 15 минут вкладка «Команда» покажет, какие метки меняются в пределах этой неточности.</span>
+                </div>
             </div>
             <button type="submit" id="calc-btn" class="btn-primary px-6 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
@@ -152,6 +207,12 @@
                     <span class="flex items-center gap-1.5">
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
                         Аналитика
+                    </span>
+                </button>
+                <button class="tab-btn" onclick="switchTab('team')">
+                    <span class="flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M17 20h5v-2a3 3 0 00-5.36-1.86M17 20H7m10 0v-2c0-.66-.13-1.28-.36-1.86M7 20H2v-2a3 3 0 015.36-1.86M7 20v-2c0-.66.13-1.28.36-1.86m0 0a5 5 0 019.28 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        Команда
                     </span>
                 </button>
                 <button class="tab-btn" onclick="switchTab('json')">
@@ -272,6 +333,9 @@
             </div>
         </div>
         
+        <!-- TAB: Team dynamics -->
+        <div id="tab-team" class="tab-panel"></div>
+
         <!-- TAB: JSON -->
         <div id="tab-json" class="tab-panel">
             <div class="card card-glow p-5">
@@ -302,7 +366,7 @@
 {% block scripts %}
 <script>
     var lastResult = null;
-    var TAB_NAMES = ['card','planets','analytics','json'];
+    var TAB_NAMES = ['card','planets','analytics','team','json'];
     
     /* ===== Tabs ===== */
     function switchTab(name) {
@@ -327,7 +391,8 @@
             year:+document.getElementById('f-year').value, month:+document.getElementById('f-month').value,
             day:+document.getElementById('f-day').value, hour:+document.getElementById('f-hour').value,
             minute:+document.getElementById('f-minute').value, second:+document.getElementById('f-second').value,
-            place:document.getElementById('f-place').value, gender:document.getElementById('f-gender').value
+            place:document.getElementById('f-place').value, gender:document.getElementById('f-gender').value,
+            time_precision_min:+document.getElementById('f-precision').value
         };
         
         var start = performance.now();
@@ -362,6 +427,7 @@
         renderCardTab(data);
         renderPlanetsTab(data);
         renderAnalyticsTab(data);
+        document.getElementById('tab-team').innerHTML = renderTeamProfile(data.team_dynamics);
         renderJSONTab(data);
     }
     
@@ -610,5 +676,6 @@
         showToast('Файл скачан: '+name, 'ok');
     }
 </script>
+{% include "panel/_team_js.html" %}
 {% include "panel/_relational_js.html" %}
 {% endblock %}

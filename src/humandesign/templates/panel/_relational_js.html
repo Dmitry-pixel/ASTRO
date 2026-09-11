@@ -7,7 +7,9 @@ var GROUP_MODES = {
     penta:     { endpoint: '/analyze/penta',     min: 3, max: 8,  hint: 'От 3 до 8 участников. Каноническая Пента — 3–5' },
     wa:        { endpoint: '/analyze/wa',        min: 6, max: 64, seed: 9,
                  hint: 'От 6 участников, но WA — с 9. Ниже девяти это расширенная Пента: OC16 и Пента-блоки не считаются' },
-    hybrid:    { endpoint: '/analyze/maia-penta',min: 2, max: 64, hint: 'От 2 участников — все диады плюс групповой слой' }
+    hybrid:    { endpoint: '/analyze/maia-penta',min: 2, max: 64, hint: 'От 2 участников — все диады плюс групповой слой' },
+    team:      { endpoint: '/analyze/team-dynamics', min: 2, max: 64, seed: 5, plain: true,
+                 hint: 'От 2 участников — четыре характеристики командной динамики и матрица. Отсутствие оценивается с 8' }
 };
 /* name, place, year, month, day, hour, minute, lat, lon
    Coordinates are prefilled so the preset works without a geocoding round trip. */
@@ -47,9 +49,12 @@ function switchMode(mode) {
     var cfg = GROUP_MODES[mode];
     document.getElementById('g-hint').textContent = cfg.hint;
     var gtype = document.getElementById('g-type');
-    gtype.disabled = (mode === 'composite');
+    gtype.disabled = (mode === 'composite' || !!cfg.plain);
     gtype.style.opacity = gtype.disabled ? '0.4' : '';
-    gtype.title = gtype.disabled ? 'Для композита тип группы не используется' : '';
+    gtype.title = gtype.disabled ? 'В этом режиме тип группы не используется' : '';
+    var gverb = document.getElementById('g-verbosity');
+    gverb.disabled = !!cfg.plain;
+    gverb.style.opacity = gverb.disabled ? '0.4' : '';
     ensurePeopleCount(Math.max(cfg.seed || cfg.min, personRows().length));
     document.getElementById('g-result').classList.add('hidden');
     document.getElementById('g-error').classList.add('hidden');
@@ -167,8 +172,9 @@ async function runGroupCalculation() {
         return;
     }
 
-    var body = { participants: participants, verbosity: document.getElementById('g-verbosity').value };
-    if (currentMode !== 'composite') body.group_type = document.getElementById('g-type').value;
+    var body = { participants: participants };
+    if (!cfg.plain) body.verbosity = document.getElementById('g-verbosity').value;
+    if (currentMode !== 'composite' && !cfg.plain) body.group_type = document.getElementById('g-type').value;
 
     document.getElementById('g-result').classList.add('hidden');
     document.getElementById('g-error').classList.add('hidden');
@@ -240,6 +246,16 @@ function renderGroupResult(data) {
 
 function renderOverview(data) {
     var m = data.meta || {}, e = m.entity || {}, html = '';
+    if (data.team_matrix) {
+        var tmx = data.team_matrix;
+        document.getElementById('gtab-overview').innerHTML =
+            '<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">'
+            + kpi(tmx.size, 'участников') + kpi(tmx.team_code, 'код команды')
+            + kpi(tmx.risk_hypotheses.length, 'рисков однородности')
+            + kpi(tmx.overrepresentation.filter(function(o) { return o.level === 'robust'; }).length, 'устойчивых перекосов')
+            + '</div>' + renderTeamMatrix(tmx);
+        return;
+    }
     html += '<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">'
         + kpi(e.label_ru || e.label || '—', 'сущность')
         + kpi(e.size || 0, 'участников')
@@ -555,6 +571,7 @@ function renderGroupTab(data) {
     var html = '';
     if (data.penta && data.penta.penta_anatomy) html += renderPentaAnatomy(data.penta.penta_anatomy);
     if (data.group_field) html += renderFieldDetail(data.group_field);
+    if (data.team_matrix) html += renderTeamComposition(data.team_matrix);
     if (!html) html = card('', '<div class="text-sm" style="color:var(--c-txt-dim);">Групповой слой в этом режиме не рассчитывается либо скрыт при verbosity = compact.</div>');
     host.innerHTML = html;
 }
@@ -628,7 +645,8 @@ function renderPeople(data) {
             ['Крест', v.incarnation_cross], ['Стратегия', v.strategy],
             ['Место', v.place], ['Таймзона', v.tz + ' (UTC' + (v.utc_offset >= 0 ? '+' : '') + v.utc_offset + ')'],
             ['Рождение UTC', v.birth_date_utc], ['Активаций', v.activation_count],
-            ['Стрелки', v.variables ? v.variables.short_code : null], ['Луна', v.lunar_phase]
+            ['Стрелки', v.variables ? v.variables.short_code : null], ['Луна', v.lunar_phase],
+            ['Командный код', data.team_matrix && data.team_matrix.profiles[name] ? data.team_matrix.profiles[name].code : null]
         ];
         return card(name, rows.map(function(r) {
             if (r[1] === null || r[1] === undefined || r[1] === '') return '';

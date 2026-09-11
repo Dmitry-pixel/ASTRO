@@ -135,6 +135,7 @@ Four endpoints, all Bearer-protected, all accepting `verbosity`.
 | `POST /analyze/penta` | 3-5 | Penta entity, Sovereign Standard |
 | `POST /analyze/wa` | 6+ | WA — the whole-bodygraph group entity (from 10 people) |
 | `POST /analyze/maia-penta` | 2+ | Every dyad plus the fitting group layer |
+| `POST /analyze/team-dynamics` | 2+ | Four team-dynamics characteristics and the team matrix — see `docs/team-dynamics.md` |
 
 ### Shared request shape
 

@@ -6,6 +6,7 @@ Public surface:
     analyse_penta_group(participants, group_type, ...)  -> 3-8 people
     analyse_wa_group(participants, group_type, ...)     -> 6+ people; OC16 from 9
     analyse_hybrid(participants, group_type, ...)       -> 2+ people, dyads + group
+    analyse_team_dynamics(participants)                 -> 2+ people, four-axis team matrix
 """
 import itertools
 from typing import Any, Dict, List, Optional
@@ -19,6 +20,7 @@ from .engine import VERBOSITY_LEVELS, analyse_dyad, normalise_verbosity
 from .groups import (GROUP_MAX, PENTA_EXTENDED_MAX, PENTA_MAX, PENTA_MIN, WA_MIN,
                      analyse_group_field, analyse_penta, classify_entity, now_iso)
 from .persons import Person, PersonResolutionError, resolve_all
+from .team_matrix import analyse_team
 
 ENGINE_VERSION = "relational-1.0"
 
@@ -26,7 +28,7 @@ __all__ = [
     "analyse_composite", "analyse_penta_group", "analyse_wa_group", "analyse_hybrid",
     "resolve_all", "Person", "PersonResolutionError", "normalise_verbosity",
     "VERBOSITY_LEVELS", "PENTA_MIN", "PENTA_MAX", "PENTA_EXTENDED_MAX", "WA_MIN",
-    "GROUP_MAX", "semantics", "oc16", "blocks", "channels",
+    "GROUP_MAX", "semantics", "oc16", "blocks", "channels", "analyse_team_dynamics",
 ]
 
 
@@ -151,6 +153,24 @@ def analyse_hybrid(participants: Dict[str, Any], group_type: str = "business",
         result["group_field"] = analyse_group_field(people, group_type, verbosity, enricher)
     return result
 
+
+def analyse_team_dynamics(participants: Dict[str, Any]) -> Dict[str, Any]:
+    """Four operational axes per participant plus the team matrix."""
+    size = len(participants)
+    if size < 2:
+        raise ValueError("At least 2 participants are required")
+    if size > GROUP_MAX:
+        raise ValueError(f"At most {GROUP_MAX} participants, got {size}")
+    precision = {}
+    for name, payload in participants.items():
+        data = payload.model_dump() if hasattr(payload, "model_dump") else dict(payload)
+        precision[name] = data.get("time_precision_min")
+    people = resolve_all(participants)
+    return {
+        "meta": _meta("team_dynamics", size, None, "standard"),
+        "participants": _participants_block(people, "standard"),
+        "team_matrix": analyse_team(people, precision),
+    }
 
 def _matrix_summary(dyads: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Cross-dyad roll-up: the view a consultant reads before any single pair."""

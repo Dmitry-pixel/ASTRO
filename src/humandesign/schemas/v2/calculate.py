@@ -24,7 +24,9 @@ class CalculateRequestV2(BaseModel):
             "How precisely the birth time is known, in minutes. "
             "1 = to the minute, 30 = the hour is known but not the minute, "
             "720 = time unknown and noon was substituted. Drives the confidence "
-            "flag on each Variable arrow; it does not change the arrow itself."
+            "flag on each Variable arrow and, from 5 minutes up, the "
+            "team_dynamics.time_stability scan; it changes neither the arrows "
+            "nor the axes themselves."
         ),
     )
 
@@ -44,7 +46,8 @@ class CalculateRequestV2(BaseModel):
         description=(
             "Sections to keep in the response. "
             "Available: general, centers, channels, gates, variables, analytics, "
-            "advanced, mechanics. "
+            "advanced, mechanics, team_dynamics. Dot paths narrow further, e.g. "
+            "'team_dynamics.axes'. "
             "None or [] returns every section; a non-empty list returns only "
             "the sections it names. Unknown names are ignored."
         ),
@@ -188,6 +191,137 @@ class AnalyticsSectionV2(BaseModel):
     contour: Optional[ContourV2] = None
 
 
+# --------------------------------------------------------------------------- #
+# Team dynamics — four operational characteristics (features/team_axes.py, v1.1)
+# All fields optional so dot-path include/exclude keeps validating.
+# --------------------------------------------------------------------------- #
+class TeamEvidenceV2(BaseModel):
+    kind: Optional[str] = Field(None, description="centre_defined | centre_open | channel | dangling_gate | authority | variable")
+    key: Optional[str] = Field(None, description="'TT определён', '31-7', 'ворота 4', 'SP', 'perspective_left'")
+    side: Optional[str] = Field(None, description="a — first pole, b — second pole")
+    weight: Optional[float] = None
+    status: Optional[str] = Field(None, description="core | supporting | hypothesis")
+    note_ru: Optional[str] = None
+
+
+class TeamPoleV2(BaseModel):
+    code: Optional[str] = None
+    letter: Optional[str] = None
+    label_ru: Optional[str] = None
+    meaning_ru: Optional[str] = None
+
+
+class TeamPolesV2(BaseModel):
+    a: Optional[TeamPoleV2] = None
+    b: Optional[TeamPoleV2] = None
+
+
+class TeamPopulationV2(BaseModel):
+    index_percentile: Optional[float] = Field(None, description="Share of the population with an index at or below this one, %")
+    pole_pct: Optional[float] = Field(None, description="Share of the population carrying this pole, %")
+
+
+class TeamAxisFieldV2(BaseModel):
+    basis: Optional[str] = None
+    defined: Optional[bool] = None
+    stability: Optional[str] = Field(None, description="stable | conditioned")
+    energy_type: Optional[str] = None
+    entry_condition: Optional[str] = Field(None, description="response | invitation | inform | lunar_cycle")
+    entry_condition_ru: Optional[str] = None
+
+
+class TeamIntegrationReadingV2(BaseModel):
+    code: Optional[str] = Field(None, description="internal_closed | internal_bridged | relational_closed | relational_bridged")
+    integration: Optional[str] = None
+    text_ru: Optional[str] = None
+
+
+class TeamPerspectiveV2(BaseModel):
+    value: Optional[str] = None
+    confidence: Optional[str] = None
+
+
+class TeamAxisV2(BaseModel):
+    name_ru: Optional[str] = None
+    poles: Optional[TeamPolesV2] = None
+    index: Optional[float] = Field(None, description="0 — first pole, 100 — second; 100*(B+1)/(A+B+2)")
+    evidence_a: Optional[float] = None
+    evidence_b: Optional[float] = None
+    confidence: Optional[float] = Field(None, description="(A+B)/(A+B+2)")
+    band: Optional[str] = Field(None, description="strong_a | moderate_a | mixed | moderate_b | strong_b | insufficient")
+    band_ru: Optional[str] = None
+    side: Optional[str] = Field(None, description="a | b | null")
+    pole: Optional[str] = Field(None, description="structured/emergent, consistent/contextual, internal/relational, planned/adaptive")
+    letter: Optional[str] = Field(None, description="S/F, D/R, C/H, P/A")
+    pole_label_ru: Optional[str] = None
+    pole_meaning_ru: Optional[str] = None
+    hypothesis_share: Optional[float] = None
+    evidence: Optional[List[TeamEvidenceV2]] = None
+    population: Optional[TeamPopulationV2] = None
+    field: Optional[TeamAxisFieldV2] = None
+    # decision only
+    mode: Optional[str] = Field(None, description="Decision: response | instant | will | articulated | delayed | external | lunar")
+    mode_ru: Optional[str] = None
+    authority: Optional[str] = None
+    integration_reading: Optional[TeamIntegrationReadingV2] = None
+    # execution only
+    basis: Optional[str] = Field(None, description="Execution: channels | perspective_only | none")
+    perspective: Optional[TeamPerspectiveV2] = None
+
+
+class TeamAxesSetV2(BaseModel):
+    transfer: Optional[TeamAxisV2] = None
+    processing: Optional[TeamAxisV2] = None
+    decision: Optional[TeamAxisV2] = None
+    execution: Optional[TeamAxisV2] = None
+
+
+class TeamIntegrationV2(BaseModel):
+    code: Optional[str] = Field(None, description="I1…I4, or R for a Reflector")
+    components: Optional[int] = None
+    closed: Optional[bool] = None
+    text_ru: Optional[str] = None
+
+
+class TeamFlagV2(BaseModel):
+    axis: Optional[str] = None
+    code: Optional[str] = None
+    text_ru: Optional[str] = None
+
+
+class TeamTimeAxisV2(BaseModel):
+    poles: Optional[Dict[str, float]] = None
+    index_min: Optional[float] = None
+    index_max: Optional[float] = None
+    pole_stable: Optional[bool] = None
+    base_pole_share: Optional[float] = None
+
+
+class TeamTimeStabilityV2(BaseModel):
+    precision_min: Optional[float] = None
+    samples: Optional[int] = None
+    offsets_min: Optional[List[float]] = None
+    axes: Optional[Dict[str, TeamTimeAxisV2]] = None
+    integration: Optional[Dict[str, float]] = None
+    unstable_axes: Optional[List[str]] = None
+    summary_ru: Optional[str] = None
+
+
+class TeamDynamicsV2(BaseModel):
+    """Four operational characteristics of team dynamics, model v1.1. Not a
+    psychological diagnosis — see disclaimer_ru."""
+    model: Optional[str] = None
+    model_version: Optional[str] = None
+    code: Optional[str] = Field(None, description="Transfer·Processing·Decision·Execution·Integration, e.g. F·R·H·A·I2")
+    code_legend_ru: Optional[str] = None
+    index_legend_ru: Optional[str] = None
+    axes: Optional[TeamAxesSetV2] = None
+    integration: Optional[TeamIntegrationV2] = None
+    flags: Optional[List[TeamFlagV2]] = None
+    time_stability: Optional[TeamTimeStabilityV2] = None
+    disclaimer_ru: Optional[str] = None
+
+
 class CalculateResponseV2(BaseModel):
     general: Optional[GeneralSectionV2] = None
     centers: Optional[CentersV2] = None
@@ -197,3 +331,4 @@ class CalculateResponseV2(BaseModel):
     mechanics: Optional[Dict[str, Any]] = None
     analytics: Optional[AnalyticsSectionV2] = None
     advanced: Optional[AdvancedSectionV2] = None
+    team_dynamics: Optional[TeamDynamicsV2] = None

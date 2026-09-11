@@ -1,0 +1,192 @@
+<script>
+/* ============================================================
+   Team dynamics v1.1 — four operational characteristics.
+   Shared by the single-chart tab «Команда» and the group mode «Команда · 2+».
+   ============================================================ */
+var TEAM_AXES = ['transfer', 'processing', 'decision', 'execution'];
+var TEAM_AXIS_SHORT = { transfer: 'Передача', processing: 'Обработка', decision: 'Решение', execution: 'Исполнение' };
+var TEAM_BAND_CLS = { strong_a: 'team-pole-a', moderate_a: 'team-pole-a', strong_b: 'team-pole-b',
+                      moderate_b: 'team-pole-b', mixed: 'team-pole-none', insufficient: 'team-pole-none' };
+var TEAM_MODE_SHORT = { response: 'отклик', instant: 'мгновенно', will: 'воля', articulated: 'вслух',
+                        delayed: 'пауза', external: 'среда', lunar: 'цикл' };
+
+function tEsc(s) {
+    return String(s === null || s === undefined ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function tCard(title, inner, extra) {
+    return '<div class="card card-glow p-5 ' + (extra || '') + '">'
+        + (title ? '<h4 class="text-xs font-mono tracking-wider uppercase mb-4" style="color:var(--c-txt-dim);">' + tEsc(title) + '</h4>' : '')
+        + inner + '</div>';
+}
+function tLetter(ax, big) {
+    var cls = ax.side === 'a' ? 'team-pole-a' : (ax.side === 'b' ? 'team-pole-b' : 'team-pole-none');
+    return '<span class="' + (big ? 'team-code-letter ' : 'team-pole ') + cls + '">' + tEsc(ax.letter || '–') + '</span>';
+}
+function tScale(ax, compact) {
+    var p = ax.poles || {}, a = p.a || {}, b = p.b || {};
+    var idx = Math.max(0, Math.min(100, ax.index || 0));
+    var mcls = ax.side === 'a' ? 'team-mark-a' : (ax.side === 'b' ? 'team-mark-b' : 'team-mark-none');
+    return '<div class="team-scale' + (compact ? ' team-scale-sm' : '') + '" title="индекс ' + idx + '">'
+        + '<div class="team-scale-track"><span class="team-scale-mid"></span>'
+        + '<span class="team-scale-mark ' + mcls + '" style="left:' + idx + '%;"></span></div>'
+        + (compact ? '' : '<div class="team-scale-labels"><span>' + tEsc(a.letter) + ' · ' + tEsc(a.label_ru) + '</span>'
+            + '<span>' + tEsc(b.label_ru) + ' · ' + tEsc(b.letter) + '</span></div>')
+        + '</div>';
+}
+function tPct(v) { return (v === null || v === undefined) ? '—' : (Math.round(v * 10) / 10) + '%'; }
+
+/* ---------- single profile ---------- */
+function renderTeamProfile(td) {
+    if (!td || !td.axes) {
+        return tCard('', '<div class="text-sm" style="color:var(--c-txt-dim);">В ответе нет блока team_dynamics — проверьте include/exclude запроса.</div>');
+    }
+    var ig = td.integration || {};
+    var hero = '<div class="team-code">' + TEAM_AXES.map(function(a) {
+        var ax = td.axes[a] || {};
+        return '<div class="team-code-cell">' + tLetter(ax, true)
+            + '<span class="team-code-axis">' + TEAM_AXIS_SHORT[a] + '</span>'
+            + '<span class="team-code-idx">' + tEsc(ax.index) + '</span></div>';
+    }).join('')
+        + '<div class="team-code-cell"><span class="team-code-letter team-pole-none">' + tEsc(ig.code || '–') + '</span>'
+        + '<span class="team-code-axis">Интеграция</span><span class="team-code-idx">&nbsp;</span></div></div>'
+        + '<p class="text-xs mt-3" style="color:var(--c-txt-dim);">' + tEsc(td.index_legend_ru || '') + '. Модель ' + tEsc(td.model_version || '') + '.</p>';
+
+    var html = tCard('Командная динамика', hero, 'mb-4');
+    html += '<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">'
+        + TEAM_AXES.map(function(a) { return renderTeamAxis(a, td.axes[a], td.time_stability); }).join('') + '</div>';
+
+    var d = td.axes.decision || {}, rd = d.integration_reading;
+    var integ = '<div class="flex items-baseline gap-3 mb-2"><span class="team-pole team-pole-none">' + tEsc(ig.code || '–') + '</span>'
+        + '<span class="text-sm" style="color:var(--c-txt-bright);">' + tEsc(ig.text_ru || '') + '</span></div>'
+        + (rd ? '<p class="text-sm mt-3" style="color:var(--c-txt);line-height:1.55;">' + tEsc(d.pole_label_ru) + ' × ' + tEsc(rd.integration) + ': ' + tEsc(rd.text_ru) + '</p>' : '');
+    var flags = (td.flags || []).map(function(f) { return '<li class="text-sm mb-2" style="color:var(--c-txt);">' + tEsc(f.text_ru) + '</li>'; }).join('');
+    html += '<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">'
+        + tCard('Интеграция и переход к действию', integ)
+        + tCard('Ограничения профиля', flags ? '<ul style="list-style:disc;padding-left:18px;">' + flags + '</ul>'
+            : '<div class="text-sm" style="color:var(--c-txt-dim);">Все четыре характеристики определены без оговорок.</div>')
+        + '</div>';
+    if (td.time_stability) html += renderTeamTime(td.time_stability);
+    html += '<p class="text-xs mt-2" style="color:var(--c-txt-dim);line-height:1.6;">' + tEsc(td.disclaimer_ru || '') + '</p>';
+    return html;
+}
+
+function renderTeamAxis(a, ax, ts) {
+    ax = ax || {};
+    var f = ax.field || {}, pop = ax.population || {};
+    var unstable = ts && ts.unstable_axes && ts.unstable_axes.indexOf(a) >= 0;
+    var head = '<div class="flex justify-between gap-3 mb-3" style="align-items:flex-start;">'
+        + '<div><div class="text-[10px] font-mono tracking-wider uppercase" style="color:var(--c-txt-dim);">' + tEsc(ax.name_ru || a) + '</div>'
+        + '<div class="text-base font-semibold mt-1" style="color:var(--c-txt-bright);">' + tEsc(ax.pole_label_ru || ax.band_ru) + '</div>'
+        + '<div class="text-[11px] font-mono mt-1" style="color:var(--c-txt-dim);">' + tEsc(ax.band_ru) + ' · индекс ' + tEsc(ax.index) + '</div></div>'
+        + tLetter(ax) + '</div>';
+    var body = tScale(ax);
+    if (ax.pole_meaning_ru) body += '<p class="text-sm mt-3 mb-3" style="color:var(--c-txt);line-height:1.55;">' + tEsc(ax.pole_meaning_ru) + '.</p>';
+    else body += '<div class="mb-3"></div>';
+    if (ax.mode_ru) body += '<div class="team-kv"><span>Как решает</span><span>' + tEsc(ax.mode_ru) + '</span></div>';
+    if (f.stability) body += '<div class="team-kv"><span>Поле</span><span>' + (f.stability === 'stable'
+        ? 'способ воспроизводим в любой команде' : 'способ зависит от окружения') + '</span></div>';
+    if (f.entry_condition_ru) body += '<div class="team-kv"><span>Условие входа</span><span>' + tEsc(f.entry_condition_ru) + '</span></div>';
+    body += '<div class="team-kv"><span>Признаки</span><span>A ' + tEsc(ax.evidence_a) + ' · B ' + tEsc(ax.evidence_b)
+        + ' · уверенность ' + tEsc(ax.confidence) + '</span></div>';
+    body += '<div class="team-kv"><span>Популяция</span><span>полюс у ' + tPct(pop.pole_pct) + ' · индекс не выше у ' + tPct(pop.index_percentile) + '</span></div>';
+    if (ax.basis === 'perspective_only') body += '<div class="team-kv"><span>Основание</span><span class="team-rel-h">только стрелка Perspective — гипотеза</span></div>';
+    if (unstable) {
+        var poles = ts.axes[a].poles;
+        body += '<div class="team-kv"><span>Время рождения</span><span class="team-rel-h">полюс меняется: '
+            + Object.keys(poles).map(function(p) { return p + ' ' + Math.round(poles[p] * 100) + '%'; }).join(' / ') + '</span></div>';
+    }
+    var ev = (ax.evidence || []).map(function(e) {
+        var cls = e.status === 'hypothesis' ? 'chip-cmp' : (e.side === 'a' ? 'chip-em' : 'chip-comp');
+        return '<span class="chip ' + cls + '" title="' + tEsc((e.note_ru || '') + ' · ' + e.status) + '">'
+            + tEsc(e.side.toUpperCase() + ' ' + e.key + ' +' + e.weight) + '</span>';
+    }).join(' ');
+    if (ev) body += '<div class="mt-3 flex flex-wrap gap-1.5">' + ev + '</div>';
+    return tCard('', head + body);
+}
+
+function renderTeamTime(ts) {
+    var rows = TEAM_AXES.map(function(a) {
+        var t = ts.axes[a], poles = t.poles;
+        return '<div class="team-kv"><span>' + TEAM_AXIS_SHORT[a] + '</span><span style="color:' + (t.pole_stable ? 'var(--c-txt)' : 'var(--c-warn)') + ';">'
+            + Object.keys(poles).map(function(p) { return p + ' ' + Math.round(poles[p] * 100) + '%'; }).join(' / ')
+            + ' · индекс ' + t.index_min + '–' + t.index_max + '</span></div>';
+    }).join('');
+    return tCard('Устойчивость к неточности времени · ±' + ts.precision_min + ' мин, ' + ts.samples + ' точек',
+        rows + '<p class="text-sm mt-3" style="color:var(--c-txt);">' + tEsc(ts.summary_ru) + '</p>', 'mb-4');
+}
+
+/* ---------- team matrix ---------- */
+function renderTeamMatrix(tm) {
+    var head = '<tr><th>Участник</th>' + TEAM_AXES.map(function(a) { return '<th>' + TEAM_AXIS_SHORT[a] + '</th>'; }).join('') + '<th>Интегр.</th></tr>';
+    var body = tm.matrix.rows.map(function(r) {
+        return '<tr><td class="mono" style="color:var(--c-txt-bright);">' + tEsc(r.name) + '</td>'
+            + TEAM_AXES.map(function(a) {
+                var c = r[a], side = c.letter ? (c.band.slice(-1)) : null;
+                var ax = { letter: c.letter, side: side, index: c.index };
+                var marks = (a === 'execution' && c.basis === 'perspective_only' ? '<sup class="team-rel-h" title="только Perspective">p</sup>' : '')
+                    + (r.unstable_axes && r.unstable_axes.indexOf(a) >= 0 ? '<sup class="team-rel-h" title="зависит от времени рождения">≈</sup>' : '');
+                var mode = a === 'decision' && c.mode ? ' · ' + (TEAM_MODE_SHORT[c.mode] || c.mode) : '';
+                return '<td><div class="team-cell">' + tLetter(ax) + marks
+                    + '<div class="team-cell-body"><span class="team-cell-mode">' + tEsc(c.index) + mode + '</span>'
+                    + tScale(ax, true) + '</div></div></td>';
+            }).join('') + '<td class="mono">' + tEsc(r.integration || '–') + '</td></tr>';
+    }).join('');
+    var foot = '<tr class="team-foot"><td class="mono">Команда</td>' + TEAM_AXES.map(function(a, i) {
+        var s = tm.axes_summary[a], letter = tm.team_code.split('·')[i];
+        return '<td><div class="team-cell"><span class="team-pole team-pole-none">' + tEsc(letter) + '</span>'
+            + '<span class="team-cell-mode">' + s.mean_index + ' ± ' + s.std_index + '</span></div></td>';
+    }).join('') + '<td></td></tr>';
+    var html = tCard('Матрица командной динамики · ' + tm.size + ' участников',
+        '<div class="rel-scroll"><table class="rel-table"><thead>' + head + '</thead><tbody>' + body + foot + '</tbody></table></div>'
+        + '<p class="text-[11px] font-mono mt-3" style="color:var(--c-txt-dim);">Число — индекс 0–100 (0 — первый полюс S D C P, 100 — второй F R H A). '
+        + 'Строка «Команда» — полюс большинства и средний индекс ± разброс. p — Исполнение только по Perspective; ≈ — зависит от времени рождения.</p>', 'mb-4');
+
+    var risks = tm.risk_hypotheses.length ? '<ul style="list-style:disc;padding-left:18px;">' + tm.risk_hypotheses.map(function(r) {
+        return '<li class="text-sm mb-2" style="color:var(--c-txt);">' + tEsc(r.text_ru) + '</li>'; }).join('') + '</ul>'
+        : '<div class="text-sm" style="color:var(--c-txt-dim);">Ни по одной оси команда не однородна: на каждой есть оба полюса или меньше трёх человек с полюсом.</div>';
+    var robust = tm.overrepresentation.filter(function(o) { return o.level === 'robust'; });
+    var signal = tm.overrepresentation.filter(function(o) { return o.level === 'signal'; });
+    var over = robust.length ? '<ul style="list-style:disc;padding-left:18px;">' + robust.map(function(o) {
+        return '<li class="text-sm mb-2" style="color:var(--c-txt);">' + tEsc(o.statement_ru) + '</li>'; }).join('') + '</ul>'
+        : '<div class="text-sm" style="color:var(--c-txt-dim);">Устойчивых перекосов (p &lt; 0.0025) нет — состав не отличается от случайного набора.</div>';
+    if (signal.length) over += '<div class="p-lbl mt-4 mb-1">Стоит посмотреть — p &lt; 0.05, не для отчёта клиенту</div><div class="flex flex-wrap gap-1.5">'
+        + signal.map(function(o) { return '<span class="chip chip-mut">' + tEsc(TEAM_AXIS_SHORT[o.axis]) + ': ' + tEsc(o.value) + ' ' + o.k + '/' + o.n + ' · p=' + o.p_value.toFixed(3) + '</span>'; }).join(' ') + '</div>';
+    over += '<p class="text-[11px] mt-3" style="color:var(--c-txt-dim);">Проверок: ' + tm.tests_run + '. Ожидаемо ложных сигналов на уровне 0.05: ' + tm.expected_false_signals_at_0_05 + '.</p>';
+    html += '<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">' + tCard('Риски однородности — гипотезы', risks) + tCard('Перекос состава', over) + '</div>';
+
+    var abs = tm.absence.evaluated
+        ? (tm.absence.items.length ? '<ul style="list-style:disc;padding-left:18px;">' + tm.absence.items.map(function(i) { return '<li class="text-sm mb-2" style="color:var(--c-txt);">' + tEsc(i.statement_ru) + '</li>'; }).join('') + '</ul>'
+            : '<div class="text-sm" style="color:var(--c-txt-dim);">Статистически значимых отсутствий нет.</div>')
+        : '<div class="text-sm" style="color:var(--c-txt-dim);">' + tEsc(tm.absence.reason_ru) + '</div>';
+    var pol = tm.polarization.length ? tm.polarization.map(function(p) { return '<p class="text-sm mb-2" style="color:var(--c-txt);">' + tEsc(p.text_ru) + '</p>'; }).join('')
+        : '<div class="text-sm" style="color:var(--c-txt-dim);">Ни одна ось не делится на две группы по два человека и больше.</div>';
+    html += '<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">' + tCard('Отсутствие', abs) + tCard('Поляризация — описательно', pol) + '</div>';
+
+    var br = tm.bridging.slice(0, 12).map(function(b) {
+        return '<tr><td class="mono" style="color:var(--c-txt-bright);">' + tEsc(b.bridge) + ' → ' + tEsc(b.closes_for) + '</td>'
+            + '<td class="mono">' + b.components_before + ' → ' + b.components_after + '</td>'
+            + '<td class="mono">' + (b.critical_channels.length ? tEsc(b.critical_channels.join(', '))
+                : '<span style="color:var(--c-txt-dim);" title="' + tEsc(b.channels.join(', ')) + '">несколько путей · ' + b.channels.length + ' кан.</span>') + '</td></tr>';
+    }).join('');
+    br = br ? '<div class="rel-scroll"><table class="rel-table"><thead><tr><th>Кто замыкает</th><th>Блоки</th><th>Ключевые каналы</th></tr></thead><tbody>' + br + '</tbody></table></div>'
+        + (tm.bridging.length > 12 ? '<p class="text-[11px] mt-2" style="color:var(--c-txt-dim);">Ещё ' + (tm.bridging.length - 12) + ' — в JSON.</p>' : '')
+        : '<div class="text-sm" style="color:var(--c-txt-dim);">Ни один участник не замыкает разрыв другого.</div>';
+    html += tCard('Замыкание разрывов (Integration)', br + '<p class="text-[11px] mt-3" style="color:var(--c-txt-dim);">' + tEsc(tm.bridging_note_ru) + '</p>', 'mb-4');
+    html += '<p class="text-xs mb-4" style="color:var(--c-txt-dim);line-height:1.6;">' + tEsc(tm.disclaimer_ru) + '</p>';
+    return html;
+}
+
+function renderTeamComposition(tm) {
+    return TEAM_AXES.map(function(a) {
+        var s = tm.axes_summary[a];
+        var rows = Object.keys(s.poles).map(function(p) {
+            return '<tr><td class="mono">' + tEsc(p === 'none' ? 'без полюса' : p) + '</td><td class="mono">' + s.poles[p].length
+                + '</td><td>' + tEsc(s.poles[p].join(', ') || '—') + '</td></tr>';
+        }).join('');
+        return tCard(s.name_ru + ' · средний индекс ' + s.mean_index + ' ± ' + s.std_index + ' (' + s.min_index + '–' + s.max_index + ')',
+            '<div class="rel-scroll"><table class="rel-table"><thead><tr><th>Полюс</th><th>Кол-во</th><th>Кто</th></tr></thead><tbody>'
+            + rows + '</tbody></table></div>', 'mb-4');
+    }).join('');
+}
+</script>
