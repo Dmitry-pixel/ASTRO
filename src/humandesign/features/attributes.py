@@ -88,9 +88,10 @@ def get_variables(date_to_gate_dict, time_uncertainty_min=1.0):
     """Стрелки Variable по тонам Солнца и Узла (рождение и дизайн).
 
     Тон 1-3 -> левая стрелка, 4-6 -> правая. Стрелка выводится всегда.
-    Рядом считается запас до границы тона: ширина тона 93.75", а расхождение
-    осциллирующего истинного узла между версиями файлов эфемерид доходит
-    до 5". При нехватке запаса стрелка помечается confidence="low".
+    Рядом считается запас до ближайшей границы, где стрелка меняется
+    (тоны 3|4 и 6|1, шаг 281.25"). Расхождение осциллирующего истинного узла
+    между версиями файлов эфемерид доходит до 5". При нехватке запаса стрелка
+    помечается confidence="low".
     """
     df = date_to_gate_dict
     idx = int(len(df["tone"]) / 2)
@@ -99,6 +100,12 @@ def get_variables(date_to_gate_dict, time_uncertainty_min=1.0):
     lons = tuple(df["lon"][i] for i in picks)
     bodies = tuple(df["planets"][i] for i in picks)
     speeds = tuple(df["speed"][i] for i in picks) if "speed" in df else (None,) * 4
+    # Момент дизайна сдвигается в v_sun(рождение)/v_sun(дизайн) раз сильнее
+    # момента рождения; для личности масштаб 1.
+    design_scale = 1.0
+    if speeds[0] and speeds[2]:
+        design_scale = abs(float(speeds[0])) / abs(float(speeds[2]))
+    scales = (1.0, 1.0, design_scale, design_scale)
 
     keys = ["top_right", "bottom_right", "top_left", "bottom_left"]
     variables = {}
@@ -111,7 +118,7 @@ def get_variables(date_to_gate_dict, time_uncertainty_min=1.0):
         st = boundary.arrow_with_stability(
             tone=tone, longitude=lons[i], body=bodies[i],
             time_uncertainty_min=time_uncertainty_min,
-            speed_deg_per_day=speeds[i])
+            speed_deg_per_day=speeds[i], time_scale=scales[i])
         if not st["stable"]:
             low_confidence.append(key)
         variables[key] = {

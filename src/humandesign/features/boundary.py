@@ -11,16 +11,23 @@
   * Солнце к выбору эфемерид устойчиво, но смещается на 2.46" за минуту
     неточности времени рождения;
   * у 10% людей значение ближе 5% ширины тона к границе, у 20% — ближе 10%.
+
+Стрелка Variable меняется не на каждой границе тона, а только на двух из шести
+внутри цвета: между тонами 3|4 и 6|1 (граница цвета). Поэтому надёжность стрелки
+считается по уровню ``arrow`` — ширина 3 тона, 281.25" — а не по уровню ``tone``.
+До 3.10.1 бралась граница тона: пометка ``low`` ставилась примерно втрое чаще,
+чем стрелка реально меняется (проверено перебором времени на 3 000 карт).
 """
 from __future__ import annotations
 
 GATE_DEG = 360.0 / 64
 LINE_DEG = GATE_DEG / 6
 COLOR_DEG = LINE_DEG / 6
+ARROW_DEG = COLOR_DEG / 2      # тоны 1-3 | 4-6: единица, внутри которой стрелка не меняется
 TONE_DEG = COLOR_DEG / 6
 BASE_DEG = TONE_DEG / 5
 
-LEVELS = (("line", LINE_DEG), ("color", COLOR_DEG),
+LEVELS = (("line", LINE_DEG), ("color", COLOR_DEG), ("arrow", ARROW_DEG),
           ("tone", TONE_DEG), ("base", BASE_DEG))
 
 IGING_OFFSET = 58.0
@@ -43,8 +50,15 @@ def _key(body):
     return (body or "").strip().lower().replace(" ", "_")
 
 
-def required_margin_arcsec(body, time_uncertainty_min=1.0, speed_deg_per_day=None):
-    """Запас до границы, при котором ячейка считается устойчивой."""
+def required_margin_arcsec(body, time_uncertainty_min=1.0, speed_deg_per_day=None,
+                           time_scale=1.0):
+    """Запас до границы, при котором ячейка считается устойчивой.
+
+    ``time_scale`` — во сколько раз сдвигается момент расчёта относительно
+    сдвига времени рождения. Для личности 1. Для дизайна v_sun(рождение) /
+    v_sun(дизайн): момент дизайна задан дугой Солнца 88°, поэтому минута
+    неточности рождения сдвигает его на 0.95-1.05 минуты.
+    """
     k = _key(body)
     ephem = EPHEMERIS_UNCERTAINTY_ARCSEC.get(
         k, EPHEMERIS_UNCERTAINTY_ARCSEC["_default"])
@@ -52,7 +66,8 @@ def required_margin_arcsec(body, time_uncertainty_min=1.0, speed_deg_per_day=Non
     if speed is None:
         speed = TYPICAL_SPEED_DEG_PER_DAY.get(
             k, TYPICAL_SPEED_DEG_PER_DAY["_default"])
-    time_arcsec = abs(speed) * 3600.0 * (float(time_uncertainty_min) / 1440.0)
+    time_arcsec = (abs(speed) * 3600.0 * (float(time_uncertainty_min) / 1440.0)
+                   * abs(float(time_scale)))
     return {
         "ephemeris_arcsec": round(ephem, 3),
         "time_arcsec": round(time_arcsec, 3),
@@ -62,9 +77,10 @@ def required_margin_arcsec(body, time_uncertainty_min=1.0, speed_deg_per_day=Non
 
 
 def evaluate(longitude, body, time_uncertainty_min=1.0,
-             speed_deg_per_day=None, offset=IGING_OFFSET):
+             speed_deg_per_day=None, offset=IGING_OFFSET, time_scale=1.0):
     """Расстояние до ближайшей границы на каждом уровне подструктуры."""
-    req = required_margin_arcsec(body, time_uncertainty_min, speed_deg_per_day)
+    req = required_margin_arcsec(body, time_uncertainty_min, speed_deg_per_day,
+                                 time_scale)
     need = req["required_arcsec"]
     angle = (float(longitude) + offset) % 360.0
     levels = {}
@@ -93,11 +109,16 @@ def arrow_from_tone(tone):
 
 
 def arrow_with_stability(tone, longitude, body, time_uncertainty_min=1.0,
-                         speed_deg_per_day=None, offset=IGING_OFFSET):
-    """Стрелка Variable вместе с оценкой надёжности. Стрелка есть всегда."""
+                         speed_deg_per_day=None, offset=IGING_OFFSET,
+                         time_scale=1.0):
+    """Стрелка Variable вместе с оценкой надёжности. Стрелка есть всегда.
+
+    Запас считается до ближайшей границы, на которой меняется сама стрелка
+    (уровень ``arrow``): переход тона 1→2 или 4→5 направления не меняет.
+    """
     ev = evaluate(longitude, body, time_uncertainty_min,
-                  speed_deg_per_day, offset)
-    t = ev["levels"]["tone"]
+                  speed_deg_per_day, offset, time_scale)
+    t = ev["levels"]["arrow"]
     return {
         "value": arrow_from_tone(tone),
         "tone": int(tone),
