@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.12.1] - 2026-09-13
+
+### Fixed
+- **Panel, single-chart «Команда» tab.** The tab still read v1.1 fields and was
+  missed when the team tab was rewritten: `integration.code` (now `reading` /
+  `raw` / `label_ru`) rendered as a dash, `field.stability` (now `status` /
+  `status_ru`) never rendered at all, and Decision — categorical since 3.12.0 —
+  showed an empty index, an empty scale and a `null–null` range in the
+  time-precision scan. Display only; the JSON was correct throughout.
+- The header is now four letters, matching `code`; Integration moved to its own
+  card. Decision shows its mechanism and authority instead of an index.
+- Added to the axis cards: `field.status_ru`, `energy_profile` on Execution and
+  the `g_support` signals on Decision — fields that shipped in 3.12.0 with
+  nothing rendering them.
+
 
 ## [3.12.0] - 2026-09-13
 

@@ -175,3 +175,36 @@ def test_nine_people_matrix_and_bridging(auth):
             assert letter == "–"
         else:
             assert letter != "–"
+
+
+# --------------------------------------------------------------------------- #
+# Panel templates
+# --------------------------------------------------------------------------- #
+def test_panel_reads_no_removed_fields():
+    """The single-chart «Команда» tab shipped 3.12.0 still reading v1.1 fields.
+
+    Nothing rendered and nothing failed — the tab just showed dashes. These are
+    the field names the panel JS must not mention any more.
+    """
+    import pathlib
+    root = pathlib.Path(__file__).resolve().parent.parent
+    panel = root / "src" / "humandesign" / "templates" / "panel"
+    js = "\n".join(p.read_text(encoding="utf-8") for p in panel.glob("*.html"))
+    for gone in ("integration.code", "ig.code", "f.stability", "field.stability",
+                 "axes_summary", "overrepresentation", "risk_hypotheses",
+                 "mean_index", "std_index", "insufficient", "bridging_note_ru"):
+        assert gone not in js, f"panel still reads removed field: {gone}"
+
+
+def test_panel_renders_every_block_the_api_ships():
+    import pathlib
+    root = pathlib.Path(__file__).resolve().parent.parent
+    panel = root / "src" / "humandesign" / "templates" / "panel"
+    js = "\n".join(p.read_text(encoding="utf-8") for p in panel.glob("*.html"))
+    for shipped in ("energy_profile", "g_support", "status_ru", "integration_reading",
+                    "composition", "decision_modes", "energy_profiles",
+                    "bridging_legend_ru"):
+        # text_template_ru is deliberately absent: it exists for consuming sites
+        # that substitute their own display names. The panel has real ids and
+        # renders text_ru directly.
+        assert shipped in js, f"API ships {shipped} and nothing in the panel renders it"
