@@ -8,8 +8,8 @@ var GROUP_MODES = {
     wa:        { endpoint: '/analyze/wa',        min: 6, max: 64, seed: 9,
                  hint: 'От 6 участников, но WA — с 9. Ниже девяти это расширенная Пента: OC16 и Пента-блоки не считаются' },
     hybrid:    { endpoint: '/analyze/maia-penta',min: 2, max: 64, hint: 'От 2 участников — все диады плюс групповой слой' },
-    team:      { endpoint: '/analyze/team-dynamics', min: 2, max: 64, seed: 5, plain: true,
-                 hint: 'От 2 участников — четыре характеристики командной динамики и матрица. Отсутствие оценивается с 8' }
+    team:      { endpoint: '/analyze/team-dynamics', min: 2, max: 18, seed: 5, plain: true,
+                 hint: 'От 2 до 18 участников — четыре характеристики каждого и состав команды' }
 };
 /* name, place, year, month, day, hour, minute, lat, lon
    Coordinates are prefilled so the preset works without a geocoding round trip. */
@@ -250,9 +250,9 @@ function renderOverview(data) {
         var tmx = data.team_matrix;
         document.getElementById('gtab-overview').innerHTML =
             '<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">'
-            + kpi(tmx.size, 'участников') + kpi(tmx.team_code, 'код команды')
-            + kpi(tmx.risk_hypotheses.length, 'рисков однородности')
-            + kpi(tmx.overrepresentation.filter(function(o) { return o.level === 'robust'; }).length, 'устойчивых перекосов')
+            + kpi(tmx.size, 'участников') + kpi(tmx.team_code, 'код большинства')
+            + kpi(TEAM_AXES.reduce(function(n, a) { return n + (tmx.composition[a].counts.mixed || 0); }, 0), 'смешанных стилей')
+            + kpi(tmx.bridging.length, 'замыканий разрывов')
             + '</div>' + renderTeamMatrix(tmx);
         return;
     }

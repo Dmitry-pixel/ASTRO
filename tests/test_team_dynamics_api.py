@@ -7,7 +7,6 @@ from fastapi.testclient import TestClient
 
 from humandesign import auth as auth_module
 from humandesign.api import app
-from humandesign.relational.team_matrix import binom_sf, p_absent
 
 client = TestClient(app)
 TEST_DOMAIN = "team-dynamics-tests.local"
@@ -54,7 +53,7 @@ def test_v1_carries_team_dynamics(auth):
     r = client.get("/calculate", params=SAM, headers=auth)
     assert r.status_code == 200, r.text
     td = r.json()["team_dynamics"]
-    assert td["code"] == "F·D·H·P·I1"
+    assert td["code"] == "N·~·H·P"
     assert td["time_stability"] is None          # default precision 1 min — no scan
     assert set(td["axes"]) == {"transfer", "processing", "decision", "execution"}
 
@@ -63,17 +62,19 @@ def test_v2_carries_team_dynamics_with_scan(auth):
     r = client.post("/v2/calculate", json={**SAM, "time_precision_min": 30}, headers=auth)
     assert r.status_code == 200, r.text
     td = r.json()["team_dynamics"]
-    assert td["code"] == "F·D·H·P·I1"
+    assert td["code"] == "N·~·H·P"
     assert td["time_stability"]["precision_min"] == 30.0
-    assert td["axes"]["decision"]["evidence"][0]["key"] == "SP"
-    assert td["axes"]["execution"]["basis"] == "perspective_only"
-    assert td["model_version"] == "1.1"
+    assert td["axes"]["decision"]["authority"] == "SP"
+    assert td["axes"]["decision"]["kind"] == "categorical"
+    assert td["axes"]["execution"]["basis"] == "channels"
+    assert td["integration"]["reading"] == "closed"
+    assert td["model_version"] == "1.2"
 
 
 def test_v2_dot_path_include_and_exclude(auth):
     r = client.post("/v2/calculate", json={**SAM, "include": ["team_dynamics.code"]}, headers=auth)
     assert r.status_code == 200, r.text
-    assert r.json() == {"team_dynamics": {"code": "F·D·H·P·I1"}}
+    assert r.json() == {"team_dynamics": {"code": "N·~·H·P"}}
     r = client.post("/v2/calculate", json={**SAM, "exclude": ["team_dynamics"]}, headers=auth)
     assert "team_dynamics" not in r.json()
 
@@ -81,15 +82,6 @@ def test_v2_dot_path_include_and_exclude(auth):
 # --------------------------------------------------------------------------- #
 # Statistics
 # --------------------------------------------------------------------------- #
-def test_binomial_tail_is_exact():
-    assert binom_sf(0, 5, 0.3) == 1.0
-    assert binom_sf(6, 5, 0.3) == 0.0
-    assert binom_sf(5, 5, 0.5) == pytest.approx(1 / 32)
-    # "three of six decide by instant recognition" at 7.9% — thresholds doc: k=3 is robust at n=4
-    assert binom_sf(3, 6, 0.079) < 0.05
-    assert p_absent(8, 0.5) == pytest.approx(1 / 256)
-
-
 # --------------------------------------------------------------------------- #
 # Team layer
 # --------------------------------------------------------------------------- #
@@ -103,17 +95,57 @@ def test_team_endpoint_rejects_one(auth):
     assert r.status_code == 422
 
 
-def test_small_team_does_not_evaluate_absence(auth):
+def test_composition_counts_and_order(auth):
     body = {"participants": {k: CAST[k] for k in ("Anna", "Boris", "Chen", "Dana", "Erik")}}
     r = client.post("/analyze/team-dynamics", json=body, headers=auth)
     assert r.status_code == 200, r.text
     tm = r.json()["team_matrix"]
-    assert tm["size"] == 5
-    assert tm["absence"]["evaluated"] is False and tm["absence"]["items"] == []
-    assert [row["name"] for row in tm["matrix"]["rows"]] == list(body["participants"])
-    for o in tm["overrepresentation"]:
-        assert o["k"] >= 2 and o["p_value"] < 0.05
-        assert (o["statement_ru"] is not None) == (o["level"] == "robust")
+    assert tm["kind"] == "composition" and tm["size"] == 5
+    assert [row["id"] for row in tm["matrix"]["rows"]] == list(body["participants"])
+    for a in ("transfer", "processing", "decision", "execution"):
+        comp = tm["composition"][a]
+        assert sum(comp["counts"].values()) == 5
+        for item in comp["items"]:
+            assert item["count"] == len(item["members"]) and item["label_ru"] and item["meaning_ru"]
+        everyone = sorted(m for item in comp["items"] for m in item["members"])
+        assert everyone == sorted(body["participants"])
+
+
+@pytest.mark.parametrize("block", ["decision_modes", "integration", "energy_profiles"])
+def test_counted_values_carry_code_label_and_meaning(auth, block):
+    body = {"participants": {k: CAST[k] for k in ("Anna", "Boris", "Chen", "Dana", "Erik")}}
+    tm = client.post("/analyze/team-dynamics", json=body, headers=auth).json()["team_matrix"]
+    items = tm[block]["items"]
+    assert items and tm[block]["summary_ru"]
+    for i in items:
+        assert i["code"] and i["label_ru"] and i["meaning_ru"]
+        assert i["count"] == len(i["members"])
+    assert sum(i["count"] for i in items) == 5
+
+
+def test_no_statistics_anywhere_in_the_team_layer(auth):
+    body = {"participants": {k: CAST[k] for k in ("Anna", "Boris", "Chen", "Dana", "Erik")}}
+    tm = client.post("/analyze/team-dynamics", json=body, headers=auth).json()["team_matrix"]
+    for gone in ("absence", "overrepresentation", "risk_hypotheses", "polarization",
+                 "tests_run", "expected_false_signals_at_0_05", "axes_summary",
+                 "report_rules_ru"):
+        assert gone not in tm
+    for a in ("transfer", "processing", "decision", "execution"):
+        for gone in ("mean_index", "std_index", "min_index", "max_index"):
+            assert gone not in tm["composition"][a]
+
+
+def test_list_and_object_participants_agree(auth):
+    order = ("Anna", "Boris", "Chen")
+    as_list = client.post("/analyze/team-dynamics",
+                          json={"participants": [CAST[k] for k in order]}, headers=auth)
+    as_object = client.post("/analyze/team-dynamics",
+                            json={"participants": {str(i): CAST[k] for i, k in enumerate(order, 1)}},
+                            headers=auth)
+    assert as_list.status_code == as_object.status_code == 200, as_list.text
+    a, b = as_list.json()["team_matrix"], as_object.json()["team_matrix"]
+    assert [row["id"] for row in a["matrix"]["rows"]] == ["1", "2", "3"]
+    assert a == b
 
 
 def test_nine_people_matrix_and_bridging(auth):
@@ -123,22 +155,23 @@ def test_nine_people_matrix_and_bridging(auth):
     d = r.json()
     tm = d["team_matrix"]
     assert d["meta"]["analysis"] == "team_dynamics"
-    assert tm["absence"]["evaluated"] is True
     assert tm["profiles"]["Anna"]["time_stability"]["precision_min"] == 60.0
     assert tm["profiles"]["Boris"]["time_stability"] is None
     for row in tm["matrix"]["rows"]:
-        assert row["code"] == tm["profiles"][row["name"]]["code"]
+        assert row["code"] == tm["profiles"][row["id"]]["code"]
     for b in tm["bridging"]:
         assert b["components_after"] < b["components_before"]
         assert b["bridge"] != b["closes_for"]
-    # the team code is the majority pole per axis
-    from humandesign.features.team_axes import POLES
+        assert b["bridge"] in b["text_ru"] and b["closes_for"] in b["text_ru"]
+        assert "{bridge}" in b["text_template_ru"] and "{closes_for}" in b["text_template_ru"]
+    assert "проксимальн" not in tm.get("bridging_legend_ru", "")
+    # the team code is the value most participants carry, per axis
     for i, a in enumerate(("transfer", "processing", "decision", "execution")):
-        s = tm["axes_summary"][a]
-        ka, kb = len(s["poles"][POLES[a]["a"]["code"]]), len(s["poles"][POLES[a]["b"]["code"]])
-        want = POLES[a]["a"]["letter"] if ka > kb else (POLES[a]["b"]["letter"] if kb > ka else "–")
-        assert tm["team_code"].split("·")[i] == want
-        idx = [row[a]["index"] for row in tm["matrix"]["rows"]]
-        assert s["min_index"] == min(idx) and s["max_index"] == max(idx)
-    for risk in tm["risk_hypotheses"]:
-        assert risk["k"] >= 3 and "Гипотеза" in risk["text_ru"]
+        counts = tm["composition"][a]["counts"]
+        top = max(counts.values())
+        winners = [c for c, k in counts.items() if k == top]
+        letter = tm["team_code"].split("·")[i]
+        if len(winners) > 1:
+            assert letter == "–"
+        else:
+            assert letter != "–"

@@ -117,4 +117,4 @@ def analyze_team_dynamics(request: TeamDynamicsRequest, authorized: bool = Depen
 
     Not a psychological diagnosis and not grounds for hiring decisions.
     """
-    return _run(relational.analyse_team_dynamics, participants=request.participants)
+    return _run(relational.analyse_team_dynamics, participants=request.keyed)

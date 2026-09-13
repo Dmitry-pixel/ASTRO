@@ -1,74 +1,50 @@
-"""Team matrix over the four team-dynamics characteristics (model v1.1).
+"""Team matrix over the four team-dynamics characteristics (model v1.2).
 
-Section 10 of the methodology plus the statistical rules of
-claude/hd-team-thresholds-2026-08-25.md:
+Descriptive only, agreed 2026-09-13: the team layer reports **who has which
+characteristic and how many people share it**. Nothing else.
 
-* per axis: mean index, spread (std, min–max), pole coverage;
-* one-sidedness — every member with a pole on the same side — is reported as a
-  risk hypothesis for the consultant, with the probability of such a
-  composition in a random draw;
-* over-representation of a pole or a Decision mode against the population
-  baseline, exact binomial; a client statement only at p < 0.0025, p < 0.05 is
-  an internal marker; the number of tests run is reported;
-* absence is evaluated only from 8 participants;
-* polarisation is descriptive;
-* bridging (Integration) applies to co-located work only.
+Removed in v1.2 and deliberately not to be reinstated:
+
+* over-representation against the population baseline (exact binomial, p-values,
+  ``tests_run``) and the "след подбора" statements built on it;
+* absence statements and the eight-participant minimum they needed;
+* one-sidedness risk hypotheses (``RISK_RU``);
+* polarisation as a named finding;
+* ``mean_index`` / ``std_index`` / ``min_index`` / ``max_index`` — an average
+  between a structured and an emergent participant is not a mixed team, it is an
+  artefact of averaging an ordinal scale.
+
+Two consequences worth keeping in mind. First, the thresholds of
+``claude/hd-team-thresholds-2026-08-25.md`` no longer apply to anything here.
+Second, in v1.2 each axis is scored on its own table at full weight, so Transfer
+and Processing share channels and are not independent observations — which is
+exactly why a statistical reading of a composition would have overstated the
+effect. Counting has no such problem.
+
+``bridging`` stays: it is a mechanical fact about two charts (whose defined
+centres fall into fewer blocks in the union), not a claim about probability. It
+is reported per pair with a plain sentence naming who closes whose split; the
+scope ("в очной работе") is carried inside that sentence rather than as a
+separate caveat field.
+
+Every counted value ships as an English code plus a Russian label and a sentence
+of what it means, so a bare count like ``bridged — 3`` is readable without the
+methodology at hand.
+
+Participants are addressed by the identifier the caller supplied as the key of
+``participants``. In production that is an opaque id — sites send place, date and
+time, not names — so every sentence that mentions participants also ships as
+``*_template_ru`` with ``{bridge}`` / ``{closes_for}`` placeholders the caller
+substitutes with whatever it displays. Response order follows request order.
 """
 from __future__ import annotations
 
 import itertools
-import statistics
-from math import comb
 from typing import Any, Dict, List, Optional, Set
 
 from .. import hd_constants
 from ..features import team_axes as ta
-from ..features.team_axes_baseline import DECISION_MODE_SHARES_PCT, POLE_SHARES_PCT
 from .persons import Person
-
-ALPHA_SIGNAL = 0.05
-ALPHA_ROBUST = 0.0025
-ABSENCE_MIN_SIZE = 8
-ONE_SIDED_MIN = 3
-
-RISK_RU = {
-    ("transfer", "a"): "риск бюрократии: избыточные регламенты и документация",
-    ("transfer", "b"): "риск потери информации: знания остаются в головах",
-    ("processing", "a"): "риск игнорировать контекст и источник информации",
-    ("processing", "b"): "риск уйти в субъективность и мнения отдельных людей",
-    ("decision", "a"): "риск быстрых, но не согласованных решений",
-    ("decision", "b"): "риск затягивания решений",
-    ("execution", "a"): "риск медленной реакции на изменения",
-    ("execution", "b"): "риск хаоса: план отбрасывается раньше, чем проверен",
-}
-
-REPORT_RULES_RU = [
-    "Утверждение клиенту — только при p < 0.0025; p < 0.05 — внутренняя пометка «стоит посмотреть».",
-    "Отсутствие оценивается только с 8 участников.",
-    "Риски однородности — гипотезы для обсуждения, а не выводы о причинах.",
-    "Поляризация — описательно, без слов «значимо» и «достоверно».",
-    "Замыкание разрывов действует в очной совместной работе и не действует при удалённой.",
-]
-
-
-# --------------------------------------------------------------------------- #
-# Statistics
-# --------------------------------------------------------------------------- #
-def binom_sf(k: int, n: int, p: float) -> float:
-    """P(X >= k), X ~ Binomial(n, p). Exact."""
-    if k <= 0:
-        return 1.0
-    if k > n:
-        return 0.0
-    return sum(comb(n, i) * p ** i * (1 - p) ** (n - i) for i in range(k, n + 1))
-
-
-def p_absent(n: int, p: float) -> float:
-    return (1 - p) ** n
-
-
-def _level(pv: float) -> Optional[str]:
-    return "robust" if pv < ALPHA_ROBUST else ("signal" if pv < ALPHA_SIGNAL else None)
 
 
 # --------------------------------------------------------------------------- #
@@ -134,8 +110,14 @@ def bridging(people: Dict[str, Person]) -> List[Dict[str, Any]]:
         out.append({"bridge": b_name, "closes_for": a_name,
                     "components_before": before, "components_after": after,
                     "channels": formed, "critical_channels": critical,
-                    "text_ru": f"{b_name} замыкает разрыв {a_name} в очной работе "
-                               f"({before} → {after} блок(а))."})
+                    "text_ru": f"Замыкает — {b_name}, кому — {a_name}. В очной работе "
+                               f"определённые центры собираются из {before} блоков в {after}: "
+                               f"переход от решения к действию даётся легче, чем в одиночку.",
+                    "text_template_ru": "Замыкает — {bridge}, кому — {closes_for}. В очной работе "
+                                        f"определённые центры собираются из {before} блоков "
+                                        f"в {after}: переход от решения к действию даётся легче, "
+                                        f"чем в одиночку.",
+                    "channels_ru": ("Соединяют каналы: " + ", ".join(formed)) if formed else None})
     return out
 
 
@@ -152,14 +134,23 @@ def person_axes(p: Person, precision_min: Optional[float] = None) -> Dict[str, A
     return res
 
 
-def _majority_letter(axis: str, summary: Dict[str, Any]) -> str:
-    pa, pb = ta.POLES[axis]["a"], ta.POLES[axis]["b"]
-    ka, kb = len(summary["poles"][pa["code"]]), len(summary["poles"][pb["code"]])
-    return pa["letter"] if ka > kb else (pb["letter"] if kb > ka else "–")
+def _majority_letter(axis: str, counts: Dict[str, List[str]]) -> str:
+    """The value most participants carry. '–' on a tie — a count, not a verdict."""
+    ranked = sorted(counts.items(), key=lambda kv: -len(kv[1]))
+    if not ranked or not ranked[0][1]:
+        return "–"
+    if len(ranked) > 1 and len(ranked[1][1]) == len(ranked[0][1]):
+        return "–"
+    top = ranked[0][0]
+    for side in ("a", "b"):
+        if ta.POLES[axis][side]["code"] == top:
+            return ta.POLES[axis][side]["letter"]
+    return "~"
 
 
 def analyse_team(people: Dict[str, Person],
                  precision: Optional[Dict[str, Optional[float]]] = None) -> Dict[str, Any]:
+    """Composition of a team: the per-person matrix plus counts per value."""
     precision = precision or {}
     names = list(people)
     n = len(names)
@@ -168,149 +159,110 @@ def analyse_team(people: Dict[str, Person],
     rows = []
     for nm in names:
         r = profiles[nm]
-        row: Dict[str, Any] = {"name": nm, "code": r["code"], "integration": r["integration"]["code"]}
+        row: Dict[str, Any] = {"id": nm, "code": r["code"],
+                               "integration": r["integration"]["reading"]}
         for a in ta.AXES:
             ax = r["axes"][a]
-            row[a] = {"index": ax["index"], "band": ax["band"], "pole": ax["pole"], "letter": ax["letter"]}
+            row[a] = {"pole": ax["pole"], "letter": ax["letter"], "side": ax["side"],
+                      "band": ax["band"], "index": ax["index"]}
         row["decision"]["mode"] = r["axes"]["decision"]["mode"]
         row["execution"]["basis"] = r["axes"]["execution"]["basis"]
+        row["execution"]["energy_profile"] = r["axes"]["execution"]["energy_profile"]["code"]
         ts = r.get("time_stability")
         row["unstable_axes"] = ts["unstable_axes"] if ts else []
         rows.append(row)
 
-    summary: Dict[str, Any] = {}
-    tests = 0
-    over: List[Dict[str, Any]] = []
-    risks: List[Dict[str, Any]] = []
-    polar: List[Dict[str, Any]] = []
+    composition: Dict[str, Any] = {}
     for a in ta.AXES:
-        idx = [profiles[nm]["axes"][a]["index"] for nm in names]
-        members: Dict[str, List[str]] = {"a": [], "b": [], "none": []}
-        for nm in names:
-            members[profiles[nm]["axes"][a]["side"] or "none"].append(nm)
-        poles = ta.POLES[a]
-        summary[a] = {
-            "name_ru": ta.AXIS_NAME_RU[a],
-            "mean_index": round(statistics.mean(idx), 1),
-            "std_index": round(statistics.pstdev(idx), 1),
-            "min_index": min(idx),
-            "max_index": max(idx),
-            "poles": {poles["a"]["code"]: members["a"], poles["b"]["code"]: members["b"],
-                      "none": members["none"]},
-            "summary_ru": f"{poles['a']['label_ru']} — {len(members['a'])}, "
-                          f"{poles['b']['label_ru']} — {len(members['b'])}, "
-                          f"без полюса — {len(members['none'])}",
-        }
+        values: Dict[str, List[str]] = {}
         for side in ("a", "b"):
-            code = poles[side]["code"]
-            pop = POLE_SHARES_PCT[a].get(code)
-            if not pop:
-                continue
-            tests += 1
-            k = len(members[side])
-            if k < 2:
-                continue
-            pv = binom_sf(k, n, pop / 100.0)
-            lvl = _level(pv)
-            if lvl:
-                over.append({
-                    "axis": a, "kind": "pole", "value": code, "k": k, "n": n,
-                    "members": members[side], "population_pct": pop,
-                    "p_value": round(pv, 6), "level": lvl,
-                    "statement_ru": (f"{k} из {n}: {ta.AXIS_NAME_RU[a].lower()} — "
-                                     f"{poles[side]['label_ru'].lower()}. В популяции {pop:.1f}%. "
-                                     f"Вероятность случайного состава — {pv:.4f}. Это след подбора, "
-                                     f"а не совпадение.") if lvl == "robust" else None})
-        for side, other in (("a", "b"), ("b", "a")):
-            k = len(members[side])
-            if k >= ONE_SIDED_MIN and not members[other]:
-                code = poles[side]["code"]
-                pv = ((POLE_SHARES_PCT[a].get(code) or 0) / 100.0) ** k
-                risks.append({
-                    "axis": a, "pole": code, "k": k, "n": n,
-                    "without_pole": members["none"], "p_random": round(pv, 6),
-                    "text_ru": (f"Все участники с присвоенным полюсом ({k} из {n}) — "
-                                f"{poles[side]['label_ru'].lower()}. Гипотеза для обсуждения: "
-                                f"{RISK_RU[(a, side)]}. Случайно такой состав встречается "
-                                f"с вероятностью {pv:.3f}.")})
-        if len(members["a"]) >= 2 and len(members["b"]) >= 2:
-            polar.append({"axis": a,
-                          "groups": {poles["a"]["code"]: members["a"], poles["b"]["code"]: members["b"]},
-                          "text_ru": f"По оси «{ta.AXIS_NAME_RU[a]}» команда делится на две группы: "
-                                     f"{len(members['a'])} — {poles['a']['label_ru'].lower()}, "
-                                     f"{len(members['b'])} — {poles['b']['label_ru'].lower()}."})
+            values[ta.POLES[a][side]["code"]] = []
+        if a in ta.SCORED_AXES:
+            values["mixed"] = []
+        for nm in names:
+            values.setdefault(profiles[nm]["axes"][a]["pole"] or "none", []).append(nm)
+        items, parts = [], []
+        for code, mem in values.items():
+            side = next((x for x in ("a", "b") if ta.POLES[a][x]["code"] == code), None)
+            label = ta.POLES[a][side]["label_ru"] if side else "Смешанная"
+            meaning = (ta.POLES[a][side]["meaning_ru"] if side else
+                       "признаки обоих полюсов уравновешены; устойчивого предпочтения нет")
+            items.append({"code": code, "label_ru": label, "count": len(mem),
+                          "members": mem, "meaning_ru": meaning})
+            parts.append(f"{label} — {len(mem)}")
+        composition[a] = {
+            "name_ru": ta.AXIS_NAME_RU[a],
+            "values": values,
+            "counts": {code: len(mem) for code, mem in values.items()},
+            "items": items,
+            "summary_ru": " · ".join(parts),
+        }
 
-    mode_members: Dict[str, List[str]] = {}
+    modes: Dict[str, List[str]] = {}
     for nm in names:
         m = profiles[nm]["axes"]["decision"]["mode"]
         if m:
-            mode_members.setdefault(m, []).append(nm)
-    for mode, mem in mode_members.items():
-        pop = DECISION_MODE_SHARES_PCT.get(mode)
-        if not pop:
-            continue
-        tests += 1
-        if len(mem) < 2:
-            continue
-        pv = binom_sf(len(mem), n, pop / 100.0)
-        lvl = _level(pv)
-        if lvl:
-            over.append({"axis": "decision", "kind": "mode", "value": mode, "k": len(mem), "n": n,
-                         "members": mem, "population_pct": pop, "p_value": round(pv, 6), "level": lvl,
-                         "statement_ru": (f"{len(mem)} из {n} принимают решение {ta.DECISION_MODE_RU[mode]}. "
-                                          f"В популяции {pop:.1f}%. Вероятность случайного состава — {pv:.4f}.")
-                         if lvl == "robust" else None})
-    over.sort(key=lambda x: x["p_value"])
+            modes.setdefault(m, []).append(nm)
+    decision_modes = {
+        "name_ru": "Механизм принятия решения",
+        "values": modes,
+        "counts": {m: len(v) for m, v in modes.items()},
+        "items": [{"code": m, "label_ru": ta.DECISION_MODE_LABEL_RU[m], "count": len(v),
+                   "members": v, "meaning_ru": "решение формируется " + ta.DECISION_MODE_RU[m]}
+                  for m, v in modes.items()],
+        "summary_ru": " · ".join(f"{ta.DECISION_MODE_LABEL_RU[m]} — {len(v)}"
+                                 for m, v in modes.items()),
+    }
 
-    if n < ABSENCE_MIN_SIZE:
-        absence: Dict[str, Any] = {
-            "evaluated": False, "items": [],
-            "reason_ru": f"При {n} участниках отсутствие неотличимо от случайности. "
-                         f"Оценивается с {ABSENCE_MIN_SIZE} участников."}
-    else:
-        items = []
-        for mode, pop in DECISION_MODE_SHARES_PCT.items():
-            if mode == "none" or mode in mode_members:
-                continue
-            pv = p_absent(n, pop / 100.0)
-            if pv < ALPHA_ROBUST:
-                items.append({"axis": "decision", "value": mode, "population_pct": pop, "p_value": round(pv, 6),
-                              "statement_ru": f"Ни у кого в команде решение не формируется "
-                                              f"{ta.DECISION_MODE_RU[mode]}. При {n} участниках это "
-                                              f"отличается от случайного набора."})
-        for a in ta.AXES:
-            for side in ("a", "b"):
-                code = ta.POLES[a][side]["code"]
-                if summary[a]["poles"][code]:
-                    continue
-                pop = POLE_SHARES_PCT[a].get(code) or 0
-                pv = p_absent(n, pop / 100.0)
-                if pv < ALPHA_ROBUST:
-                    items.append({"axis": a, "value": code, "population_pct": pop, "p_value": round(pv, 6),
-                                  "statement_ru": f"Ни у кого в команде нет полюса "
-                                                  f"«{ta.POLES[a][side]['label_ru']}» "
-                                                  f"({ta.AXIS_NAME_RU[a].lower()}). При {n} участниках "
-                                                  f"это отличается от случайного набора."})
-        absence = {"evaluated": True, "items": items, "reason_ru": None}
+    integ: Dict[str, List[str]] = {}
+    for nm in names:
+        integ.setdefault(profiles[nm]["integration"]["reading"] or "none", []).append(nm)
+    integration = {
+        "name_ru": "Интеграция механизма решения",
+        "values": integ,
+        "counts": {k: len(v) for k, v in integ.items()},
+        "items": [{"code": k, "label_ru": ta.INTEGRATION_LABEL_RU.get(k, k), "count": len(v),
+                   "members": v, "meaning_ru": ta.INTEGRATION_RU.get(k)}
+                  for k, v in integ.items()],
+        "summary_ru": " · ".join(f"{ta.INTEGRATION_LABEL_RU.get(k, k)} — {len(v)}"
+                                 for k, v in integ.items()),
+    }
+
+    energy: Dict[str, List[str]] = {}
+    for nm in names:
+        energy.setdefault(profiles[nm]["axes"]["execution"]["energy_profile"]["code"], []).append(nm)
+    energy_items = [{"code": k, "label_ru": ta.ENERGY_PROFILE_RU[k][1], "count": len(v),
+                     "members": v, "meaning_ru": ta.ENERGY_PROFILE_RU[k][2]}
+                    for k, v in energy.items()]
 
     return {
         "model": ta.MODEL_ID,
         "model_version": ta.MODEL_VERSION,
+        "kind": "composition",
         "size": n,
-        "team_code": "·".join(_majority_letter(a, summary[a]) for a in ta.AXES),
-        "team_code_legend_ru": "полюс большинства по каждой оси; «–» — поровну или ни у кого",
-        "matrix": {"columns": ["name", "code", *ta.AXES, "integration"], "rows": rows},
-        "axes_summary": summary,
-        "risk_hypotheses": risks,
-        "overrepresentation": over,
-        "tests_run": tests,
-        "expected_false_signals_at_0_05": round(tests * ALPHA_SIGNAL, 2),
-        "absence": absence,
-        "polarization": polar,
+        "team_code": "·".join(_majority_letter(a, composition[a]["values"]) for a in ta.AXES),
+        "team_code_legend_ru": "значение, которое встречается у большинства участников; "
+                               "«–» — поровну",
+        "matrix": {"columns": ["id", "code", *ta.AXES, "integration"], "rows": rows},
+        "composition": composition,
+        "decision_modes": decision_modes,
+        "integration": integration,
+        "energy_profiles": {
+            "name_ru": "Энергетический механизм исполнения",
+            "values": energy,
+            "counts": {k: len(v) for k, v in energy.items()},
+            "items": energy_items,
+            "summary_ru": " · ".join(f"{i['label_ru']} — {i['count']}" for i in energy_items),
+        },
         "bridging": bridging(people),
-        "bridging_note_ru": "Эффект проксимальный: действует при совместной работе в одном помещении, "
-                            "при удалённой и одиночной работе не действует.",
+        "bridging_legend_ru": "Замыкание разрыва: если механизм решения участника собран из "
+                              "нескольких несвязанных блоков, присутствие другого человека "
+                              "соединяет эти блоки в очной работе. Читается по парам: кто кому "
+                              "замыкает разрыв.",
         "profiles": profiles,
-        "report_rules_ru": REPORT_RULES_RU,
+        "reading_note_ru": "Слой описывает состав команды: кто какую характеристику несёт и сколько "
+                           "таких участников. Оценок состава, утверждений об отсутствии и "
+                           "вероятностей здесь нет. Участники адресуются идентификатором из "
+                           "запроса; порядок ответа совпадает с порядком запроса.",
         "disclaimer_ru": ta.DISCLAIMER_RU,
     }

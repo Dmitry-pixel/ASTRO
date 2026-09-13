@@ -6,7 +6,7 @@ Public surface:
     analyse_penta_group(participants, group_type, ...)  -> 3-8 people
     analyse_wa_group(participants, group_type, ...)     -> 6+ people; OC16 from 9
     analyse_hybrid(participants, group_type, ...)       -> 2+ people, dyads + group
-    analyse_team_dynamics(participants)                 -> 2+ people, four-axis team matrix
+    analyse_team_dynamics(participants)                 -> 2-18 people, four-characteristic composition
 """
 import itertools
 from typing import Any, Dict, List, Optional
@@ -28,7 +28,7 @@ __all__ = [
     "analyse_composite", "analyse_penta_group", "analyse_wa_group", "analyse_hybrid",
     "resolve_all", "Person", "PersonResolutionError", "normalise_verbosity",
     "VERBOSITY_LEVELS", "PENTA_MIN", "PENTA_MAX", "PENTA_EXTENDED_MAX", "WA_MIN",
-    "GROUP_MAX", "semantics", "oc16", "blocks", "channels", "analyse_team_dynamics",
+    "GROUP_MAX", "TEAM_MIN", "TEAM_MAX", "semantics", "oc16", "blocks", "channels", "analyse_team_dynamics",
 ]
 
 
@@ -154,13 +154,19 @@ def analyse_hybrid(participants: Dict[str, Any], group_type: str = "business",
     return result
 
 
+TEAM_MIN, TEAM_MAX = 2, 18
+
+
 def analyse_team_dynamics(participants: Dict[str, Any]) -> Dict[str, Any]:
-    """Four operational axes per participant plus the team matrix."""
+    """Four operational characteristics per participant plus the team composition.
+
+    Team size 2–18, agreed 2026-09-13. Narrower than ``GROUP_MAX`` because this
+    layer is read as a list of people, not as a group field: past eighteen rows
+    the composition stops being something a consultant reads in one pass.
+    """
     size = len(participants)
-    if size < 2:
-        raise ValueError("At least 2 participants are required")
-    if size > GROUP_MAX:
-        raise ValueError(f"At most {GROUP_MAX} participants, got {size}")
+    if not TEAM_MIN <= size <= TEAM_MAX:
+        raise ValueError(f"team dynamics takes {TEAM_MIN} to {TEAM_MAX} participants, got {size}")
     precision = {}
     for name, payload in participants.items():
         data = payload.model_dump() if hasattr(payload, "model_dump") else dict(payload)

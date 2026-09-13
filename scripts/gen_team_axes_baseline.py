@@ -18,7 +18,7 @@ from collections import Counter
 from pathlib import Path
 
 from humandesign.features.core import hd_features
-from humandesign.features.team_axes import AXES, MODEL_VERSION, compute_from_date_to_gate
+from humandesign.features.team_axes import AXES, MODEL_VERSION, SCORED_AXES, compute_from_date_to_gate
 
 OUT = Path(__file__).resolve().parents[1] / "src" / "humandesign" / "features" / "team_axes_baseline.py"
 
@@ -34,7 +34,7 @@ def main() -> None:
     span = (dt.datetime(2006, 1, 1) - start).total_seconds()
     poles = {a: Counter() for a in AXES}
     bands = {a: Counter() for a in AXES}
-    hist = {a: Counter() for a in AXES}
+    hist = {a: Counter() for a in SCORED_AXES}
     modes, integ, basis, reading = Counter(), Counter(), Counter(), Counter()
     for _ in range(args.n):
         t = start + dt.timedelta(seconds=rnd.random() * span)
@@ -43,18 +43,19 @@ def main() -> None:
         for a in AXES:
             ax = r["axes"][a]
             poles[a][ax["pole"] or "none"] += 1
-            bands[a][ax["band"]] += 1
-            hist[a][int(ax["index"])] += 1
+            bands[a][ax["band"] or "categorical"] += 1
+            if a in SCORED_AXES:
+                hist[a][int(ax["index"])] += 1
         modes[r["axes"]["decision"]["mode"] or "none"] += 1
         basis[r["axes"]["execution"]["basis"]] += 1
-        integ[r["integration"]["code"]] += 1
+        integ[r["integration"]["reading"]] += 1
         rd = r["axes"]["decision"]["integration_reading"]
         reading[rd["code"] if rd else "none"] += 1
 
     n = args.n
     pct = lambda c: {k: round(100.0 * v / n, 2) for k, v in sorted(c.items(), key=lambda kv: (-kv[1], str(kv[0])))}
     cdf = {}
-    for a in AXES:
+    for a in SCORED_AXES:
         run, row = 0, []
         for i in range(101):
             run += hist[a].get(i, 0)
@@ -87,7 +88,7 @@ def main() -> None:
         "DECISION_READING_SHARES_PCT = %r" % pct(reading),
         "",
         "INDEX_CDF_PCT = {",
-        *["    %r: %r," % (a, cdf[a]) for a in AXES],
+        *["    %r: %r," % (a, cdf[a]) for a in SCORED_AXES],
         "}",
     ]
     OUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
