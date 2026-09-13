@@ -46,12 +46,13 @@ function renderTeamProfile(td) {
     var ig = td.integration || {};
     var hero = '<div class="team-code">' + TEAM_AXES.map(function(a) {
         var ax = td.axes[a] || {};
+        var sub = ax.index === null || ax.index === undefined
+            ? (ax.mode ? (TEAM_MODE_SHORT[ax.mode] || ax.mode) : '&nbsp;')
+            : tEsc(ax.index);
         return '<div class="team-code-cell">' + tLetter(ax, true)
             + '<span class="team-code-axis">' + TEAM_AXIS_SHORT[a] + '</span>'
-            + '<span class="team-code-idx">' + tEsc(ax.index) + '</span></div>';
-    }).join('')
-        + '<div class="team-code-cell"><span class="team-code-letter team-pole-none">' + tEsc(ig.code || '–') + '</span>'
-        + '<span class="team-code-axis">Интеграция</span><span class="team-code-idx">&nbsp;</span></div></div>'
+            + '<span class="team-code-idx">' + sub + '</span></div>';
+    }).join('') + '</div>'
         + '<p class="text-xs mt-3" style="color:var(--c-txt-dim);">' + tEsc(td.index_legend_ru || '') + '. Модель ' + tEsc(td.model_version || '') + '.</p>';
 
     var html = tCard('Командная динамика', hero, 'mb-4');
@@ -59,9 +60,10 @@ function renderTeamProfile(td) {
         + TEAM_AXES.map(function(a) { return renderTeamAxis(a, td.axes[a], td.time_stability); }).join('') + '</div>';
 
     var d = td.axes.decision || {}, rd = d.integration_reading;
-    var integ = '<div class="flex items-baseline gap-3 mb-2"><span class="team-pole team-pole-none">' + tEsc(ig.code || '–') + '</span>'
+    var integ = '<div class="flex items-baseline gap-3 mb-2"><span class="chip chip-mut">' + tEsc(ig.label_ru || '–') + '</span>'
         + '<span class="text-sm" style="color:var(--c-txt-bright);">' + tEsc(ig.text_ru || '') + '</span></div>'
-        + (rd ? '<p class="text-sm mt-3" style="color:var(--c-txt);line-height:1.55;">' + tEsc(d.pole_label_ru) + ' × ' + tEsc(rd.integration) + ': ' + tEsc(rd.text_ru) + '</p>' : '');
+        + (rd ? '<p class="text-sm mt-3" style="color:var(--c-txt);line-height:1.55;">' + tEsc(d.pole_label_ru)
+            + ' × ' + tEsc(TEAM_INTEGRATION_SHORT[rd.integration] || rd.integration) + ': ' + tEsc(rd.text_ru) + '</p>' : '');
     var flags = (td.flags || []).map(function(f) { return '<li class="text-sm mb-2" style="color:var(--c-txt);">' + tEsc(f.text_ru) + '</li>'; }).join('');
     html += '<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">'
         + tCard('Интеграция и переход к действию', integ)
@@ -80,14 +82,21 @@ function renderTeamAxis(a, ax, ts) {
     var head = '<div class="flex justify-between gap-3 mb-3" style="align-items:flex-start;">'
         + '<div><div class="text-[10px] font-mono tracking-wider uppercase" style="color:var(--c-txt-dim);">' + tEsc(ax.name_ru || a) + '</div>'
         + '<div class="text-base font-semibold mt-1" style="color:var(--c-txt-bright);">' + tEsc(ax.pole_label_ru || ax.band_ru) + '</div>'
-        + '<div class="text-[11px] font-mono mt-1" style="color:var(--c-txt-dim);">' + tEsc(ax.band_ru) + ' · индекс ' + tEsc(ax.index) + '</div></div>'
+        + '<div class="text-[11px] font-mono mt-1" style="color:var(--c-txt-dim);">'
+        + (ax.index === null || ax.index === undefined
+            ? 'полюс задаёт авторитет' + (ax.authority_ru ? ' · ' + tEsc(ax.authority_ru) : '')
+            : tEsc(ax.band_ru) + ' · индекс ' + tEsc(ax.index)) + '</div></div>'
         + tLetter(ax) + '</div>';
-    var body = tScale(ax);
+    var body = (ax.index === null || ax.index === undefined) ? '' : tScale(ax);
     if (ax.pole_meaning_ru) body += '<p class="text-sm mt-3 mb-3" style="color:var(--c-txt);line-height:1.55;">' + tEsc(ax.pole_meaning_ru) + '.</p>';
     else body += '<div class="mb-3"></div>';
     if (ax.mode_ru) body += '<div class="team-kv"><span>Как решает</span><span>' + tEsc(ax.mode_ru) + '</span></div>';
-    if (f.stability) body += '<div class="team-kv"><span>Поле</span><span>' + (f.stability === 'stable'
-        ? 'способ воспроизводим в любой команде' : 'способ зависит от окружения') + '</span></div>';
+    if (f.status_ru) body += '<div class="team-kv"><span>Механизм</span><span>' + tEsc(f.status_ru) + '</span></div>';
+    if (ax.energy_profile) body += '<div class="team-kv"><span>Энергия исполнения</span><span>'
+        + tEsc(ax.energy_profile.label_ru) + ' — ' + tEsc(ax.energy_profile.text_ru) + '</span></div>';
+    if (ax.g_support && (ax.g_support.c_signal || ax.g_support.h_signal))
+        body += '<div class="team-kv"><span>Опора из Джи</span><span>C ' + tEsc(ax.g_support.c_signal)
+            + ' · H ' + tEsc(ax.g_support.h_signal) + ' (полюс не меняют)</span></div>';
     if (f.entry_condition_ru) body += '<div class="team-kv"><span>Условие входа</span><span>' + tEsc(f.entry_condition_ru) + '</span></div>';
     body += '<div class="team-kv"><span>Признаки</span><span>A ' + tEsc(ax.evidence_a) + ' · B ' + tEsc(ax.evidence_b)
         + ' · уверенность ' + tEsc(ax.confidence) + '</span></div>';
@@ -112,7 +121,8 @@ function renderTeamTime(ts) {
         var t = ts.axes[a], poles = t.poles;
         return '<div class="team-kv"><span>' + TEAM_AXIS_SHORT[a] + '</span><span style="color:' + (t.pole_stable ? 'var(--c-txt)' : 'var(--c-warn)') + ';">'
             + Object.keys(poles).map(function(p) { return p + ' ' + Math.round(poles[p] * 100) + '%'; }).join(' / ')
-            + ' · индекс ' + t.index_min + '–' + t.index_max + '</span></div>';
+            + (t.index_min === null || t.index_min === undefined ? '' : ' · индекс ' + t.index_min + '–' + t.index_max)
+            + '</span></div>';
     }).join('');
     return tCard('Устойчивость к неточности времени · ±' + ts.precision_min + ' мин, ' + ts.samples + ' точек',
         rows + '<p class="text-sm mt-3" style="color:var(--c-txt);">' + tEsc(ts.summary_ru) + '</p>', 'mb-4');
