@@ -59,7 +59,8 @@ function renderTeamProfile(td) {
             + '<span class="team-code-axis">' + TEAM_AXIS_SHORT[a] + '</span>'
             + '<span class="team-code-idx">' + sub + '</span></div>';
     }).join('') + '</div>'
-        + '<p class="text-xs mt-3" style="color:var(--c-txt-dim);">' + tEsc(td.index_legend_ru || '') + '. Модель ' + tEsc(td.model_version || '') + '.</p>';
+        + '<p class="text-xs mt-3" style="color:var(--c-txt-dim);">'
+        + tEsc((td.index_legend_ru || '').replace(/\.\s*$/, '')) + '. Модель ' + tEsc(td.model_version || '') + '.</p>';
 
     var html = tCard('Командная динамика', hero, 'mb-4');
     html += '<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">'
