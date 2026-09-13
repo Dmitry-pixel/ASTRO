@@ -222,17 +222,47 @@ class TeamPopulationV2(BaseModel):
 
 
 class TeamAxisFieldV2(BaseModel):
-    basis: Optional[str] = None
+    basis: Optional[str] = Field(None, description="TT | AA for the scored information axes")
+    status: Optional[str] = Field(None, description="defined | undefined | open — level 1 of the reading")
+    status_ru: Optional[str] = None
     defined: Optional[bool] = None
-    stability: Optional[str] = Field(None, description="stable | conditioned")
     energy_type: Optional[str] = None
     entry_condition: Optional[str] = Field(None, description="response | invitation | inform | lunar_cycle")
     entry_condition_ru: Optional[str] = None
 
 
+class TeamGSupportEvidenceV2(BaseModel):
+    kind: Optional[str] = None
+    key: Optional[str] = None
+    side: Optional[str] = Field(None, description="c — competent, h — harmonious")
+    weight: Optional[float] = None
+    note_ru: Optional[str] = None
+
+
+class TeamGSupportV2(BaseModel):
+    """G-centre support profile for Decision. Never moves the pole."""
+
+    c_signal: Optional[float] = None
+    h_signal: Optional[float] = None
+    evidence: Optional[List[TeamGSupportEvidenceV2]] = None
+    note_ru: Optional[str] = None
+
+
+class TeamEnergyProfileV2(BaseModel):
+    """Root/Sacral field of Execution. Never votes for P or A."""
+
+    root: Optional[str] = Field(None, description="defined | undefined | open")
+    sacral: Optional[str] = Field(None, description="defined | undefined | open")
+    code: Optional[str] = Field(None, description="autonomous | stimulus_led | energy_led | context_dependent")
+    label: Optional[str] = None
+    label_ru: Optional[str] = None
+    text_ru: Optional[str] = None
+    note_ru: Optional[str] = None
+
+
 class TeamIntegrationReadingV2(BaseModel):
     code: Optional[str] = Field(None, description="internal_closed | internal_bridged | relational_closed | relational_bridged")
-    integration: Optional[str] = None
+    integration: Optional[str] = Field(None, description="closed | bridged")
     text_ru: Optional[str] = None
 
 
@@ -244,15 +274,16 @@ class TeamPerspectiveV2(BaseModel):
 class TeamAxisV2(BaseModel):
     name_ru: Optional[str] = None
     poles: Optional[TeamPolesV2] = None
-    index: Optional[float] = Field(None, description="0 — first pole, 100 — second; 100*(B+1)/(A+B+2)")
+    kind: Optional[str] = Field(None, description="index — scored axis; categorical — Decision, where the authority is the pole")
+    index: Optional[float] = Field(None, description="0 — first pole, 100 — second; 100*(B+1)/(A+B+2). null on Decision")
     evidence_a: Optional[float] = None
     evidence_b: Optional[float] = None
     confidence: Optional[float] = Field(None, description="(A+B)/(A+B+2)")
-    band: Optional[str] = Field(None, description="strong_a | moderate_a | mixed | moderate_b | strong_b | insufficient")
+    band: Optional[str] = Field(None, description="strong_a | moderate_a | mixed | moderate_b | strong_b. null on Decision")
     band_ru: Optional[str] = None
     side: Optional[str] = Field(None, description="a | b | null")
-    pole: Optional[str] = Field(None, description="structured/emergent, consistent/contextual, internal/relational, planned/adaptive")
-    letter: Optional[str] = Field(None, description="S/F, D/R, C/H, P/A")
+    pole: Optional[str] = Field(None, description="structured/emergent, fixed/relative, internal/relational, planned/adaptive, or 'mixed'")
+    letter: Optional[str] = Field(None, description="S/N, F/R, C/H, P/A; '~' for a mixed style")
     pole_label_ru: Optional[str] = None
     pole_meaning_ru: Optional[str] = None
     hypothesis_share: Optional[float] = None
@@ -261,12 +292,17 @@ class TeamAxisV2(BaseModel):
     field: Optional[TeamAxisFieldV2] = None
     # decision only
     mode: Optional[str] = Field(None, description="Decision: response | instant | will | articulated | delayed | external | lunar")
+    mode_label_ru: Optional[str] = None
     mode_ru: Optional[str] = None
     authority: Optional[str] = None
+    authority_ru: Optional[str] = None
+    status: Optional[str] = Field(None, description="Decision: core | hypothesis — status of the authority rule")
+    g_support: Optional[TeamGSupportV2] = None
     integration_reading: Optional[TeamIntegrationReadingV2] = None
     # execution only
     basis: Optional[str] = Field(None, description="Execution: channels | perspective_only | none")
     perspective: Optional[TeamPerspectiveV2] = None
+    energy_profile: Optional[TeamEnergyProfileV2] = None
 
 
 class TeamAxesSetV2(BaseModel):
@@ -277,9 +313,11 @@ class TeamAxesSetV2(BaseModel):
 
 
 class TeamIntegrationV2(BaseModel):
-    code: Optional[str] = Field(None, description="I1…I4, or R for a Reflector")
+    reading: Optional[str] = Field(None, description="closed | bridged | reflector — what the report uses")
+    raw: Optional[str] = Field(None, description="I1…I4, or R for a Reflector — raw data, not for the report")
     components: Optional[int] = None
     closed: Optional[bool] = None
+    label_ru: Optional[str] = None
     text_ru: Optional[str] = None
 
 

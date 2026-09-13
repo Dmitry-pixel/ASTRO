@@ -1,12 +1,14 @@
 <script>
 /* ============================================================
-   Team dynamics v1.1 — four operational characteristics.
-   Shared by the single-chart tab «Команда» and the group mode «Команда · 2+».
+   Team dynamics v1.2 — four operational characteristics.
+   Shared by the single-chart tab «Команда» and the group mode «Команда».
+   The team view is descriptive: composition only, no statistics.
    ============================================================ */
 var TEAM_AXES = ['transfer', 'processing', 'decision', 'execution'];
 var TEAM_AXIS_SHORT = { transfer: 'Передача', processing: 'Обработка', decision: 'Решение', execution: 'Исполнение' };
 var TEAM_BAND_CLS = { strong_a: 'team-pole-a', moderate_a: 'team-pole-a', strong_b: 'team-pole-b',
-                      moderate_b: 'team-pole-b', mixed: 'team-pole-none', insufficient: 'team-pole-none' };
+                      moderate_b: 'team-pole-b', mixed: 'team-pole-none' };
+var TEAM_INTEGRATION_SHORT = { closed: 'замкнут', bridged: 'из блоков', reflector: 'открыт' };
 var TEAM_MODE_SHORT = { response: 'отклик', instant: 'мгновенно', will: 'воля', articulated: 'вслух',
                         delayed: 'пауза', external: 'среда', lunar: 'цикл' };
 
@@ -116,52 +118,60 @@ function renderTeamTime(ts) {
         rows + '<p class="text-sm mt-3" style="color:var(--c-txt);">' + tEsc(ts.summary_ru) + '</p>', 'mb-4');
 }
 
-/* ---------- team matrix ---------- */
+/* ---------- team: composition only ---------- */
+function tCount(title, block) {
+    if (!block || !block.items || !block.items.length) {
+        return tCard(title, '<div class="text-sm" style="color:var(--c-txt-dim);">—</div>', 'mb-4');
+    }
+    var rows = block.items.map(function(i) {
+        return '<tr><td class="mono" style="color:var(--c-txt-bright);" title="' + tEsc(i.meaning_ru) + '">'
+            + tEsc(i.label_ru) + '</td><td class="mono">' + i.count + '</td>'
+            + '<td>' + tEsc((i.members || []).join(', ') || '—') + '</td></tr>';
+    }).join('');
+    var notes = block.items.map(function(i) {
+        return '<div class="team-kv"><span>' + tEsc(i.label_ru) + '</span><span style="color:var(--c-txt);">'
+            + tEsc(i.meaning_ru) + '</span></div>';
+    }).join('');
+    return tCard(title, '<div class="rel-scroll"><table class="rel-table"><thead>'
+        + '<tr><th>Значение</th><th>Кол-во</th><th>Кто</th></tr></thead><tbody>' + rows + '</tbody></table></div>'
+        + '<div class="mt-3">' + notes + '</div>', 'mb-4');
+}
+
 function renderTeamMatrix(tm) {
     var head = '<tr><th>Участник</th>' + TEAM_AXES.map(function(a) { return '<th>' + TEAM_AXIS_SHORT[a] + '</th>'; }).join('') + '<th>Интегр.</th></tr>';
     var body = tm.matrix.rows.map(function(r) {
-        return '<tr><td class="mono" style="color:var(--c-txt-bright);">' + tEsc(r.name) + '</td>'
+        return '<tr><td class="mono" style="color:var(--c-txt-bright);">' + tEsc(r.id) + '</td>'
             + TEAM_AXES.map(function(a) {
-                var c = r[a], side = c.letter ? (c.band.slice(-1)) : null;
-                var ax = { letter: c.letter, side: side, index: c.index };
+                var c = r[a];
+                var ax = { letter: c.letter, side: c.side, index: c.index };
                 var marks = (a === 'execution' && c.basis === 'perspective_only' ? '<sup class="team-rel-h" title="только Perspective">p</sup>' : '')
                     + (r.unstable_axes && r.unstable_axes.indexOf(a) >= 0 ? '<sup class="team-rel-h" title="зависит от времени рождения">≈</sup>' : '');
-                var mode = a === 'decision' && c.mode ? ' · ' + (TEAM_MODE_SHORT[c.mode] || c.mode) : '';
+                var note = a === 'decision'
+                    ? (c.mode ? TEAM_MODE_SHORT[c.mode] || c.mode : '—')
+                    : tEsc(c.index);
                 return '<td><div class="team-cell">' + tLetter(ax) + marks
-                    + '<div class="team-cell-body"><span class="team-cell-mode">' + tEsc(c.index) + mode + '</span>'
-                    + tScale(ax, true) + '</div></div></td>';
-            }).join('') + '<td class="mono">' + tEsc(r.integration || '–') + '</td></tr>';
+                    + '<div class="team-cell-body"><span class="team-cell-mode">' + note + '</span>'
+                    + (a === 'decision' ? '' : tScale(ax, true)) + '</div></div></td>';
+            }).join('') + '<td class="mono">' + tEsc(TEAM_INTEGRATION_SHORT[r.integration] || '–') + '</td></tr>';
     }).join('');
-    var foot = '<tr class="team-foot"><td class="mono">Команда</td>' + TEAM_AXES.map(function(a, i) {
-        var s = tm.axes_summary[a], letter = tm.team_code.split('·')[i];
-        return '<td><div class="team-cell"><span class="team-pole team-pole-none">' + tEsc(letter) + '</span>'
-            + '<span class="team-cell-mode">' + s.mean_index + ' ± ' + s.std_index + '</span></div></td>';
+    var foot = '<tr class="team-foot"><td class="mono">Большинство</td>' + TEAM_AXES.map(function(a, i) {
+        var letter = tm.team_code.split('·')[i];
+        return '<td><div class="team-cell"><span class="team-pole team-pole-none">' + tEsc(letter) + '</span></div></td>';
     }).join('') + '<td></td></tr>';
-    var html = tCard('Матрица командной динамики · ' + tm.size + ' участников',
+
+    var html = tCard('Состав команды · ' + tm.size + ' участников',
         '<div class="rel-scroll"><table class="rel-table"><thead>' + head + '</thead><tbody>' + body + foot + '</tbody></table></div>'
-        + '<p class="text-[11px] font-mono mt-3" style="color:var(--c-txt-dim);">Число — индекс 0–100 (0 — первый полюс S D C P, 100 — второй F R H A). '
-        + 'Строка «Команда» — полюс большинства и средний индекс ± разброс. p — Исполнение только по Perspective; ≈ — зависит от времени рождения.</p>', 'mb-4');
+        + '<p class="text-[11px] font-mono mt-3" style="color:var(--c-txt-dim);">Буква — характеристика участника: S/N Передача, F/R Обработка, C/H Решение, P/A Исполнение, «~» — смешанный стиль. '
+        + 'Число — индекс 0–100 (0 — первый полюс, 100 — второй); у Решения индекса нет, показан механизм. '
+        + 'Строка «Большинство» — значение, которое встречается чаще всего; «–» — поровну. '
+        + 'p — Исполнение только по Perspective; ≈ — зависит от времени рождения.</p>', 'mb-4');
 
-    var risks = tm.risk_hypotheses.length ? '<ul style="list-style:disc;padding-left:18px;">' + tm.risk_hypotheses.map(function(r) {
-        return '<li class="text-sm mb-2" style="color:var(--c-txt);">' + tEsc(r.text_ru) + '</li>'; }).join('') + '</ul>'
-        : '<div class="text-sm" style="color:var(--c-txt-dim);">Ни по одной оси команда не однородна: на каждой есть оба полюса или меньше трёх человек с полюсом.</div>';
-    var robust = tm.overrepresentation.filter(function(o) { return o.level === 'robust'; });
-    var signal = tm.overrepresentation.filter(function(o) { return o.level === 'signal'; });
-    var over = robust.length ? '<ul style="list-style:disc;padding-left:18px;">' + robust.map(function(o) {
-        return '<li class="text-sm mb-2" style="color:var(--c-txt);">' + tEsc(o.statement_ru) + '</li>'; }).join('') + '</ul>'
-        : '<div class="text-sm" style="color:var(--c-txt-dim);">Устойчивых перекосов (p &lt; 0.0025) нет — состав не отличается от случайного набора.</div>';
-    if (signal.length) over += '<div class="p-lbl mt-4 mb-1">Стоит посмотреть — p &lt; 0.05, не для отчёта клиенту</div><div class="flex flex-wrap gap-1.5">'
-        + signal.map(function(o) { return '<span class="chip chip-mut">' + tEsc(TEAM_AXIS_SHORT[o.axis]) + ': ' + tEsc(o.value) + ' ' + o.k + '/' + o.n + ' · p=' + o.p_value.toFixed(3) + '</span>'; }).join(' ') + '</div>';
-    over += '<p class="text-[11px] mt-3" style="color:var(--c-txt-dim);">Проверок: ' + tm.tests_run + '. Ожидаемо ложных сигналов на уровне 0.05: ' + tm.expected_false_signals_at_0_05 + '.</p>';
-    html += '<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">' + tCard('Риски однородности — гипотезы', risks) + tCard('Перекос состава', over) + '</div>';
-
-    var abs = tm.absence.evaluated
-        ? (tm.absence.items.length ? '<ul style="list-style:disc;padding-left:18px;">' + tm.absence.items.map(function(i) { return '<li class="text-sm mb-2" style="color:var(--c-txt);">' + tEsc(i.statement_ru) + '</li>'; }).join('') + '</ul>'
-            : '<div class="text-sm" style="color:var(--c-txt-dim);">Статистически значимых отсутствий нет.</div>')
-        : '<div class="text-sm" style="color:var(--c-txt-dim);">' + tEsc(tm.absence.reason_ru) + '</div>';
-    var pol = tm.polarization.length ? tm.polarization.map(function(p) { return '<p class="text-sm mb-2" style="color:var(--c-txt);">' + tEsc(p.text_ru) + '</p>'; }).join('')
-        : '<div class="text-sm" style="color:var(--c-txt-dim);">Ни одна ось не делится на две группы по два человека и больше.</div>';
-    html += '<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">' + tCard('Отсутствие', abs) + tCard('Поляризация — описательно', pol) + '</div>';
+    html += '<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">'
+        + TEAM_AXES.map(function(a) { return tCount(tm.composition[a].name_ru, tm.composition[a]); }).join('')
+        + tCount(tm.decision_modes.name_ru, tm.decision_modes)
+        + tCount(tm.integration.name_ru, tm.integration)
+        + tCount(tm.energy_profiles.name_ru, tm.energy_profiles)
+        + '</div>';
 
     var br = tm.bridging.slice(0, 12).map(function(b) {
         return '<tr><td class="mono" style="color:var(--c-txt-bright);">' + tEsc(b.bridge) + ' → ' + tEsc(b.closes_for) + '</td>'
@@ -169,24 +179,17 @@ function renderTeamMatrix(tm) {
             + '<td class="mono">' + (b.critical_channels.length ? tEsc(b.critical_channels.join(', '))
                 : '<span style="color:var(--c-txt-dim);" title="' + tEsc(b.channels.join(', ')) + '">несколько путей · ' + b.channels.length + ' кан.</span>') + '</td></tr>';
     }).join('');
-    br = br ? '<div class="rel-scroll"><table class="rel-table"><thead><tr><th>Кто замыкает</th><th>Блоки</th><th>Ключевые каналы</th></tr></thead><tbody>' + br + '</tbody></table></div>'
+    br = br ? '<div class="rel-scroll"><table class="rel-table"><thead><tr><th>Кто замыкает → кому</th><th>Блоки</th><th>Ключевые каналы</th></tr></thead><tbody>' + br + '</tbody></table></div>'
         + (tm.bridging.length > 12 ? '<p class="text-[11px] mt-2" style="color:var(--c-txt-dim);">Ещё ' + (tm.bridging.length - 12) + ' — в JSON.</p>' : '')
         : '<div class="text-sm" style="color:var(--c-txt-dim);">Ни один участник не замыкает разрыв другого.</div>';
-    html += tCard('Замыкание разрывов (Integration)', br + '<p class="text-[11px] mt-3" style="color:var(--c-txt-dim);">' + tEsc(tm.bridging_note_ru) + '</p>', 'mb-4');
+    html += tCard('Замыкание разрывов', br + '<p class="text-[11px] mt-3" style="color:var(--c-txt-dim);">' + tEsc(tm.bridging_legend_ru) + '</p>', 'mb-4');
+
+    html += '<p class="text-xs mb-2" style="color:var(--c-txt-dim);line-height:1.6;">' + tEsc(tm.reading_note_ru) + '</p>';
     html += '<p class="text-xs mb-4" style="color:var(--c-txt-dim);line-height:1.6;">' + tEsc(tm.disclaimer_ru) + '</p>';
     return html;
 }
 
 function renderTeamComposition(tm) {
-    return TEAM_AXES.map(function(a) {
-        var s = tm.axes_summary[a];
-        var rows = Object.keys(s.poles).map(function(p) {
-            return '<tr><td class="mono">' + tEsc(p === 'none' ? 'без полюса' : p) + '</td><td class="mono">' + s.poles[p].length
-                + '</td><td>' + tEsc(s.poles[p].join(', ') || '—') + '</td></tr>';
-        }).join('');
-        return tCard(s.name_ru + ' · средний индекс ' + s.mean_index + ' ± ' + s.std_index + ' (' + s.min_index + '–' + s.max_index + ')',
-            '<div class="rel-scroll"><table class="rel-table"><thead><tr><th>Полюс</th><th>Кол-во</th><th>Кто</th></tr></thead><tbody>'
-            + rows + '</tbody></table></div>', 'mb-4');
-    }).join('');
+    return TEAM_AXES.map(function(a) { return tCount(tm.composition[a].name_ru, tm.composition[a]); }).join('');
 }
 </script>

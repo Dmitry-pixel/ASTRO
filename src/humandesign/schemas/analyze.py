@@ -5,7 +5,7 @@ coercion. Range constraints live on the fields so they land in `openapi.yaml` an
 produce the standard FastAPI 422 body, matching what `routers/general.py` and
 `routers/v2/general.py` do since 3.4.3.
 """
-from typing import Annotated, Any, Dict, Literal, Optional
+from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -145,18 +145,37 @@ class HybridRequest(_GroupRequest):
 
 
 class TeamDynamicsRequest(BaseModel):
-    """Two or more people — the four operational axes and the team matrix."""
+    """Two to eighteen people — the four operational axes and the team composition.
 
-    participants: Dict[str, ParticipantInput]
+    ``participants`` takes either shape:
+
+    * a **list** — the usual call from a site, which has no names to send. Ids are
+      assigned positionally as ``"1"``…``"n"``;
+    * an **object** — keys are the caller's own identifiers, used as-is.
+
+    Both produce an identical response for the same people in the same order, and
+    the response keeps that order. The identifier is opaque: it appears in
+    ``matrix.rows[].id``, in ``items[].members`` and in ``bridging``, never in any
+    computation.
+    """
+
+    participants: Union[List[ParticipantInput], Dict[str, ParticipantInput]]
 
     model_config = {"json_schema_extra": {"examples": [{
+        "participants": [
+            {"place": "Moscow, Russia", "year": 1985, "month": 3, "day": 14,
+             "hour": 9, "minute": 25, "time_precision_min": 30},
+            {"place": "Berlin, Germany", "year": 1979, "month": 11, "day": 2,
+             "hour": 17, "minute": 40},
+            {"place": "Singapore", "year": 1991, "month": 7, "day": 21,
+             "hour": 6, "minute": 5},
+        ],
+    }, {
         "participants": {
-            "Anna": {"place": "Moscow, Russia", "year": 1985, "month": 3, "day": 14,
-                     "hour": 9, "minute": 25, "time_precision_min": 30},
-            "Boris": {"place": "Berlin, Germany", "year": 1979, "month": 11, "day": 2,
-                      "hour": 17, "minute": 40},
-            "Chen": {"place": "Singapore", "year": 1991, "month": 7, "day": 21,
-                     "hour": 6, "minute": 5},
+            "p1": {"place": "Moscow, Russia", "year": 1985, "month": 3, "day": 14,
+                   "hour": 9, "minute": 25},
+            "p2": {"place": "Berlin, Germany", "year": 1979, "month": 11, "day": 2,
+                   "hour": 17, "minute": 40},
         },
     }]}}
 
@@ -164,10 +183,18 @@ class TeamDynamicsRequest(BaseModel):
     @classmethod
     def _two_to_64(cls, v):
         if len(v) < 2:
-            raise ValueError(f"team dynamics takes 2 or more participants, got {len(v)}")
-        if len(v) > 64:
-            raise ValueError(f"at most 64 participants, got {len(v)}")
-        for name in v:
-            if not name.strip():
-                raise ValueError("participant names must not be blank")
+            raise ValueError(f"team dynamics takes 2 to 18 participants, got {len(v)}")
+        if len(v) > 18:
+            raise ValueError(f"team dynamics takes 2 to 18 participants, got {len(v)}")
+        if isinstance(v, dict):
+            for name in v:
+                if not name.strip():
+                    raise ValueError("participant identifiers must not be blank")
         return v
+
+    @property
+    def keyed(self) -> Dict[str, ParticipantInput]:
+        """Participants as an ordered mapping, whichever shape came in."""
+        if isinstance(self.participants, dict):
+            return self.participants
+        return {str(i): p for i, p in enumerate(self.participants, 1)}

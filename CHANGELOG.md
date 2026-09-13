@@ -6,6 +6,114 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [3.12.0] - 2026-09-13
+
+### Changed - team dynamics model v1.2 (BREAKING)
+
+Agreed 2026-09-13. Every weight below was checked on the same 20 000-chart
+population used for v1.1, same seed, same generator.
+
+#### Transfer — complete channel set, centre status weighs 2
+- All **13 Throat channels** are now scored. `16-48` and `21-45` were missing in
+  v1.1, which is why 57% of people got no pole on this characteristic: someone
+  whose only Throat channel was one of those two had no channel evidence at all.
+  Now 16.8% are mixed and nobody is left without a value.
+- **`8-1` moved to the emergent pole** (was structured). Affects the Transfer
+  pole of about 9% of the population.
+- Throat defined -> S 2, Throat open -> N 2 (was 1 / 1).
+- Weights: S — 17-62 3, 16-48 3, 7-31 2, 23-43 2, 21-45 2. N — 35-36 3, 12-22 3,
+  20-57 3, 13-33 2, 11-56 2, 1-8 2, 10-20 2, 20-34 2.
+
+#### Processing — individual circuit, centre status weighs 2
+- Ajna defined -> F 2, Ajna open -> R 2.
+- Weights: F — 4-63 3, 17-62 3, 43-23 2, 24-61 2. R — 47-64 2, 11-56 2.
+  The individual circuit drops from 3 to 2: a fixed conviction is not reusable
+  across similar situations, which is what the Fixed pole claims, so it stays
+  the weakest of the three circuits while still outweighing a single gate.
+
+#### Dangling gates — own centre only
+- Both scored information axes now count gates of **their own centre only**.
+  Gate 64 (Head) left Processing, gate 24 (Ajna) joined it; Transfer counts the
+  eleven Throat gates and no longer counts the far end of its channels.
+
+#### No secondary-axis discount
+- A channel shared by two characteristics is scored at **full weight in each**:
+  every characteristic is an independent reading. Measured consequence: the
+  Transfer pole shifts the Processing pole (68% F among S against 26% F among
+  N), which is why the team layer must not treat them as two observations.
+
+#### Decision — categorical (BREAKING)
+- `index` and `band` are **`null`**. The authority is the pole; v1.1 produced
+  five bands out of one categorical variable, which was false precision.
+- New `kind: "categorical"`, `authority_ru`, `mode_label_ru`, `status`.
+- New **`g_support`**: the ten G-centre channels and eight G gates as
+  `c_signal` / `h_signal`. It never moves the pole — an authority is
+  categorical, channels are quantitative, and three C channels must not
+  outweigh an H authority.
+
+#### Execution
+- `46-29` stays on the **planned** side; `2-14` added at 2. Perspective stays in
+  Execution only, weight 1 — adding it to Transfer was measured and rejected
+  (Transfer x Execution dependence 0.063 -> 0.187, no gain in coverage).
+- New **`energy_profile`** from Root/Sacral: `autonomous`, `stimulus_led`,
+  `energy_led`, `context_dependent`. A separate field, never a vote for P or A.
+
+#### Every chart gets a value (BREAKING)
+- **`insufficient` is gone.** Three values per scored characteristic: pole A,
+  pole B, or `mixed` (`pole: "mixed"`, `letter: "~"`, `side: null`). Balanced
+  evidence is a style, not missing data.
+- Pole letters: Transfer **S/N** (was S/F), Processing **F/R** (was D/R).
+- The code is four letters, not five: `N·~·H·P`. Integration moved out of it.
+
+#### Integration
+- Reported as **`reading`**: `closed` / `bridged` / `reflector`, with
+  `label_ru`. `raw` keeps I1-I4 as data. I4 is under 1% of the population and
+  ranking I3 above I2 has no basis, so the report uses the binary reading.
+
+#### POST /analyze/team-dynamics — composition only (BREAKING)
+- **Team size 2-18** (was 2-64).
+- `participants` accepts a **list** as well as an object. With a list, ids are
+  assigned positionally `"1"`..`"n"`. Both shapes give an identical response and
+  the response keeps request order. Sites send place, date and time — not names
+  — so the identifier is opaque and appears only in `matrix.rows[].id`,
+  `items[].members` and `bridging`.
+- **Removed**: `overrepresentation`, `tests_run`,
+  `expected_false_signals_at_0_05`, `absence`, `risk_hypotheses`,
+  `polarization`, `axes_summary`, `report_rules_ru`, and `mean_index` /
+  `std_index` / `min_index` / `max_index` — an average between a structured and
+  an emergent participant is not a mixed team.
+- **Added**: `composition` per characteristic, `decision_modes`, `integration`,
+  `energy_profiles` — each as `counts` plus `items[]` carrying `code`,
+  `label_ru`, `count`, `members` and `meaning_ru`, so a bare count is readable
+  without the methodology at hand.
+- `matrix.rows[].name` renamed to **`id`**; `bridging` gained
+  `text_template_ru` with `{bridge}` / `{closes_for}` placeholders and
+  `channels_ru`; `bridging_note_ru` replaced by `bridging_legend_ru`.
+
+#### Population baseline (regenerated)
+| Characteristic | First pole | Second pole | Mixed |
+|---|---|---|---|
+| Transfer | S 34.6% | N 48.6% | 16.8% |
+| Processing | F 38.3% | R 51.4% | 10.3% |
+| Decision | C 45.7% | H 54.3% | — |
+| Execution | P 43.6% | A 49.0% | 7.4% |
+
+Integration: bridged 58.5%, closed 40.6%, reflector 1.0%. Execution resting on
+Perspective alone: 28.1%. Pairwise dependence between characteristics stays at
+or below 0.25 (Cramer's V), highest between Transfer and Processing, which is
+the price of scoring each characteristic independently.
+
+Reference chart (1966-12-09 17:00 UTC+6): `N·~·H·P`, 63.6 / 50.0 / — / 20.0,
+integration closed, reading `relational_closed`. Was `F·D·H·P·I1` in v1.1.
+
+### Notes
+- `claude/hd-team-thresholds-2026-08-25.md` no longer applies to anything in the
+  code: the team layer makes no statistical claims, so its binomial thresholds
+  have no consumer.
+- Calibration against self-report is still open and is the only way to say
+  anything about accuracy. The weights above are a projection of the
+  methodology onto Human Design terminology, not a property of the system.
+
 
 ## [3.11.0] - 2026-09-10
 

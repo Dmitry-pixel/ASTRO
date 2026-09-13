@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Human Design API
-  version: 3.11.0
+  version: 3.12.0
 paths:
   /health:
     get:
@@ -1690,17 +1690,23 @@ components:
           - type: string
           - type: 'null'
           title: Basis
+          description: TT | AA for the scored information axes
+        status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+          description: defined | undefined | open — level 1 of the reading
+        status_ru:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status Ru
         defined:
           anyOf:
           - type: boolean
           - type: 'null'
           title: Defined
-        stability:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Stability
-          description: stable | conditioned
         energy_type:
           anyOf:
           - type: string
@@ -1730,12 +1736,18 @@ components:
           anyOf:
           - $ref: '#/components/schemas/TeamPolesV2'
           - type: 'null'
+        kind:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Kind
+          description: index — scored axis; categorical — Decision, where the authority is the pole
         index:
           anyOf:
           - type: number
           - type: 'null'
           title: Index
-          description: 0 — first pole, 100 — second; 100*(B+1)/(A+B+2)
+          description: 0 — first pole, 100 — second; 100*(B+1)/(A+B+2). null on Decision
         evidence_a:
           anyOf:
           - type: number
@@ -1757,7 +1769,7 @@ components:
           - type: string
           - type: 'null'
           title: Band
-          description: strong_a | moderate_a | mixed | moderate_b | strong_b | insufficient
+          description: strong_a | moderate_a | mixed | moderate_b | strong_b. null on Decision
         band_ru:
           anyOf:
           - type: string
@@ -1774,13 +1786,14 @@ components:
           - type: string
           - type: 'null'
           title: Pole
-          description: structured/emergent, consistent/contextual, internal/relational, planned/adaptive
+          description: structured/emergent, fixed/relative, internal/relational, planned/adaptive, or
+            'mixed'
         letter:
           anyOf:
           - type: string
           - type: 'null'
           title: Letter
-          description: S/F, D/R, C/H, P/A
+          description: S/N, F/R, C/H, P/A; '~' for a mixed style
         pole_label_ru:
           anyOf:
           - type: string
@@ -1817,6 +1830,11 @@ components:
           - type: 'null'
           title: Mode
           description: 'Decision: response | instant | will | articulated | delayed | external | lunar'
+        mode_label_ru:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Mode Label Ru
         mode_ru:
           anyOf:
           - type: string
@@ -1827,6 +1845,21 @@ components:
           - type: string
           - type: 'null'
           title: Authority
+        authority_ru:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authority Ru
+        status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+          description: 'Decision: core | hypothesis — status of the authority rule'
+        g_support:
+          anyOf:
+          - $ref: '#/components/schemas/TeamGSupportV2'
+          - type: 'null'
         integration_reading:
           anyOf:
           - $ref: '#/components/schemas/TeamIntegrationReadingV2'
@@ -1841,44 +1874,69 @@ components:
           anyOf:
           - $ref: '#/components/schemas/TeamPerspectiveV2'
           - type: 'null'
+        energy_profile:
+          anyOf:
+          - $ref: '#/components/schemas/TeamEnergyProfileV2'
+          - type: 'null'
       type: object
       title: TeamAxisV2
     TeamDynamicsRequest:
       properties:
         participants:
-          additionalProperties:
-            $ref: '#/components/schemas/ParticipantInput'
-          type: object
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/ParticipantInput'
+            type: array
+          - additionalProperties:
+              $ref: '#/components/schemas/ParticipantInput'
+            type: object
           title: Participants
       type: object
       required:
       - participants
       title: TeamDynamicsRequest
-      description: Two or more people — the four operational axes and the team matrix.
+      description: "Two to eighteen people — the four operational axes and the team composition.\n\n``participants``\
+        \ takes either shape:\n\n* a **list** — the usual call from a site, which has no names to send.\
+        \ Ids are\n  assigned positionally as ``\"1\"``…``\"n\"``;\n* an **object** — keys are the caller's\
+        \ own identifiers, used as-is.\n\nBoth produce an identical response for the same people in the\
+        \ same order, and\nthe response keeps that order. The identifier is opaque: it appears in\n``matrix.rows[].id``,\
+        \ in ``items[].members`` and in ``bridging``, never in any\ncomputation."
       examples:
       - participants:
-          Anna:
+        - day: 14
+          hour: 9
+          minute: 25
+          month: 3
+          place: Moscow, Russia
+          time_precision_min: 30
+          year: 1985
+        - day: 2
+          hour: 17
+          minute: 40
+          month: 11
+          place: Berlin, Germany
+          year: 1979
+        - day: 21
+          hour: 6
+          minute: 5
+          month: 7
+          place: Singapore
+          year: 1991
+      - participants:
+          p1:
             day: 14
             hour: 9
             minute: 25
             month: 3
             place: Moscow, Russia
-            time_precision_min: 30
             year: 1985
-          Boris:
+          p2:
             day: 2
             hour: 17
             minute: 40
             month: 11
             place: Berlin, Germany
             year: 1979
-          Chen:
-            day: 21
-            hour: 6
-            minute: 5
-            month: 7
-            place: Singapore
-            year: 1991
     TeamDynamicsV2:
       properties:
         model:
@@ -1936,6 +1994,49 @@ components:
       description: 'Four operational characteristics of team dynamics, model v1.1. Not a
 
         psychological diagnosis — see disclaimer_ru.'
+    TeamEnergyProfileV2:
+      properties:
+        root:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Root
+          description: defined | undefined | open
+        sacral:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sacral
+          description: defined | undefined | open
+        code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Code
+          description: autonomous | stimulus_led | energy_led | context_dependent
+        label:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Label
+        label_ru:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Label Ru
+        text_ru:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Text Ru
+        note_ru:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Note Ru
+      type: object
+      title: TeamEnergyProfileV2
+      description: Root/Sacral field of Execution. Never votes for P or A.
     TeamEvidenceV2:
       properties:
         kind:
@@ -1993,6 +2094,63 @@ components:
           title: Text Ru
       type: object
       title: TeamFlagV2
+    TeamGSupportEvidenceV2:
+      properties:
+        kind:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Kind
+        key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Key
+        side:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Side
+          description: c — competent, h — harmonious
+        weight:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Weight
+        note_ru:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Note Ru
+      type: object
+      title: TeamGSupportEvidenceV2
+    TeamGSupportV2:
+      properties:
+        c_signal:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: C Signal
+        h_signal:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: H Signal
+        evidence:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/TeamGSupportEvidenceV2'
+            type: array
+          - type: 'null'
+          title: Evidence
+        note_ru:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Note Ru
+      type: object
+      title: TeamGSupportV2
+      description: G-centre support profile for Decision. Never moves the pole.
     TeamIntegrationReadingV2:
       properties:
         code:
@@ -2006,6 +2164,7 @@ components:
           - type: string
           - type: 'null'
           title: Integration
+          description: closed | bridged
         text_ru:
           anyOf:
           - type: string
@@ -2015,12 +2174,18 @@ components:
       title: TeamIntegrationReadingV2
     TeamIntegrationV2:
       properties:
-        code:
+        reading:
           anyOf:
           - type: string
           - type: 'null'
-          title: Code
-          description: I1…I4, or R for a Reflector
+          title: Reading
+          description: closed | bridged | reflector — what the report uses
+        raw:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Raw
+          description: I1…I4, or R for a Reflector — raw data, not for the report
         components:
           anyOf:
           - type: integer
@@ -2031,6 +2196,11 @@ components:
           - type: boolean
           - type: 'null'
           title: Closed
+        label_ru:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Label Ru
         text_ru:
           anyOf:
           - type: string
