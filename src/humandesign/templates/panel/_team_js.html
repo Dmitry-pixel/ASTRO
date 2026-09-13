@@ -37,6 +37,12 @@ function tScale(ax, compact) {
         + '</div>';
 }
 function tPct(v) { return (v === null || v === undefined) ? '—' : (Math.round(v * 10) / 10) + '%'; }
+/* Pole letter for a side. Never show the internal 'a'/'b': on Execution they
+   collide with the pole letters P/A and read as the opposite pole. */
+function tPoleLetter(ax, side) {
+    var p = ax && ax.poles && ax.poles[side];
+    return p ? p.letter : side.toUpperCase();
+}
 
 /* ---------- single profile ---------- */
 function renderTeamProfile(td) {
@@ -62,8 +68,9 @@ function renderTeamProfile(td) {
     var d = td.axes.decision || {}, rd = d.integration_reading;
     var integ = '<div class="flex items-baseline gap-3 mb-2"><span class="chip chip-mut">' + tEsc(ig.label_ru || '–') + '</span>'
         + '<span class="text-sm" style="color:var(--c-txt-bright);">' + tEsc(ig.text_ru || '') + '</span></div>'
-        + (rd ? '<p class="text-sm mt-3" style="color:var(--c-txt);line-height:1.55;">' + tEsc(d.pole_label_ru)
-            + ' × ' + tEsc(TEAM_INTEGRATION_SHORT[rd.integration] || rd.integration) + ': ' + tEsc(rd.text_ru) + '</p>' : '');
+        + (rd ? '<p class="text-sm mt-3" style="color:var(--c-txt);line-height:1.55;">'
+            + '<span style="color:var(--c-txt-dim);">' + tEsc(d.pole_label_ru) + ' · '
+            + tEsc(ig.label_ru || '') + ' — </span>' + tEsc(rd.text_ru) + '</p>' : '');
     var flags = (td.flags || []).map(function(f) { return '<li class="text-sm mb-2" style="color:var(--c-txt);">' + tEsc(f.text_ru) + '</li>'; }).join('');
     html += '<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">'
         + tCard('Интеграция и переход к действию', integ)
@@ -98,9 +105,15 @@ function renderTeamAxis(a, ax, ts) {
         body += '<div class="team-kv"><span>Опора из Джи</span><span>C ' + tEsc(ax.g_support.c_signal)
             + ' · H ' + tEsc(ax.g_support.h_signal) + ' (полюс не меняют)</span></div>';
     if (f.entry_condition_ru) body += '<div class="team-kv"><span>Условие входа</span><span>' + tEsc(f.entry_condition_ru) + '</span></div>';
-    body += '<div class="team-kv"><span>Признаки</span><span>A ' + tEsc(ax.evidence_a) + ' · B ' + tEsc(ax.evidence_b)
-        + ' · уверенность ' + tEsc(ax.confidence) + '</span></div>';
-    body += '<div class="team-kv"><span>Популяция</span><span>полюс у ' + tPct(pop.pole_pct) + ' · индекс не выше у ' + tPct(pop.index_percentile) + '</span></div>';
+    if (ax.evidence_a !== undefined && ax.evidence_a !== null) {
+        body += '<div class="team-kv"><span>Признаки</span><span>' + tPoleLetter(ax, 'a') + ' ' + tEsc(ax.evidence_a)
+            + ' · ' + tPoleLetter(ax, 'b') + ' ' + tEsc(ax.evidence_b)
+            + ' · уверенность ' + tEsc(ax.confidence) + '</span></div>';
+    }
+    if (pop.pole_pct !== undefined && pop.pole_pct !== null) {
+        body += '<div class="team-kv"><span>Популяция</span><span>полюс у ' + tPct(pop.pole_pct)
+            + ' · индекс не выше у ' + tPct(pop.index_percentile) + '</span></div>';
+    }
     if (ax.basis === 'perspective_only') body += '<div class="team-kv"><span>Основание</span><span class="team-rel-h">только стрелка Perspective — гипотеза</span></div>';
     if (unstable) {
         var poles = ts.axes[a].poles;
@@ -110,7 +123,7 @@ function renderTeamAxis(a, ax, ts) {
     var ev = (ax.evidence || []).map(function(e) {
         var cls = e.status === 'hypothesis' ? 'chip-cmp' : (e.side === 'a' ? 'chip-em' : 'chip-comp');
         return '<span class="chip ' + cls + '" title="' + tEsc((e.note_ru || '') + ' · ' + e.status) + '">'
-            + tEsc(e.side.toUpperCase() + ' ' + e.key + ' +' + e.weight) + '</span>';
+            + tEsc(tPoleLetter(ax, e.side) + ' ' + e.key + ' +' + e.weight) + '</span>';
     }).join(' ');
     if (ev) body += '<div class="mt-3 flex flex-wrap gap-1.5">' + ev + '</div>';
     return tCard('', head + body);
