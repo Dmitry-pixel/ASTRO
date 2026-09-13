@@ -9,6 +9,34 @@ Single-command deploy via `deploy.sh` (Docker + Nginx + SSL).
 SQLite databases: `api_auth.db` (auth/logging), `hd_data.sqlite` (HD reference data).
 Swiss Ephemeris integration for astrological calculations.
 
+## Running tests in a throwaway container
+
+The usual pattern — mount the checkout into the production image and add a
+`--target` directory for dev dependencies — has one trap that cost an evening:
+
+```bash
+docker run --rm --user root -v "$PWD":/w -w /w \
+  -e PYTHONPATH=/w/src:/tmp/pydev -e SE_EPHE_PATH=/w/ephe \
+  humandesign_api-humandesign-api \
+  sh -c 'pip install --quiet --target /tmp/pydev pytest httpx PyYAML \
+         && python -m pytest -q -m "not network"'
+```
+
+Two rules, both load-bearing:
+
+1. **`/w/src` comes first in `PYTHONPATH`.** Put the dev directory first and any
+   library it pulled in shadows the image's own. That is how a run once executed
+   under pydantic 2.13.5 while the image pinned 2.10.4 — and `openapi.yaml`
+   regenerated with three spurious `additionalProperties: true` lines.
+2. **Never install anything into that directory that depends on `pydantic` or
+   `fastapi`.** `openapi-spec-validator` does. Run it in its own container
+   against the finished YAML; it does not need the application.
+
+`openapi.yaml` is a build artefact and is guarded by
+`tests/test_openapi_sync.py`, which regenerates the spec and compares. That test
+runs in the required CI job, so a stale spec cannot reach `main` — provided the
+local run that produced it was not shadowed as above.
+
 ## Architecture
 
 ```

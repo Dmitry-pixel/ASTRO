@@ -15,6 +15,11 @@ tqdm==4.66.5
 fastapi==0.115.6
 uvicorn==0.42.0
 pydantic==2.10.4
+# Pinned explicitly: pydantic-core generates the JSON Schema behind openapi.yaml,
+# and 2.11+ emits `additionalProperties: true` for Dict[str, Any] where 2.10 emits
+# nothing. An unpinned transitive bump would make openapi.yaml drift with no code
+# change. tests/test_openapi_sync.py catches it, but only after the fact.
+pydantic-core==2.27.2
 jinja2==3.1.5
 python-multipart==0.0.18
 
