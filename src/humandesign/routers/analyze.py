@@ -108,12 +108,22 @@ def analyze_team_dynamics(request: TeamDynamicsRequest, authorized: bool = Depen
     Processing, Decision, Execution — plus Integration, the same block that
     `/calculate` and `/v2/calculate` return as `team_dynamics`.
 
+    Two to eighteen participants. `participants` takes a list — ids are assigned
+    positionally `"1"`…`"n"` — or an object whose keys are the caller's own ids.
+    Response order follows request order.
+
     `team_matrix` adds what only a group has: the people × axes matrix, the
-    composition per axis, over-representation of modes and poles against a
-    random draw from the population (exact binomial, p < 0.0025 for a client
-    statement), absence of a mode (evaluated only from 8 participants),
-    descriptive polarisation and bridging — who closes whose split in
-    co-located work.
+    composition per axis, the decision mechanisms, integration, the energy
+    profiles of execution, a majority `team_code`, and bridging — who closes
+    whose split in co-located work, with the channels that carry the closure.
+
+    The layer is **descriptive**: it reports who carries which value and how many
+    participants share it. There are no verdicts on the composition, no absence
+    statements and no probabilities. Removed in model v1.2 and not coming back:
+    over-representation against the population, exact binomial tests,
+    polarisation as a finding, and mean/std of the indices — an average between a
+    structured and an emergent participant is an artefact of averaging an ordinal
+    scale, not a mixed team.
 
     Not a psychological diagnosis and not grounds for hiring decisions.
     """
